@@ -1,0 +1,2943 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>K-Learner｜韓国語ニュース読解・歌詞対訳ナビ (Supabase連動版)</title>
+  <meta name="description" content="韓国の最新ニュースや好きな曲の歌詞で学ぶ、実践的ハングル学習アプリ。SupabaseクラウドDBから歌詞を優先取得・保存可能。" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🇰🇷</text></svg>">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Leaflet CSS for News Location Maps -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <style>
+    :root {
+      --bg: #0b0c14;
+      --s1: #131524;
+      --s2: #1b1e32;
+      --s3: #242842;
+      --bd: #2b3054;
+      --bd-light: rgba(255, 255, 255, 0.08);
+      --tx: #f1f5f9;
+      --tm: #94a3b8;
+      --ac: #00d4aa;
+      --ac-glow: rgba(0, 212, 170, 0.25);
+      --ac2: #8b5cf6;
+      --pink: #ec4899;
+      --blue: #3b82f6;
+      --amber: #f59e0b;
+      --green: #10b981;
+      --red: #ef4444;
+      --supabase: #3ecf8e;
+      --r: 14px;
+      --font-kr: 'Noto Sans KR', sans-serif;
+      --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-head: 'Outfit', sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--tx);
+      font-family: var(--font-ui);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.6;
+      background-image: 
+        radial-gradient(circle at 15% 15%, rgba(0, 212, 170, 0.06) 0%, transparent 40%),
+        radial-gradient(circle at 85% 25%, rgba(139, 92, 246, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 50% 80%, rgba(236, 72, 153, 0.05) 0%, transparent 50%);
+      background-attachment: fixed;
+      padding-bottom: 95px;
+    }
+
+    /* ── HEADER & NAV ── */
+    header {
+      background: rgba(19, 21, 36, 0.9);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--bd);
+      padding: 12px 24px;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+    }
+    .brand-icon {
+      font-size: 1.8rem;
+      filter: drop-shadow(0 2px 8px rgba(0,212,170,0.4));
+    }
+    .brand-title {
+      font-family: var(--font-head);
+      font-size: 1.35rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #00d4aa 0%, #a78bfa 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-fill-color: transparent;
+      letter-spacing: -0.5px;
+    }
+    .brand-sub {
+      font-size: 0.72rem;
+      color: var(--tm);
+      font-weight: 500;
+    }
+
+    .nav-modes {
+      display: flex;
+      background: var(--s2);
+      padding: 4px;
+      border-radius: 30px;
+      border: 1px solid var(--bd);
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+    .nav-btn {
+      padding: 7px 16px;
+      border-radius: 20px;
+      border: none;
+      background: transparent;
+      color: var(--tm);
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .nav-btn.active {
+      background: linear-gradient(135deg, var(--ac), #0ea5e9);
+      color: #000;
+      font-weight: 700;
+      box-shadow: 0 2px 10px rgba(0, 212, 170, 0.35);
+    }
+    .nav-btn.lyrics-mode.active {
+      background: linear-gradient(135deg, #ec4899, #8b5cf6);
+      color: #fff;
+      box-shadow: 0 2px 12px rgba(236, 72, 153, 0.4);
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .control-pill {
+      background: var(--s2);
+      border: 1px solid var(--bd);
+      border-radius: 20px;
+      padding: 5px 12px;
+      font-size: 0.78rem;
+      color: var(--tm);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .control-pill:hover {
+      border-color: var(--ac);
+      color: var(--tx);
+    }
+    .control-pill.active {
+      background: rgba(0, 212, 170, 0.15);
+      border-color: var(--ac);
+      color: var(--ac);
+      font-weight: 600;
+    }
+
+    /* ── MAIN CONTENT CONTAINER ── */
+    main {
+      flex: 1;
+      max-width: 1520px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* ── CATEGORY & QUICK SELECTION HUB ── */
+    .hub-bar {
+      background: var(--s1);
+      border: 1px solid var(--bd);
+      border-radius: var(--r);
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    }
+    .category-filter-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      scrollbar-width: thin;
+      border-bottom: 1px solid var(--bd-light);
+      padding-bottom: 10px;
+    }
+    .cat-btn {
+      background: var(--s2);
+      border: 1px solid var(--bd);
+      padding: 6px 14px;
+      border-radius: 18px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--tm);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .cat-btn:hover {
+      border-color: var(--ac);
+      color: var(--tx);
+      background: var(--s3);
+    }
+    .cat-btn.active {
+      background: rgba(0, 212, 170, 0.18);
+      border-color: var(--ac);
+      color: var(--ac);
+      font-weight: 700;
+    }
+
+    .hub-chips {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding: 4px 0;
+      scrollbar-width: thin;
+    }
+    .hub-chip {
+      background: var(--s2);
+      border: 1px solid var(--bd);
+      padding: 8px 16px;
+      border-radius: 12px;
+      font-size: 0.82rem;
+      color: var(--tx);
+      cursor: pointer;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+    }
+    .hub-chip:hover {
+      border-color: var(--ac);
+      background: var(--s3);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    }
+    .hub-chip.active {
+      background: rgba(0, 212, 170, 0.15);
+      border-color: var(--ac);
+      color: var(--ac);
+      font-weight: 700;
+      box-shadow: 0 0 14px var(--ac-glow);
+    }
+    .hub-chip.lyrics-chip.active {
+      background: rgba(236, 72, 153, 0.15);
+      border-color: var(--pink);
+      color: var(--pink);
+      box-shadow: 0 0 14px rgba(236, 72, 153, 0.35);
+    }
+
+    /* Custom Input Bar */
+    .custom-input-wrap {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .custom-input {
+      flex: 1;
+      min-width: 260px;
+      height: 42px;
+      background: var(--s2);
+      border: 1px solid var(--bd);
+      border-radius: 10px;
+      padding: 0 16px;
+      color: #fff;
+      font-size: 0.88rem;
+      font-family: inherit;
+      outline: none;
+      transition: 0.2s;
+    }
+    .custom-input:focus {
+      border-color: var(--ac);
+      box-shadow: 0 0 12px var(--ac-glow);
+    }
+    .analyze-btn {
+      height: 42px;
+      padding: 0 20px;
+      border-radius: 10px;
+      border: none;
+      background: linear-gradient(135deg, var(--ac), #0ea5e9);
+      color: #000;
+      font-weight: 700;
+      font-size: 0.88rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: transform 0.15s, opacity 0.15s;
+    }
+    .analyze-btn:hover {
+      opacity: 0.9;
+      transform: scale(1.02);
+    }
+
+    .open-paste-modal-btn {
+      height: 42px;
+      padding: 0 16px;
+      border-radius: 10px;
+      border: 1px solid var(--pink);
+      background: rgba(236, 72, 153, 0.15);
+      color: #f472b6;
+      font-weight: 700;
+      font-size: 0.84rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+    .open-paste-modal-btn:hover {
+      background: var(--pink);
+      color: #fff;
+      box-shadow: 0 3px 12px rgba(236, 72, 153, 0.4);
+    }
+
+    /* ── 2-COLUMN LEARNING WORKSPACE ── */
+    .workspace-layout {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 24px;
+      align-items: start;
+    }
+    @media (max-width: 1080px) {
+      .workspace-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* ── LEFT COLUMN: DUAL-LANGUAGE READER ── */
+    .reader-col {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    /* Article Info Banner */
+    .article-meta-card {
+      background: var(--s1);
+      border: 1px solid var(--bd);
+      border-radius: var(--r);
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      position: relative;
+      overflow: hidden;
+    }
+    .article-meta-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; width: 4px; height: 100%;
+      background: linear-gradient(to bottom, var(--ac), var(--ac2));
+    }
+    .article-meta-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .article-tags {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .tag-badge {
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+      background: var(--s2);
+      border: 1px solid var(--bd);
+      color: var(--tm);
+    }
+    .tag-badge.cat-crime { background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.4); color: #f87171; }
+    .tag-badge.cat-politics { background: rgba(59, 130, 246, 0.15); border-color: rgba(59, 130, 246, 0.4); color: #60a5fa; }
+    .tag-badge.cat-warm { background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.4); color: #34d399; }
+    .tag-badge.cat-celeb { background: rgba(236, 72, 153, 0.15); border-color: rgba(236, 72, 153, 0.4); color: #f472b6; }
+    .tag-badge.cat-music { background: rgba(236, 72, 153, 0.18); border-color: rgba(236, 72, 153, 0.45); color: #f472b6; font-weight: 800; }
+    .tag-badge.cat-variety { background: rgba(245, 158, 11, 0.15); border-color: rgba(245, 158, 11, 0.4); color: #fbbf24; }
+    .tag-badge.topik { background: rgba(0, 212, 170, 0.15); border-color: rgba(0, 212, 170, 0.4); color: var(--ac); }
+    .tag-badge.supabase-sync { background: rgba(62, 207, 142, 0.18); border-color: var(--supabase); color: var(--supabase); font-weight: 800; }
+
+    /* 🟢 SPOTIFY & ☁️ SUPABASE ACTION BUTTONS */
+    .spotify-badge-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #1db954;
+      color: #000 !important;
+      font-weight: 800;
+      font-size: 0.8rem;
+      padding: 7px 15px;
+      border-radius: 20px;
+      text-decoration: none;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 3px 12px rgba(29, 185, 84, 0.4);
+      flex-shrink: 0;
+    }
+    .spotify-badge-btn:hover {
+      background: #1ed760;
+      transform: translateY(-2px) scale(1.03);
+      box-shadow: 0 6px 18px rgba(29, 185, 84, 0.6);
+      color: #000 !important;
+    }
+
+    .supabase-save-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: linear-gradient(135deg, rgba(62, 207, 142, 0.2), rgba(0, 212, 170, 0.25));
+      border: 1.5px solid var(--supabase);
+      color: #fff !important;
+      font-weight: 800;
+      font-size: 0.82rem;
+      padding: 7px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 10px rgba(62, 207, 142, 0.3);
+    }
+    .supabase-save-btn:hover {
+      background: var(--supabase);
+      color: #000 !important;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 18px rgba(62, 207, 142, 0.55);
+    }
+
+    .title-row-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .header-actions-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .article-title-ko {
+      font-family: var(--font-kr);
+      font-size: 1.45rem;
+      font-weight: 800;
+      color: #ffffff;
+      line-height: 1.35;
+      user-select: text;
+    }
+    .article-title-ja {
+      font-size: 1.05rem;
+      color: #cbd5e1;
+      font-weight: 600;
+      line-height: 1.4;
+      user-select: text;
+    }
+
+    /* Parallel Sentence Cards */
+    .sentence-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .sentence-card {
+      background: var(--s1);
+      border: 1px solid var(--bd);
+      border-radius: var(--r);
+      padding: 18px 20px;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+    }
+    .sentence-card:hover {
+      border-color: rgba(0, 212, 170, 0.35);
+      box-shadow: 0 4px 18px rgba(0,0,0,0.25);
+    }
+    .sentence-card.active {
+      border-color: var(--ac) !important;
+      background: rgba(0, 212, 170, 0.06) !important;
+      box-shadow: 0 0 24px var(--ac-glow) !important;
+    }
+    .sentence-num {
+      position: absolute;
+      top: 14px;
+      left: 12px;
+      font-size: 0.68rem;
+      font-weight: 800;
+      color: var(--tm);
+      background: var(--s3);
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--bd);
+    }
+    .sentence-content {
+      padding-left: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .sentence-ko {
+      font-family: var(--font-kr);
+      font-size: 1.18rem;
+      font-weight: 600;
+      color: #ffffff;
+      line-height: 1.8;
+      word-break: keep-all;
+      user-select: text;
+    }
+    .clickable-word {
+      display: inline-block;
+      padding: 1px 3px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      position: relative;
+    }
+    .clickable-word:hover {
+      background: rgba(0, 212, 170, 0.2);
+      color: var(--ac);
+      text-decoration: underline;
+      text-underline-offset: 4px;
+    }
+    .active-reading-word {
+      background: linear-gradient(135deg, rgba(0, 212, 170, 0.45), rgba(14, 165, 233, 0.45)) !important;
+      color: #ffffff !important;
+      font-weight: 800 !important;
+      border-radius: 6px;
+      padding: 2px 6px !important;
+      box-shadow: 0 0 16px rgba(0, 212, 170, 0.75), 0 2px 6px rgba(0,0,0,0.3) !important;
+      border-bottom: 2.5px solid #00d4aa !important;
+      transform: scale(1.06);
+    }
+
+    .reading-live-indicator {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      background: rgba(0, 212, 170, 0.15);
+      border: 1px solid var(--ac);
+      border-radius: 20px;
+      padding: 2px 10px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--ac);
+      margin-bottom: 4px;
+      width: fit-content;
+    }
+    .sentence-card.active .reading-live-indicator {
+      display: inline-flex;
+    }
+    .eq-bar {
+      display: inline-block;
+      width: 3px;
+      height: 10px;
+      background: var(--ac);
+      border-radius: 2px;
+      animation: eqWave 0.8s ease-in-out infinite alternate;
+    }
+    .eq-bar.b2 { animation-delay: 0.25s; height: 14px; }
+    .eq-bar.b3 { animation-delay: 0.5s; height: 8px; }
+    @keyframes eqWave {
+      from { height: 4px; }
+      to { height: 14px; }
+    }
+
+    .sentence-rubi {
+      font-size: 0.75rem;
+      color: #a78bfa;
+      margin-bottom: -4px;
+      letter-spacing: 0.5px;
+      user-select: text;
+    }
+    .sentence-ja {
+      font-size: 0.95rem;
+      color: #cbd5e1;
+      line-height: 1.55;
+      padding-top: 6px;
+      border-top: 1px dashed rgba(255, 255, 255, 0.08);
+      user-select: text;
+    }
+
+    /* 🔍 文カード内 クイック単語調べ & コピペバー */
+    .card-lookup-box {
+      margin-top: 10px;
+      background: var(--s2);
+      border: 1px solid var(--bd);
+      border-radius: 10px;
+      padding: 8px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .card-lookup-input-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .input-wrapper-clear {
+      position: relative;
+      flex: 1;
+      display: flex;
+      align-items: center;
+    }
+    .card-lookup-inp {
+      width: 100%;
+      height: 32px;
+      background: var(--s3);
+      border: 1px solid var(--bd);
+      border-radius: 6px;
+      padding: 0 28px 0 10px;
+      color: #fff;
+      font-size: 0.82rem;
+      font-family: var(--font-kr);
+      outline: none;
+    }
+    .card-lookup-inp:focus {
+      border-color: var(--ac);
+    }
+    .input-clear-x {
+      position: absolute;
+      right: 6px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: transparent;
+      border: none;
+      color: var(--tm);
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: 0.2s;
+    }
+    .input-clear-x:hover {
+      color: #f87171;
+      background: rgba(239, 68, 68, 0.15);
+    }
+
+    .card-lookup-result {
+      font-size: 0.82rem;
+      padding: 8px 12px;
+      background: rgba(0, 212, 170, 0.08);
+      border-left: 3px solid var(--ac);
+      border-radius: 0 6px 6px 0;
+      display: none;
+      animation: fadeIn 0.2s ease;
+      position: relative;
+    }
+    .result-close-x {
+      background: transparent;
+      border: none;
+      color: var(--tm);
+      cursor: pointer;
+      font-size: 0.82rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      transition: 0.2s;
+    }
+    .result-close-x:hover {
+      color: #f87171;
+      background: rgba(239, 68, 68, 0.2);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-3px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* 🎛️ 各文カードのアクションバー */
+    .sentence-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 8px;
+      flex-wrap: wrap;
+      gap: 8px;
+      background: rgba(0,0,0,0.15);
+      padding: 6px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--bd-light);
+    }
+    .action-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .action-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .mini-action-btn {
+      font-size: 0.72rem;
+      color: var(--tx);
+      background: var(--s3);
+      border: 1px solid var(--bd);
+      border-radius: 6px;
+      padding: 4px 10px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: 0.2s;
+      font-weight: 500;
+    }
+    .mini-action-btn:hover {
+      color: var(--ac);
+      border-color: var(--ac);
+      background: rgba(0, 212, 170, 0.15);
+    }
+    .mini-action-btn.play-btn-card {
+      color: #000;
+      background: linear-gradient(135deg, var(--ac), #0ea5e9);
+      border-color: var(--ac);
+      font-weight: 700;
+    }
+    .mini-action-btn.play-btn-card:hover {
+      opacity: 0.9;
+      transform: scale(1.02);
+    }
+    .mini-action-btn.pause-btn-card {
+      color: #fbbf24;
+      border-color: #f59e0b;
+      background: rgba(245, 158, 11, 0.15);
+      font-weight: 700;
+    }
+    .mini-action-btn.stop-btn-card {
+      color: #f87171;
+      border-color: #ef4444;
+      background: rgba(239, 68, 68, 0.12);
+    }
+
+    /* ── RIGHT COLUMN: LEARNING & CONTEXT PANELS ── */
+    .sidebar-col {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .panel-card {
+      background: var(--s1);
+      border: 1px solid var(--bd);
+      border-radius: var(--r);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    }
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--bd-light);
+      padding-bottom: 10px;
+    }
+    .panel-title {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* 1. MAP PANEL (GEOGRAPHY) */
+    .map-container {
+      width: 100%;
+      height: 220px;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--bd);
+    }
+    .map-info-box {
+      background: var(--s2);
+      border: 1px solid var(--bd);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 0.82rem;
+      line-height: 1.5;
+    }
+    .map-loc-name {
+      font-weight: 700;
+      color: var(--ac);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+
+    /* 2. LEGAL / INSTITUTION COMPARISON PANEL (制度・法律・罪名の対比) */
+    .compare-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--bd);
+      font-size: 0.82rem;
+    }
+    .compare-table th {
+      background: var(--s3);
+      padding: 8px 12px;
+      font-weight: 700;
+      text-align: left;
+      border-bottom: 1px solid var(--bd);
+    }
+    .compare-table th.kr-th { color: #60a5fa; border-right: 1px solid var(--bd); }
+    .compare-table th.jp-th { color: #f87171; }
+    .compare-table td {
+      background: var(--s2);
+      padding: 10px 12px;
+      vertical-align: top;
+      line-height: 1.5;
+    }
+    .compare-table td:first-child {
+      border-right: 1px solid var(--bd);
+    }
+    .law-badge {
+      display: inline-block;
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-bottom: 4px;
+    }
+    .law-badge.kr { background: rgba(96, 165, 250, 0.2); color: #93c5fd; }
+    .law-badge.jp { background: rgba(248, 113, 113, 0.2); color: #fca5a5; }
+
+    /* 3. VOCABULARY LIST */
+    .vocab-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 380px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .vocab-item {
+      background: var(--s2);
+      border: 1px solid var(--bd);
+      border-radius: 8px;
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      transition: 0.2s;
+    }
+    .vocab-item:hover {
+      border-color: var(--ac);
+      background: var(--s3);
+    }
+    .vocab-main {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .vocab-word-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .vocab-word {
+      font-family: var(--font-kr);
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    .vocab-hanja {
+      font-size: 0.72rem;
+      color: var(--tm);
+    }
+    .vocab-pos {
+      font-size: 0.65rem;
+      color: var(--ac2);
+      font-weight: 600;
+    }
+    .vocab-meaning {
+      font-size: 0.8rem;
+      color: #cbd5e1;
+    }
+    .vocab-save-btn {
+      background: transparent;
+      border: 1px solid var(--bd);
+      color: var(--tm);
+      border-radius: 6px;
+      padding: 4px 8px;
+      cursor: pointer;
+      font-size: 0.75rem;
+      transition: 0.2s;
+      flex-shrink: 0;
+    }
+    .vocab-save-btn:hover, .vocab-save-btn.saved {
+      color: #fbbf24;
+      border-color: #fbbf24;
+      background: rgba(251, 191, 36, 0.1);
+    }
+
+    /* 4. GRAMMAR & COLLOQUIAL EXPRESSIONS */
+    .grammar-item {
+      background: var(--s2);
+      border-left: 3px solid var(--ac2);
+      border-radius: 0 8px 8px 0;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      font-size: 0.82rem;
+    }
+    .grammar-pattern {
+      font-family: var(--font-kr);
+      font-weight: 700;
+      color: #c084fc;
+      font-size: 0.9rem;
+      margin-bottom: 2px;
+    }
+    .grammar-desc {
+      color: #e2e8f0;
+      line-height: 1.45;
+    }
+
+    /* ── FLOATING SMART AUDIO PLAYER TOOLBAR ── */
+    .floating-audio-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: rgba(19, 21, 36, 0.95);
+      backdrop-filter: blur(18px);
+      border-top: 1px solid var(--bd);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 1500;
+      box-shadow: 0 -4px 25px rgba(0,0,0,0.4);
+      gap: 16px;
+    }
+    .player-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 280px;
+    }
+    .player-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 320px;
+    }
+    .player-progress-badge {
+      font-size: 0.72rem;
+      color: var(--ac);
+      background: rgba(0,212,170,0.12);
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-weight: 700;
+      border: 1px solid rgba(0,212,170,0.3);
+    }
+    .player-controls-center {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .player-btn {
+      background: var(--s2);
+      border: 1px solid var(--bd);
+      color: var(--tx);
+      border-radius: 50%;
+      width: 38px;
+      height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: all 0.2s;
+    }
+    .player-btn:hover {
+      border-color: var(--ac);
+      color: var(--ac);
+      transform: scale(1.08);
+    }
+    .player-btn.play-main {
+      width: 46px;
+      height: 46px;
+      background: linear-gradient(135deg, var(--ac), #0ea5e9);
+      border: none;
+      color: #000;
+      font-weight: 800;
+      font-size: 1.15rem;
+      box-shadow: 0 4px 15px rgba(0,212,170,0.4);
+    }
+    .player-btn.play-main:hover {
+      transform: scale(1.06);
+    }
+    .player-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* ── WORDBOOK TAB ── */
+    #wordbook-view {
+      display: none;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .wb-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .wb-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+    .flashcard {
+      background: var(--s1);
+      border: 1px solid var(--bd);
+      border-radius: var(--r);
+      padding: 20px;
+      min-height: 150px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      position: relative;
+    }
+    .flashcard:hover {
+      border-color: var(--ac);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    }
+    .flashcard-word {
+      font-family: var(--font-kr);
+      font-size: 1.3rem;
+      font-weight: 800;
+      color: #fff;
+    }
+    .flashcard-meaning {
+      font-size: 0.95rem;
+      color: var(--ac);
+      font-weight: 600;
+      margin-top: 6px;
+    }
+    .flashcard-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 14px;
+      font-size: 0.75rem;
+      color: var(--tm);
+    }
+
+    /* ── LYRICS IMPORT MODAL ── */
+    .modal-backdrop {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(8px);
+      z-index: 3000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-card {
+      background: var(--s1);
+      border: 1.5px solid var(--bd);
+      border-radius: var(--r);
+      max-width: 680px;
+      width: 100%;
+      padding: 26px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+      animation: modalSlide 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    @keyframes modalSlide {
+      from { opacity: 0; transform: scale(0.96) translateY(10px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--bd-light);
+      padding-bottom: 12px;
+    }
+    .modal-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .modal-close-btn {
+      background: transparent;
+      border: none;
+      color: var(--tm);
+      font-size: 1.2rem;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .modal-close-btn:hover { color: #f87171; }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .form-label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--tx);
+    }
+    .form-input {
+      background: var(--s2);
+      border: 1px solid var(--bd);
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: #fff;
+      font-family: inherit;
+      font-size: 0.88rem;
+      outline: none;
+    }
+    .form-input:focus { border-color: var(--ac); }
+    .form-textarea {
+      background: var(--s2);
+      border: 1px solid var(--bd);
+      border-radius: 8px;
+      padding: 12px 14px;
+      color: #fff;
+      font-family: var(--font-kr);
+      font-size: 0.92rem;
+      line-height: 1.6;
+      height: 180px;
+      resize: vertical;
+      outline: none;
+    }
+    .form-textarea:focus { border-color: var(--ac); }
+
+    /* ── TOAST NOTIFICATION ── */
+    .toast {
+      position: fixed;
+      bottom: 105px;
+      right: 24px;
+      background: #10b981;
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      display: none;
+      z-index: 4000;
+      animation: slideUp 0.3s ease;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- ── HEADER ── -->
+  <header>
+    <div class="brand" onclick="switchMainTab('news')">
+      <span class="brand-icon">🇰🇷</span>
+      <div>
+        <div class="brand-title">K-Learner</div>
+        <div class="brand-sub">韓国語ニュース読解・歌詞対訳ナビ</div>
+      </div>
+    </div>
+
+    <!-- Mode Selector -->
+    <div class="nav-modes">
+      <button class="nav-btn active" id="tab-btn-news" onclick="switchMainTab('news')">
+        📰 ニュース読解
+      </button>
+      <button class="nav-btn lyrics-mode" id="tab-btn-lyrics" onclick="switchMainTab('lyrics')">
+        🎵 歌詞対訳 (K-POP & OST)
+      </button>
+      <button class="nav-btn" id="tab-btn-wordbook" onclick="switchMainTab('wordbook')">
+        📚 マイ単語帳 (<span id="wb-count">0</span>)
+      </button>
+    </div>
+
+    <!-- Controls -->
+    <div class="header-controls">
+      <div class="control-pill" id="rubi-toggle" onclick="toggleRubi()" title="カタカナ発音ルビの表示切り替え">
+        🔤 ルビ: <span id="rubi-status">OFF</span>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- ── 1. CATEGORY & NEWS/LYRICS SELECTION HUB ── -->
+    <section class="hub-bar" id="news-hub-bar">
+      <div class="category-filter-row" id="category-filter-bar">
+        <button class="cat-btn active" onclick="filterCategory('all', this)">🌐 すべて</button>
+        <button class="cat-btn" onclick="filterCategory('crime', this)">🚔 事件・司法</button>
+        <button class="cat-btn" onclick="filterCategory('politics', this)">🏛️ 政治・社会</button>
+        <button class="cat-btn" onclick="filterCategory('warm', this)">🐱 ほっこり・動物・美談</button>
+        <button class="cat-btn" onclick="filterCategory('celeb', this)">🎬 芸能・アーティスト</button>
+        <button class="cat-btn" onclick="filterCategory('variety', this)">🎭 バラエティ・文化</button>
+      </div>
+
+      <div class="hub-chips" id="hub-chip-container">
+        <!-- Populated dynamically (Supabase tracks prepended) -->
+      </div>
+
+      <!-- Custom Search / Input Form -->
+      <div class="custom-input-wrap">
+        <input type="text" id="custom-search-input" class="custom-input" placeholder="曲名（例: AKMU, 김나영, G-DRAGON）やニュースのキーワードを入力..." />
+        <button class="analyze-btn" onclick="handleCustomAnalyze()">
+          ⚡ 解析して学習
+        </button>
+        <button class="open-paste-modal-btn" id="open-paste-btn" onclick="openPasteModal()" style="display:none;" title="ハングル歌詞をコピペしてSupabaseに新規登録">
+          ➕ 歌詞をコピペ登録
+        </button>
+      </div>
+    </section>
+
+    <!-- ── 2. WORKSPACE: READER + LEARNING SIDEBAR (NEWS / LYRICS) ── -->
+    <section class="workspace-layout" id="workspace-view">
+      
+      <!-- LEFT: DUAL-LANGUAGE PARALLEL READER -->
+      <div class="reader-col">
+        <!-- Article / Song Header Card -->
+        <div class="article-meta-card">
+          <div class="article-meta-top">
+            <div class="article-tags" id="article-tags">
+              <span class="tag-badge cat-crime" id="badge-cat">事件・司法</span>
+              <span class="tag-badge topik" id="badge-level">TOPIK 4級</span>
+              <span class="tag-badge" id="badge-source">聯合ニュース (実在報道)</span>
+              <span class="tag-badge supabase-sync" id="badge-supabase" style="display:none;">☁️ Supabase同期済</span>
+            </div>
+            
+            <div style="font-size: 0.78rem; color: var(--tm);" id="article-date">2026.08.21</div>
+          </div>
+
+          <!-- 🎵 タイトル行（右側にSpotifyリンクボタン & Supabase保存ボタンを配置） -->
+          <div class="title-row-wrap">
+            <div class="article-title-ko" id="article-title-ko">서울 강남 귀금속점 특수강도 사건 발생… 피의자 긴급 체포</div>
+            
+            <div class="header-actions-right">
+              <!-- ☁️ Supabaseへ保存ボタン（歌詞モード時） -->
+              <button id="save-to-supabase-btn" class="supabase-save-btn" onclick="saveCurrentSongToSupabase()" style="display:none;" title="この曲の歌詞とプレビュー音源・ジャケットをSupabaseへ保存">
+                ☁️ Supabaseに保存
+              </button>
+
+              <!-- 🟢 Spotifyリンクボタン -->
+              <a id="header-spotify-btn" href="#" target="_blank" rel="noopener noreferrer" class="spotify-badge-btn" style="display:none;" title="Spotifyで原曲を開く">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.485 17.307c-.215.353-.674.464-1.026.248-2.812-1.718-6.353-2.107-10.525-1.155-.403.093-.807-.156-.9-.558-.093-.403.156-.808.559-.9 4.568-1.042 8.484-.598 11.644 1.339.352.215.463.673.248 1.026zm1.464-3.253c-.27.44-.848.579-1.288.309-3.218-1.978-8.124-2.55-11.93-1.393-.497.15-1.027-.133-1.177-.63-.15-.497.133-1.027.63-1.177 4.354-1.321 9.774-.68 13.456 1.583.44.27.579.848.309 1.308zm.126-3.395C15.228 8.358 8.887 8.148 5.176 9.275c-.59.18-1.21-.16-1.39-.75-.18-.59.16-1.21.75-1.39 4.258-1.293 11.267-1.045 15.696 1.585.53.315.704 1.002.39 1.53-.315.53-1.002.705-1.547.39z"/></svg>
+                <span>Spotifyで聴く ↗</span>
+              </a>
+            </div>
+          </div>
+
+          <div class="article-title-ja" id="article-title-ja">ソウル江南の貴金属店で特殊強盗事件発生… 被疑者を緊急逮捕</div>
+        </div>
+
+        <!-- Sentence-by-Sentence List -->
+        <div class="sentence-list" id="sentence-container">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <!-- RIGHT: GEOGRAPHY, LEGAL COMPARISON & VOCABULARY -->
+      <div class="sidebar-col">
+        
+        <!-- 🗺️ 1. ニュースの舞台マップ (地理の勉強) [ニュースモード時] -->
+        <div class="panel-card" id="map-panel">
+          <div class="panel-header">
+            <div class="panel-title"><span>🗺️</span> ニュース・MVの舞台マップ</div>
+            <span style="font-size:0.75rem; color:var(--ac); font-weight:700;">ここですよ！📍</span>
+          </div>
+          <div id="leaflet-map" class="map-container"></div>
+          <div class="map-info-box" id="map-info-text">
+            <div class="map-loc-name">📍 ソウル特別市</div>
+            <div>情緒あふれる風景とともに韓国語を学習できます。</div>
+          </div>
+        </div>
+
+        <!-- ⚖️ 2. 日韓 法律・制度・罪名の比較 (制度の勉強) [ニュースモード時] -->
+        <div class="panel-card" id="legal-panel">
+          <div class="panel-header">
+            <div class="panel-title"><span>⚖️</span> 日韓の法律・制度・罪名比較</div>
+          </div>
+          <table class="compare-table">
+            <thead>
+              <tr>
+                <th class="kr-th">🇰🇷 韓国の法律・制度</th>
+                <th class="jp-th">🇯🇵 日本の法律・制度</th>
+              </tr>
+            </thead>
+            <tbody id="legal-compare-body">
+              <!-- Dynamically Populated -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 💬 3. 歌詞特有の口語・感情・比喩表現 [歌詞モード時] -->
+        <div class="panel-card" id="lyrics-panel" style="display:none;">
+          <div class="panel-header">
+            <div class="panel-title"><span>💬</span> 歌詞の口語・感情・比喩表現解説</div>
+          </div>
+          <div id="lyrics-notes-container">
+            <!-- Dynamically Populated -->
+          </div>
+        </div>
+
+        <!-- 💡 4. 重要語彙・キーワード -->
+        <div class="panel-card">
+          <div class="panel-header">
+            <div class="panel-title"><span>💡</span> 重要語彙・キーワード (<span id="vocab-count">0</span>)</div>
+          </div>
+          <div class="vocab-list" id="vocab-container">
+            <!-- Dynamically Populated -->
+          </div>
+        </div>
+
+        <!-- 📖 5. 文法・表現パターン -->
+        <div class="panel-card">
+          <div class="panel-header">
+            <div class="panel-title"><span>📖</span> ニュース・表現文法ポイント</div>
+          </div>
+          <div id="grammar-container">
+            <!-- Dynamically Populated -->
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ── 3. WORDBOOK TAB VIEW ── -->
+    <section id="wordbook-view">
+      <div class="wb-controls">
+        <h2 style="font-size:1.3rem; font-weight:800; color:#fff;">📚 マイ単語帳 & フラッシュカード</h2>
+        <div style="display:flex; gap:8px;">
+          <button class="mini-action-btn" onclick="clearWordbook()" style="color:#f87171;">🗑️ 全てクリア</button>
+        </div>
+      </div>
+      <div class="wb-grid" id="wb-grid-container">
+        <!-- Populated from LocalStorage -->
+      </div>
+    </section>
+  </main>
+
+  <!-- ── MODAL: 歌詞コピペ新規登録 ── -->
+  <div class="modal-backdrop" id="paste-lyrics-modal" onclick="if(event.target===this) closePasteModal()">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">🎵 ハングル歌詞のコピペ登録 & Supabase保存</div>
+        <button class="modal-close-btn" onclick="closePasteModal()">✕</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label">曲名 (韓国語 / 日本語)</label>
+        <input type="text" id="modal-song-title" class="form-input" placeholder="例: 봄날 (Spring Day)" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">アーティスト名</label>
+        <input type="text" id="modal-song-artist" class="form-input" placeholder="例: BTS (방탄소년단)" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">ハングル歌詞 (改行区切りでそのまま貼り付け)</label>
+        <textarea id="modal-song-lyrics" class="form-textarea" placeholder="보고 싶다 이렇게 말하니까 더 보고 싶다&#10;너희 사진을 보고 있어도 보고 싶다..."></textarea>
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:8px;">
+        <button class="mini-action-btn" onclick="closePasteModal()">キャンセル</button>
+        <button class="analyze-btn" onclick="processPastedLyricsAndSave()">⚡ 1文ずつ分解してSupabaseに保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── FLOATING SMART AUDIO PLAYER TOOLBAR ── -->
+  <div class="floating-audio-bar" id="audio-toolbar">
+    <div class="player-left">
+      <span class="player-progress-badge" id="player-status-badge">文 1 / 14</span>
+      <div class="player-title" id="player-now-text">再生準備完了（各文または下のボタンで操作）</div>
+    </div>
+
+    <div class="player-controls-center">
+      <button class="player-btn" onclick="playPrevSentence()" title="前の文へ (⏮)">⏮</button>
+      <button class="player-btn play-main" id="player-play-btn" onclick="togglePlayPause()" title="再生 / 一時停止 (Space)">▶</button>
+      <button class="player-btn" onclick="stopSpeech()" title="停止 (⏹)">⏹</button>
+      <button class="player-btn" onclick="playNextSentence()" title="次の文へ (⏭)">⏭</button>
+      <button class="player-btn" id="repeat-btn" onclick="toggleRepeatSingle()" title="1文リピート切り替え" style="font-size:0.8rem;">🔁</button>
+    </div>
+
+    <div class="player-right">
+      <span style="font-size:0.75rem; color:var(--tm);">再生速度:</span>
+      <select id="speech-speed" class="speed-select" onchange="updateSpeed()">
+        <option value="0.8">0.8x (ゆっくり)</option>
+        <option value="1.0" selected>1.0x (標準)</option>
+        <option value="1.2">1.2x (速め)</option>
+        <option value="1.5">1.5x (倍速)</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toast-msg">単語帳に追加しました！ ⭐</div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+    // ── SUPABASE CONFIGURATION (PlaceInfo 連携) ──
+    const SUPABASE_URL = 'https://uvjpiuinsgklddzhzpio.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_iW0cu7wjxn_rKjAd1O5Prg_tmecdAkX';
+
+    // ── KOREAN DICTIONARY & PARTICLE RESOLVER ──
+    const BUILTIN_DICT = {
+      '꽃잎': { hanja: '―', pos: '名詞', meaning: '花びら (꽃잎이 날리다 = 花びらが舞う)', level: '初級' },
+      '찬란한': { hanja: '燦爛―', pos: '形容詞', meaning: '眩しい・煌びやかな・輝かしい', level: 'TOPIK 5級' },
+      '봄날': { hanja: '―', pos: '名詞', meaning: '春の日・うららかな日', level: '初級' },
+      '미풍': { hanja: '微風', pos: '名詞', meaning: '微風・そよ風', level: '中級' },
+      '손가락': { hanja: '―', pos: '名詞', meaning: '指', level: '初級' },
+      '사이사이로': { hanja: '―', pos: '副詞', meaning: '隙間を通り・合間をぬって', level: '中級' },
+      '들뜨게': { hanja: '―', pos: '動詞', meaning: '心をときめかせる・浮き立たせる (들뜨다)', level: 'TOPIK 4級' },
+      '세월': { hanja: '歲月', pos: '名詞', meaning: '歳月・年月', level: '中級' },
+      '쉴새 없이': { hanja: '―', pos: '連語・副詞', meaning: '休む間もなく・ひっきりなしに', level: 'TOPIK 3級' },
+      '첫사랑': { hanja: '初―', pos: '名詞', meaning: '初恋', level: '初級' },
+      '아련한': { hanja: '―', pos: '形容詞', meaning: 'おぼろげな・かすかな (아련하다)', level: 'TOPIK 4級' },
+      '추억': { hanja: '追憶', pos: '名詞', meaning: '思い出・追憶', level: '初級' },
+      '세상': { hanja: '世上', pos: '名詞', meaning: '世界・世の中', level: '初級' },
+      '중심': { hanja: '中心', pos: '名詞', meaning: '中心・真ん中', level: '初級' },
+      '휘파람': { hanja: '―', pos: '名詞', meaning: '口笛 (휘파람을 불다)', level: 'TOPIK 3級' },
+      '박혀': { hanja: '―', pos: '動詞', meaning: '刻まれて・刺さって (박히다)', level: 'TOPIK 4級' },
+      '버릇처럼': { hanja: '―', pos: '副詞', meaning: '癖のように・無意識に', level: 'TOPIK 3級' },
+      '지독히도': { hanja: '至毒―', pos: '副詞', meaning: 'ひどく・凄まじく', level: 'TOPIK 4級' },
+      '괴롭던': { hanja: '―', pos: '形容詞', meaning: '苦しかった・辛かった (괴롭다)', level: '中級' },
+      '선율': { hanja: '旋律', pos: '名詞', meaning: '旋律・メロディ', level: '中級' },
+      '전부': { hanja: '全部', pos: '名詞', meaning: '全部・すべて', level: '初級' },
+      '고마워': { hanja: '―', pos: '形容詞', meaning: 'ありがとう・感謝している', level: '初級' },
+      '잔인한': { hanja: '殘忍―', pos: '形容詞', meaning: '残酷な・無情な', level: '中級' },
+      '그리움': { hanja: '―', pos: '名詞', meaning: '恋しさ・憧れ・懐かしさ', level: 'TOPIK 3級' },
+      '선물': { hanja: '膳物', pos: '名詞', meaning: '贈り物・プレゼント', level: '初級' },
+      '일부러': { hanja: '―', pos: '副詞', meaning: 'わざと・意図的に', level: 'TOPIK 3級' },
+      '물러나': { hanja: '―', pos: '動詞', meaning: '身を引いて・後退して (물러나다)', level: 'TOPIK 4級' },
+      '허전한': { hanja: '―', pos: '形容詞', meaning: '物足りない・ぽっかり空いた (허전하다)', level: 'TOPIK 4級' },
+      '차오르고': { hanja: '―', pos: '動詞', meaning: '満ちてきて・こみ上げて (차오르다)', level: 'TOPIK 4級' },
+      '마르다': { hanja: '―', pos: '動詞', meaning: '干上がる・渇く・枯れる', level: 'TOPIK 3級' },
+      '침묵': { hanja: '沈默', pos: '名詞', meaning: '沈黙・静けさ', level: 'TOPIK 4級' },
+      '니가': { hanja: '―', pos: '代名詞+助詞', meaning: 'お前が・君が (네가のくだけた口語形)', level: '日常口語' },
+      '뭔데': { hanja: '―', pos: '疑問詞+語尾', meaning: '何なんだ・何様のつもり？ (무엇인데の短縮)', level: '日常口語' },
+      '마음': { hanja: '―', pos: '名詞', meaning: '心・気持ち', level: '初級' },
+      '축하해': { hanja: '祝賀―', pos: '動詞', meaning: 'おめでとう・祝うよ', level: '初級' },
+      '그새': { hanja: '―', pos: '副詞', meaning: 'その間に・いつの間にか', level: '中級' },
+      '찌질해': { hanja: '―', pos: '形容詞(スラング)', meaning: 'ダサい・情けない・女々しい', level: '若者言葉' }
+    };
+
+    const PARTICLES = [
+      { p: '에서는', desc: '〜では（場所強調）' },
+      { p: '에서', desc: '〜で・〜から（場所）' },
+      { p: '으로', desc: '〜へ・〜で（手段）' },
+      { p: '로', desc: '〜へ・〜で（手段）' },
+      { p: '에게', desc: '〜に（人）' },
+      { p: '에', desc: '〜に・〜へ' },
+      { p: '은', desc: '〜は（パッチム有）' },
+      { p: '는', desc: '〜は（パッチム無）' },
+      { p: '이', desc: '〜が（パッチム有）' },
+      { p: '가', desc: '〜が（パッチム無）' },
+      { p: '을', desc: '〜を（パッチム有）' },
+      { p: '를', desc: '〜を（パッチム無）' },
+      { p: '의', desc: '〜の' },
+      { p: '과', desc: '〜と' },
+      { p: '와', desc: '〜と' },
+      { p: '도', desc: '〜も' },
+      { p: '만', desc: '〜だけ' },
+      { p: '처럼', desc: '〜のように' },
+      { p: '마저', desc: '〜までも・〜さえも' }
+    ];
+
+    function lookupKoreanWord(rawQuery) {
+      if (!rawQuery) return null;
+      let q = rawQuery.trim().replace(/[.,!?'"()…]/g, '');
+      if (!q) return null;
+
+      if (q.includes(' ')) {
+        const words = q.split(/\s+/);
+        const subItems = words.map(w => lookupKoreanWord(w)).filter(Boolean);
+        return {
+          base: q,
+          hanja: '',
+          pos: 'フレーズ・連語',
+          meaning: subItems.map(s => `【${s.base}】${s.meaning}`).join(' ➔ '),
+          level: '連語',
+          particle: ''
+        };
+      }
+
+      if (BUILTIN_DICT[q]) {
+        return { base: q, ...BUILTIN_DICT[q], particle: '' };
+      }
+
+      for (const item of PARTICLES) {
+        if (q.endsWith(item.p) && q.length > item.p.length) {
+          const stem = q.slice(0, -item.p.length);
+          if (BUILTIN_DICT[stem]) {
+            return {
+              base: stem,
+              ...BUILTIN_DICT[stem],
+              particle: ` + 「${item.p}」(${item.desc})`
+            };
+          }
+        }
+      }
+
+      if (q.endsWith('었던') || q.endsWith('았던')) {
+        const root = q.replace(/었던$|았던$/, '다');
+        if (BUILTIN_DICT[root]) return { base: root, ...BUILTIN_DICT[root], particle: ' (過去連体形: 〜していた)' };
+      }
+
+      return {
+        base: q,
+        hanja: '',
+        pos: '単語・文節',
+        meaning: `「${q}」の表現（クリックで発音可能）`,
+        level: '語彙',
+        particle: ''
+      };
+    }
+
+    // ── DATABASE ──
+    const SAMPLE_DATABASE = {
+      news: [
+        {
+          id: 'news-1',
+          category_type: 'crime',
+          title_ko: '서울 강남 귀금속점 특수강도 사건 발생… 피의자 긴급 체포',
+          title_ja: 'ソウル江南の貴金属店で特殊強盗事件発生… 被疑者を緊急逮捕',
+          category: '🚔 事件・司法',
+          cat_class: 'cat-crime',
+          level: 'TOPIK 4級',
+          source: '聯合ニュース (実在報道)',
+          date: '2026.08.21',
+          location: {
+            name: 'ソウル特別市 江南区 新沙洞 (カロスキル周辺)',
+            lat: 37.5209,
+            lng: 127.0227,
+            desc: '韓国屈指のトレンド発信地で高級ブランド店や貴金属店が集積するエリア。ソウル中心部から漢江を渡った南東部に位置します。'
+          },
+          legal: [
+            {
+              kr_badge: '特殊強盗罪 (刑法第334条)',
+              kr_desc: '凶器を携帯したり、夜間に住居に侵入して強盗を行った場合に適用。法定刑は【無期または5年以上の懲役】。',
+              jp_badge: '強盗罪・加重強盗',
+              jp_desc: '日本刑法では強盗罪（第236条、5年以上の有期懲役）。住居侵入強盗や凶器携帯は量刑上大幅に加重処罰される。'
+            }
+          ],
+          sentences: [
+            {
+              ko: '서울 강남경찰서는 21일 대낮에 귀금속점에 침입해 수억 원 상당의 금품을 훔쳐 달아난 혐의로 30대 남성 A씨를 긴급체포했다고 밝혔다.',
+              rubi: 'ソウル カンナムギョンチャルソヌン イシビルイル テナジェ クィグムソクチョメ チミペ スオンウォン サンダンエ クムプムル フムチョ タラナン ヒョムィロ サムシプテ ナムソン エイシルル キングプチエポヘッタゴ ピョルヒョッタ',
+              ja: 'ソウル江南警察署は21日、白昼に貴金属店に侵入し数億ウォン相当の金品を盗んで逃走した疑いで、30代の男A氏を緊急逮捕したと明らかにした。'
+            },
+            {
+              ko: '경찰에 따르면 A씨는 흉기로 점원을 위협한 뒤 진열대에 있던 귀금속 30여 점을 가방에 담아 오토바이를 타고 도주했다.',
+              rubi: 'キョンチャレ タルミョン エイシヌン ヒュンキロ チョムウォヌル ウィヒョパン トィ チニョルテエ イットン クィグムソク サムシプヨチョムル カバンエ タマ オトバイルル タゴ トジュヘッタ',
+              ja: '警察によると、A氏は凶器で店員を脅迫した後、ショーケースにあった貴金属約30点をバッグに詰めてバイクに乗って逃走した。'
+            },
+            {
+              ko: '경찰은 인근 폐쇄회로(CC)TV 영상 분석을 통해 도주 경로를 신속히 추적하여 범행 3시간 만에 경기도 안산에서 A씨를 검거했다.',
+              rubi: 'キョンチャルン イングン ピェスィフェロ シーシーティービー ヨンサン プンソグル トンヘ トジュ キョンロルル シンソキ チュジョケ ポメン セシガンマネ キョンギド アンサネソ エイシルル コムゴヘッタ',
+              ja: '警察は近隣の防犯カメラ（CCTV）映像の分析を通じて逃走経路を迅速に追跡し、犯行からわずか3時間で京畿道安山市にてA氏を検挙した。'
+            }
+          ],
+          vocab: [
+            { word: '귀금속점', hanja: '貴金屬店', pos: '名詞', meaning: '貴金属店・宝石店', level: 'TOPIK 4級' },
+            { word: '특수강도', hanja: '特殊強盜', pos: '名詞', meaning: '特殊強盗（凶器所持強盗）', level: 'TOPIK 5級' },
+            { word: '긴급체포', hanja: '緊急逮捕', pos: '名詞', meaning: '緊急逮捕', level: 'TOPIK 4級' }
+          ],
+          grammar: [
+            { pattern: '~에 따르면', meaning: '〜によると', desc: '情報源を示す表現。' }
+          ]
+        },
+        {
+          id: 'news-2',
+          category_type: 'warm',
+          title_ko: '제주 바다 해녀들과 교감하는 남방큰돌고래… 따뜻한 공존 화제',
+          title_ja: '済州の海で海女たちと心を通わせるミナミハンドウイルカ… 温かい共生が話題に',
+          category: '🐱 ほっこり・動物・美談',
+          cat_class: 'cat-warm',
+          level: 'TOPIK 3級',
+          source: 'SBSニュース (実在報道)',
+          date: '2026.08.18',
+          location: {
+            name: '済州特別自治道 西帰浦市 大静邑 (テジョンウプ)',
+            lat: 33.2266,
+            lng: 126.2520,
+            desc: '韓国最南端の済州島西南部。美しいエメラルドグリーンの海が広がり、野生イルカの生息地として知られる穏やかな漁村です。'
+          },
+          legal: [
+            {
+              kr_badge: '海洋生態系保全法',
+              kr_desc: '済州イルカを海洋保護生物に指定。',
+              jp_badge: '鳥獣保護法',
+              jp_desc: '日本でも特定海洋哺乳類の捕獲規制が行われている。'
+            }
+          ],
+          sentences: [
+            {
+              ko: '제주 서귀포시 대정읍 앞바다에서 물질을 하던 해녀들 곁으로 야생 남방큰돌고래 무리가 다가와 평화롭게 유영하는 모습이 포착됐다.',
+              rubi: 'チェジュ ソグィポシ テジョンウプ アプパダエソ ムルチラドゥン ヘニョドゥル キョトゥロ ヤセン ナムバンクンドルゴレ ムリガ タガワ ピョンファロプケ ユヨンハヌン モスビ ポチャクテッタ',
+              ja: '済州・西帰浦市大静邑の沖合で素潜り漁をしていた海女たちのそばへ、野生のミナミハンドウイルカの群れが近づき穏やかに泳ぐ姿が捉えられた。'
+            }
+          ],
+          vocab: [
+            { word: '해녀', hanja: '海女', pos: '名詞', meaning: '海女', level: 'TOPIK 3級' },
+            { word: '물질', hanja: '―', pos: '名詞', meaning: '素潜り漁', level: 'TOPIK 4級' }
+          ],
+          grammar: [
+            { pattern: '~(으)며', meaning: '〜しながら', desc: '並列表現。' }
+          ]
+        }
+      ],
+      lyrics: [
+        {
+          id: 'lyrics-akmu-how-can-i-love',
+          title_ko: '어떻게 이별까지 사랑하겠어, 널 사랑하는 거지 - AKMU',
+          title_ja: 'どうして別れまで愛せようか、君を愛してるだけなのに (How can I love the heartbreak, you\'re the one I love)',
+          artist: 'AKMU (악뮤 / 楽童ミュージシャン)',
+          category: 'K-POP 伝説の名バラード',
+          cat_class: 'cat-music',
+          level: 'TOPIK 4〜5級 (詩的・叙情表現)',
+          source: 'AKMU 3rd Full Album『항해 (SAILING)』',
+          date: '2019.09.25',
+          is_supabase: true,
+          spotify_url: 'https://open.spotify.com/search/%EC%96%B4%EB%96%BB%EA%B2%8C%20%EC%9D%B4%EB%B3%84%EA%B9%8C%EC%A7%80%20%EC%82%AC%EB%9E%91%ED%95%98%EA%B2%A0%EC%96%B4',
+          location: {
+            name: '江原道 江陵市 正東津 (チョンドンジン海岸)',
+            lat: 37.6917,
+            lng: 129.0328,
+            desc: 'AKMUの3集アルバム『SAILING（航海）』の海や旅情を象徴する、韓国屈指の美しい日の出と青い波が広がる海岸です。'
+          },
+          sentences: [
+            {
+              ko: '일부러 몇 발자국 물러나 내가 없이 혼자 걷는 널 바라본다',
+              rubi: 'イルブレ ミョッ パルチャグッ ムルロナ ネガ オプシ ホンジャ コンヌン ノル パラボンダ',
+              ja: 'わざと数歩うしろに下がって 僕のいないまま一人で歩く君を見つめる'
+            },
+            {
+              ko: '옆자리 허전한 너의 풍경 흑백 거리 가운데 넌 뒤돌아본다',
+              rubi: 'ヨプチャリ ホジョナン ノエ プンギョン フクペク コリ カウンデ ノン トィドラボンダ',
+              ja: '隣の席がぽっかり空いた君の風景 白黒の街の真ん中で君は振り返る'
+            },
+            {
+              ko: '그때 알았어 그때 몰랐던 것들을 네가 없이 나를 바라보는 게 싫었어',
+              rubi: 'クッテ アラッソ クッテ モルラットン ゴットゥルル ネガ オプシ ナルル パラボヌン ゲ シロッソ',
+              ja: 'あの時気づいたんだ あの時知らなかったことを 君なしで自分を見つめるのが嫌だったんだ'
+            },
+            {
+              ko: '그때 알았어 나를 쳐다보는 눈빛 속에 이미 이별이 차오르고 있었다는 걸',
+              rubi: 'クッテ アラッソ ナルル チョダボヌン ヌンピッ ソゲ イミ イビョリ チャオルゴ イッソッタヌン ゴル',
+              ja: 'あの時分かったんだ 僕を見つめる瞳の中に すでに別れが満ちあふれていたことを'
+            },
+            {
+              ko: '어떻게 내가 어떻게 너를 이후에 우리 바다처럼 깊은 사랑이 다 마를 때까지 기다리는 게 이별일 텐데',
+              rubi: 'オットッケ ネガ オットッケ ノルル イフエ ウリ パダチョロム キプン サランイ タ マルル ッテッカジ キダリヌン ゲ イビョリル テンデ',
+              ja: 'どうして僕が どうして君を手放せようか 僕たちの海のように深い愛がすべて干からびるまで待ち続けることこそが別れであるはずなのに'
+            },
+            {
+              ko: '가시 돋친 깊은 침묵에 차오르는 눈물 속에 널 지켜보는 게 아파',
+              rubi: 'カシ トッチン キプン チムムゲ チャオルヌン ヌンムル ソゲ ノル チキョボヌン ゲ アパ',
+              ja: 'トゲの立った深い沈黙の中で 込み上げてくる涙の中で 君を見つめているのが辛い'
+            },
+            {
+              ko: '끝이라는 걸 알면서도 손을 놓지 못했던 건 내 욕심이었을까',
+              rubi: 'クチラヌン ゴル アルミョンソド ソヌル ノッチ モッテットン ゴン ネ ヨクシミオッスルッカ',
+              ja: '終わりだと分かっていながら 手を離せなかったのは僕の欲だったのだろうか'
+            },
+            {
+              ko: '어떻게 내가 어떻게 너를 이후에 우리 바다처럼 깊은 사랑이 다 마를 때까지 기다리는 게 이별일 텐데',
+              rubi: 'オットッケ ネガ オットッケ ノルル イフエ ウリ パダチョロム キプン サランイ タ マルル ッテッカジ キダリヌン ゲ イビョリル テンデ',
+              ja: 'どうして僕が どうして君を手放せようか 僕たちの海のように深い愛がすべて干からびるまで待ち続けることこそが別れであるはずなのに'
+            },
+            {
+              ko: '어떻게 이별까지 사랑하겠어 널 사랑하는 거지',
+              rubi: 'オットッケ イビョルッカジ サランハゲッソ ノル サランハヌン ゴジ',
+              ja: 'どうして別れまで愛せようか、君を愛しているだけなのに'
+            },
+            {
+              ko: '사랑이라는 이유로 서로를 포기하고 찢어질 것같이 아파할 수 없어 난',
+              rubi: 'サランイラヌン イユロ ソロルル ポギハゴ チジョジル コッカチ アパハル ス オプソ ナン',
+              ja: '愛という理由でお互いを諦めて 引き裂かれそうに胸を痛めることなんて僕にはできない'
+            }
+          ],
+          vocab: [
+            { word: '일부러', hanja: '―', pos: '副詞', meaning: 'わざと・意図的に', level: 'TOPIK 3級' },
+            { word: '물러나', hanja: '―', pos: '動詞', meaning: '退いて・身を引いて (물러나다)', level: 'TOPIK 4級' },
+            { word: '허전한', hanja: '―', pos: '形容詞', meaning: '物足りない・虚しい・ぽっかり空いた (허전하다)', level: 'TOPIK 4級' },
+            { word: '차오르고', hanja: '―', pos: '動詞', meaning: '満ちてきて・こみ上げて (차오르다)', level: 'TOPIK 4級' },
+            { word: '마를 때까지', hanja: '―', pos: '動詞+語尾', meaning: '干上がるまで・枯れるまで (마르다)', level: 'TOPIK 3級' },
+            { word: '가시 돋친', hanja: '―', pos: '連語・形容', meaning: 'トゲのある・刺々しい (가시가 돋치다)', level: 'TOPIK 5級' },
+            { word: '침묵', hanja: '沈默', pos: '名詞', meaning: '沈黙・静寂', level: 'TOPIK 4級' },
+            { word: '찢어질 것같이', hanja: '―', pos: '動詞+比喩', meaning: '引き裂かれそうに (찢어지다)', level: 'TOPIK 4級' }
+          ],
+          grammar: [
+            { pattern: '어떻게 ~(으)겠어', meaning: 'どうして〜できようか（反語）', desc: '不可能性を強調する強い反語表現。' },
+            { pattern: '~ㄹ/을 텐데', meaning: '〜のはずなのに・〜だろうに', desc: '推量や背景を述べる表現。' },
+            { pattern: '~라는 이유로', meaning: '〜という理由で', desc: '口実や名目を表す名詞結合。' }
+          ],
+          lyrics_notes: [
+            '💬 <strong>AKMU（楽童ミュージシャン）の代表曲:</strong> 兄のイ・チャンヒョクが作詞作曲し、妹のイ・スヒョンの圧倒的なボーカルで歌い上げた国民的メガヒット曲。海軍入隊直前に制作された名盤『항해 (SAILING)』のタイトル曲です。',
+            '💬 <strong>「어떻게 이별까지 사랑하겠어」の深い意味:</strong> 「別れを受け入れることすら愛の一部だ」という綺麗事に対して、「私は君を愛しているだけであって、別れそのものを愛せるわけがない」と切実に叫ぶ至高のバラードです。'
+          ]
+        },
+        {
+          id: 'lyrics-love-laugh',
+          title_ko: '그렇게 사랑하고 그렇게 웃었습니다 - 김나영',
+          title_ja: 'あんなに愛して、あんなに笑い合いました (原曲: Bubble Sisters)',
+          artist: '김나영 (Kim Na Young) / 버블 시스터즈',
+          category: '감성 발라드 (感動バラード)',
+          cat_class: 'cat-music',
+          level: 'TOPIK 中〜上級 (詩的・感情表現)',
+          source: 'ビギンアゲイン / 原曲: Bubble Sisters 3集',
+          date: '名曲バラード',
+          is_supabase: true,
+          spotify_url: 'https://open.spotify.com/search/%EA%B7%B8%EB%A0%87%EA%B2%8C%20%EC%82%AC%EB%9E%91%ED%95%98%EA%B3%A0%20%EA%B7%B8%EB%A0%87%EA%B2%8C%20%EC%9B%83%EC%97%88%EC%8A%B5%EB%8B%88%EB%8B%A4',
+          location: {
+            name: 'ソウル特別市 鐘路区 三清洞 (サムチョンドン)',
+            lat: 37.5857,
+            lng: 126.9818,
+            desc: '『ビギンアゲイン オープンマイク』のロケ地として有名な情緒あふれる古民家カフェと伝統家屋の街並みです。'
+          },
+          sentences: [
+            {
+              ko: '꽃잎이 날리던 찬란한 봄날에 사랑이 시작된 날',
+              rubi: 'コンニピ ナルリドン チャンランハン ポムナレ サランイ シジャクテン ナル',
+              ja: '花びらが舞い散っていた眩しい春の日に 愛が始まったあの日'
+            },
+            {
+              ko: '미풍이 불어와 손가락 사이사이로 날 들뜨게 했던 그날',
+              rubi: 'ミプンイ プラワ ソンカラク サイサイロ ナル トゥルトゥゲ ヘットン クナル',
+              ja: 'そよ風が吹き抜けて指の隙間を通り 私の心をときめかせたあの日'
+            },
+            {
+              ko: '세월은 쉴새 없이 흘러서 첫사랑의 아련한 추억이란 이름이 되고',
+              rubi: 'セウォルン スィルセ オプシ フルロソ チョッサランエ アリョナン チュオギラン イリミ テゴ',
+              ja: '年月は休む間もなく流れて 初恋のおぼろげな思い出という名になり'
+            },
+            {
+              ko: '내가 그렇게 사랑하고 그렇게 웃었던 지난 날',
+              rubi: 'ネガ クロッケ サランハゴ クロッケ ウソットン チナン ナル',
+              ja: '私がそれほどまでに愛し、それほどまでに笑い合った過ぎ去りし日々'
+            },
+            {
+              ko: '너라는 세상 내 세상의 중심 그 안에 살아',
+              rubi: 'ノラヌン セサン ネ セサンエ ジュンシム ク アネ サラ',
+              ja: '君という世界、私の世界の中心、その中で今も生きている'
+            },
+            {
+              ko: '지금도 행복하다고 춤추던 바람 꽃잎 날려 아름다웠던 추억들',
+              rubi: 'チグムド ヘンボカダゴ チュムチュドン パラム コンニプ ナルリョ アルムダウォットン チュオクトゥル',
+              ja: '「今も幸せだ」と踊っていた風 花びらが舞って美しかった思い出たち'
+            },
+            {
+              ko: '니가 부르던 휘파람 소리도 내 맘에 박혀 버릇처럼 난 웃어',
+              rubi: 'ニガ プルドン フィパラム ソリド ネ マメ パキョ ポルッチョロム ナン ウソ',
+              ja: '君が吹いていた口笛の音も私の心に刻まれて 癖のように私は微笑むの'
+            },
+            {
+              ko: '사랑이 멈춰서 웃음도 멈춰서버린 날 슬프게 했던 그날',
+              rubi: 'サランイ モムチョソ ウスムド モムチョソボリン ナル スルプゲ ヘットン クナル',
+              ja: '愛が止まって笑顔さえ止まってしまった日 私を悲しませたあの日'
+            },
+            {
+              ko: '눈물이 쉴새 없이 흘러서 지독히도 괴롭던 아픔 마저 선율이 되고',
+              rubi: 'ヌンムリ スィルセ オプシ フルロソ チドキド クェロプトン アプム マジョ ソニュリ テゴ',
+              ja: '涙がひっきりなしに流れて ひどく苦しかった痛みさえ美しい旋律になって'
+            },
+            {
+              ko: '너라는 세상 내 전부였던 너란 추억이 고마워',
+              rubi: 'ノラヌン セサン ネ チョンブヨットン ノラン チュオギ コマウォ',
+              ja: '君という世界、私の全てだった君という思い出にありがとう'
+            },
+            {
+              ko: '잊을 수 없는 잊혀지지 않을 하나뿐인 내 사랑에 울다가도 웃게 되었고',
+              rubi: 'イジュル ス オムヌン イチョジジ アヌル ハナプニン ネ サランエ ウルダガド ウッケ テオッコ',
+              ja: '忘れられない 決して消え去ることのない唯一の私の愛に 泣きながらも笑えるようになり'
+            },
+            {
+              ko: '잔인한 그리움도 선물로 남은 사랑',
+              rubi: 'チャニンハン クリウムド ソンムルロ ナムン サラン',
+              ja: '残酷なまでの恋しささえ 贈り物として残った愛'
+            },
+            {
+              ko: '내가 그렇게도 사랑하고 그렇게 웃었던 지난 날 너라는 세상 그 안에 살아',
+              rubi: 'ネガ クロッケド サランハゴ クロッケ ウソットン チナン ナル ノラヌン セサン ク アネ サラ',
+              ja: '私がそれほどまでに愛し、それほどまでに笑い合った過去の日々 君という世界の中で生きている'
+            },
+            {
+              ko: '많이 난 행복했다고 춤추던 바람, 아직 버릇처럼 난 울어',
+              rubi: 'マニ ナン ヘンボケッタゴ チュムチュドン パラム、アジク ポルッチョロム ナン ウロ',
+              ja: '「とても幸せだった」と踊っていた風、今も癖のように私は涙を流すの'
+            }
+          ],
+          vocab: [
+            { word: '찬란한', hanja: '燦爛―', pos: '形容詞', meaning: '眩しい・煌びやかな (찬란하다)', level: 'TOPIK 5級' },
+            { word: '들뜨게', hanja: '―', pos: '動詞', meaning: '心をときめかせる・浮き立たせる (들뜨다)', level: 'TOPIK 4級' },
+            { word: '쉴새 없이', hanja: '―', pos: '連語・副詞', meaning: '休む間もなく・ひっきりなしに', level: 'TOPIK 3級' },
+            { word: '아련한', hanja: '―', pos: '形容詞', meaning: 'おぼろげな・かすかな (아련하다)', level: 'TOPIK 4級' },
+            { word: '휘파람', hanja: '―', pos: '名詞', meaning: '口笛 (휘파람을 불다)', level: 'TOPIK 3級' },
+            { word: '박혀', hanja: '―', pos: '動詞', meaning: '刻まれて・刺さって (박히다)', level: 'TOPIK 4級' },
+            { word: '지독히도', hanja: '至毒―', pos: '副詞', meaning: 'ひどく・凄まじく', level: 'TOPIK 4級' },
+            { word: '그리움', hanja: '―', pos: '名詞', meaning: '恋しさ・憧れ (그리워하다)', level: 'TOPIK 3級' }
+          ],
+          grammar: [
+            { pattern: '~(으)ㄴ 채로', meaning: '〜のまま', desc: 'ある状態を維持したまま。' },
+            { pattern: '~다가도', meaning: '〜してはまた〜', desc: '動作や状態の急変・反復。' },
+            { pattern: '~마저', meaning: '〜までも・〜さえも', desc: '極端な例を付け加える助詞。' }
+          ],
+          lyrics_notes: [
+            '💬 <strong>原曲とキム・ナヨン版の魅力:</strong> 2007年にBubble Sistersがリリースした名曲。愛と別れを「美しい旋律」「贈り物」として受け止め昇華させる切なくも温かい詩が韓国で長く愛されています。',
+            '💬 <strong>「버릇처럼（癖のように）」:</strong> 恋人と別れた後も無意識に昔の習慣や思い出がフラッシュバックする切ない心理描写です。'
+          ]
+        },
+        {
+          id: 'lyrics-whoyou',
+          title_ko: '니가 뭔데 (WHO YOU?) - 全文完全版',
+          title_ja: 'WHO YOU? (お前何様のつもり？) 【フル歌詞対訳】',
+          artist: 'G-DRAGON (BIGBANG)',
+          category: 'K-POP (G-DRAGON)',
+          cat_class: 'cat-music',
+          level: '日常口語・感情表現 (全14節)',
+          source: 'G-DRAGON 2nd Album『COUP D\'ETAT』',
+          date: 'ヒット曲',
+          is_supabase: true,
+          spotify_url: 'https://open.spotify.com/search/G-DRAGON%20WHO%20YOU',
+          location: {
+            name: '京畿道 高陽市 一山 (KINTEX)',
+            lat: 37.6698,
+            lng: 126.7460,
+            desc: 'G-DRAGONがファン1,000人を招待し、ガラス張りの巨大セットの中で撮影した『WHO YOU?』伝説のMV撮影地です。'
+          },
+          sentences: [
+            {
+              ko: 'Baby I love you 이렇게 말하지만 내 마음은 왠지 하나도 좋지 않아',
+              rubi: 'ベイビー アイ ラブ ユー イロッケ マラジマン ネ マウムン ウェンジ ハナド チョッチ アナ',
+              ja: 'Baby I love you そう口にするけれど 僕の心はなぜか全然晴れないんだ'
+            },
+            {
+              ko: 'I want you I need you 노래 부르지만 I don\'t know why I feel bad 니가 뭔데',
+              rubi: 'アイ ウォント ユー アイ ニード ユー ノレ プルジマン アイ ドント ノー ワイ アイ フィール バッド ニガ モンデ',
+              ja: 'I want you, I need you 歌ってみるけれど 嫌な気分になるのはなぜなんだ お前何様のつもりだよ'
+            },
+            {
+              ko: '축하해 그새 다른 남자를 또 만나 잘됐음 해 아직 좀 이르다만',
+              rubi: 'チュッカヘ クセ タルン ナムジャルル ット マンナ チャルテッスム ヘ アジク チョム イルダマン',
+              ja: 'おめでとう その間にまた別の男と付き合って うまくいけばいいね まだちょっと早い気もするけど'
+            },
+            {
+              ko: '난 네가 좋아하면 그 뿐이라고 (But) 자꾸 화가 나 baby 대체 니가 뭔데',
+              rubi: 'ナン ニガ チョアハミョン ク プニラゴ バット チャック ファガナ ベイビー テチェ ニガ モンデ',
+              ja: '君が幸せならそれで十分だって強がってみても やたらと腹が立つんだ 一体お前何様のつもりなんだよ'
+            },
+            {
+              ko: 'Baby I miss you 왜 자꾸 너만 생각나 다른 사람 못 만나 원하지 않아',
+              rubi: 'ベイビー アイ ミス ユー ウェ チャック ノマン センガンナ タルン サラム モッ マンナ ウォナジ アナ',
+              ja: 'Baby I miss you なんで君のことばかり思い出すんだ 他の人となんて付き合えないし 求めてもいない'
+            },
+            {
+              ko: '널 사랑하는지도 미워하는지도 구분이 안 가 매일 헷갈려 아직도',
+              rubi: 'ノル サランハヌンジド ミウォハヌンジド クブニ アンガ メイル ヘッカルリョ アジクト',
+              ja: '君を愛しているのか憎んでいるのかさえ区別がつかない 毎日混乱してるんだ 今でもずっと'
+            },
+            {
+              ko: '싸워라 빌어 헤어져라 빌어 내게로 다시 돌아와 달라고 늘 빌어',
+              rubi: 'サウォラ ピロ ヘオジョラ ピロ ネゲロ タシ トラワダルラゴ ヌル ピロ',
+              ja: '「ケンカしろ」って呪って 「別れろ」って祈って 僕のところへまた戻ってきてくれといつも願ってる'
+            },
+            {
+              ko: '동네마다 거리마다 애써 찾아 다니며 걔네 요즘 안 좋던데 라고 일러',
+              rubi: 'トンネマダ コリマダ エッソ チャジャ タニミョ ケネ ヨジュム アン チョットンデ ラゴ イルロ',
+              ja: '街中をわざわざ探し回っては 「あいつら最近うまくいってないらしいよ」なんて告げ口して'
+            },
+            {
+              ko: '구차하고 찌질해 나 원래 찌질해 몰랐어 너도 마찬가지야 나쁜 기집애',
+              rubi: 'クチャハゴ チジルヘ ナ ウォルレ チジルヘ モルラッソ ノド マチャンガジヤ ナップン キジベ',
+              ja: '惨めで情けないよ 僕は元からダサい男さ 知らなかったのか？ 君も同じだよ 悪い女め'
+            },
+            {
+              ko: '내가 더 잘할게 한번 만나 줄래 귀찮게 안 할게 제발 돌아와줄래',
+              rubi: 'ネガ ト チャラルケ ハンボン マンナ ジュルレ クィチャンケ アン ハルケ チェバル トラワジュルレ',
+              ja: '僕がもっと大事にするから一度会ってくれないか？ 迷惑かけないから頼むから戻ってきておくれ'
+            },
+            {
+              ko: 'Baby I just want you back, I want you back, I want you back',
+              rubi: 'ベイビー アイ ジャスト ウォント ユー バック、アイ ウォント ユー バック',
+              ja: 'Baby ただ君に戻ってきてほしいんだ 君に戻ってきてほしい'
+            },
+            {
+              ko: 'Baby I know it\'s too late, it\'s just too late, it\'s just too late',
+              rubi: 'ベイビー アイ ノー イッツ トゥー レイト、イッツ ジャスト トゥー レイト',
+              ja: 'Baby もう手遅れなのは分かってるんだ 本当に遅すぎたんだ'
+            },
+            {
+              ko: '대체 니가 뭔데 날 흔들어 대체 니가 뭔데 날 울려 바보처럼',
+              rubi: 'テチェ ニガ モンデ ナル フンドゥロ テチェ ニガ モンデ ナル ウルリョ パボチョロム',
+              ja: '一体お前何様のつもりで僕の心を揺さぶるんだ 一体お前何様のつもりで僕を馬鹿みたいに泣かせるんだ'
+            },
+            {
+              ko: '니가 뭔데 나타나 내 마음을 다 뒤집어 놔 니가 뭔데 (WHO YOU?)',
+              rubi: 'ニガ モンデ ナタナ ネ マウムル タ トィジボ ノァ ニガ モンデ (フー ユー)',
+              ja: 'お前何様のつもりで現れて僕の心をメチャクチャにかき乱すんだ お前何様なんだよ (WHO YOU?)'
+            }
+          ],
+          vocab: [
+            { word: '니가 뭔데', hanja: '―', pos: '口語表現', meaning: 'お前何様のつもり？・何なんだよ', level: '日常口語' },
+            { word: '찌질해', hanja: '―', pos: '形容詞(スラング)', meaning: 'ダサい・情けない・女々しい (찌질하다)', level: '若者言葉' },
+            { word: '기집애', hanja: '―', pos: '名詞(俗語)', meaning: '小娘・あいつ (계집아이)', level: '日常口語' },
+            { word: '구차하고', hanja: '苟且―', pos: '形容詞', meaning: '見苦しくて・惨めで', level: '上級' },
+            { word: '애써', hanja: '―', pos: '副詞', meaning: 'わざわざ・無理をして・必死に', level: '中級' },
+            { word: '헷갈려', hanja: '―', pos: '動詞', meaning: 'こんがらがる・混乱する (헷갈리다)', level: '日常口語' },
+            { word: '그새', hanja: '―', pos: '副詞', meaning: 'その間に・いつの間にか (그사이)', level: '中級' },
+            { word: '제발', hanja: '―', pos: '副詞', meaning: 'どうか・頼むから', level: '初級' }
+          ],
+          grammar: [
+            { pattern: '~(으)라 빌다', meaning: '〜しろと呪う・祈る', desc: '命令形+(으)라고 빌다 の口語縮約。' },
+            { pattern: '~는/ㄴ 지도', meaning: '〜なのかどうかも', desc: '疑問や不確実な事実。' },
+            { pattern: '~(으)ㄹ 뿐이다', meaning: '〜なだけだ・〜にすぎない', desc: '限定表現。' }
+          ],
+          lyrics_notes: [
+            '💬 <strong>「찌질해（チジルヘ）」のリアルな意味:</strong> 韓国の若者が使うスラングで、「未練がましくて女々しい」「情けなくてカッコ悪い男」を自虐するときに使います。GDが自分のプライドを捨てて正直に本音をさらけ出す名フレーズです。',
+            '💬 <strong>「싸워라 빌어 헤어져라 빌어」:</strong> 元カノが新しい男と付き合っているのを見て、「ケンカしろ！別れろ！」と嫉妬で祈ってしまうリアルな男心が描かれています。'
+          ]
+        }
+      ]
+    };
+
+    let currentMode = 'news';
+    let currentCategoryFilter = 'all';
+    let currentArticle = SAMPLE_DATABASE.news[0];
+    let showRubi = false;
+    let mapInstance = null;
+    let mapMarker = null;
+
+    // ── SMART AUDIO PLAYER STATE ──
+    let synth = window.speechSynthesis;
+    let isPlaying = false;
+    let isPaused = false;
+    let currentSentenceIndex = 0;
+    let isRepeatSingle = false;
+
+    // ── 🎵 ITUNES SEARCH API HELPER (preview_url, itunes_url, album_cover自動取得) ──
+    async function fetchItunesMetadata(term) {
+      try {
+        const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(term)}&entity=song&limit=1&country=KR`);
+        if (!res.ok) return null;
+        const data = await res.json();
+        if (data.results && data.results.length > 0) {
+          const t = data.results[0];
+          return {
+            preview_url: t.previewUrl || null,
+            itunes_url: t.trackViewUrl || null,
+            album_cover: t.artworkUrl100 ? t.artworkUrl100.replace('100x100bb', '600x600bb') : null
+          };
+        }
+      } catch(e) {
+        console.warn('iTunes API fetch failed:', e);
+      }
+      return null;
+    }
+
+    // ── ☁️ SUPABASE SYNC FUNCTIONS (優先取得 & 自動メタデータ補完保存) ──
+    async function fetchSupabaseLyricsTracks() {
+      try {
+        const url = `${SUPABASE_URL}/rest/v1/tracks?lyrics=not.is.null&select=*&order=created_at.desc`;
+        const res = await fetch(url, {
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`
+          }
+        });
+        if (!res.ok) return [];
+        const rawTracks = await res.json();
+        
+        const parsedList = [];
+        (rawTracks || []).forEach(t => {
+          try {
+            const data = JSON.parse(t.lyrics);
+            if (data && data.sentences) {
+              parsedList.push({
+                ...data,
+                id: `supabase-${t.track_id || t.id}`,
+                preview_url: t.preview_url || data.preview_url,
+                itunes_url: t.itunes_url || data.itunes_url,
+                album_cover: t.album_cover || data.album_cover,
+                is_supabase: true,
+                source: 'Supabase クラウドDB'
+              });
+            }
+          } catch(e) {
+            // Raw text fallback
+          }
+        });
+        return parsedList;
+      } catch(err) {
+        console.warn('Supabase fetch failed, using local cache:', err);
+        return [];
+      }
+    }
+
+    async function syncSupabaseLyricsToApp() {
+      const supaTracks = await fetchSupabaseLyricsTracks();
+      if (supaTracks.length > 0) {
+        supaTracks.forEach(st => {
+          const existingIdx = SAMPLE_DATABASE.lyrics.findIndex(l => l.title_ko === st.title_ko || l.id === st.id);
+          if (existingIdx >= 0) {
+            SAMPLE_DATABASE.lyrics[existingIdx] = st;
+          } else {
+            SAMPLE_DATABASE.lyrics.unshift(st);
+          }
+        });
+        if (currentMode === 'lyrics') {
+          currentArticle = SAMPLE_DATABASE.lyrics[0];
+          renderHubChips();
+          loadArticle(currentArticle);
+        }
+      }
+    }
+
+    async function saveCurrentSongToSupabase() {
+      if (!currentArticle || currentMode !== 'lyrics') return;
+      showToast('iTunesより試聴音源・ジャケットを取得中... 🎵');
+
+      const trackId = 'track_' + (currentArticle.id || Date.now()).replace(/[^a-zA-Z0-9_]/g, '_');
+      
+      // 🎵 iTunes Search APIから自動で preview_url, itunes_url, album_cover を取得！
+      let itunesMeta = currentArticle.itunes_meta || null;
+      if (!itunesMeta) {
+        const searchTerm = `${currentArticle.artist || ''} ${currentArticle.title_ko || ''}`.replace(/\(.*\)/g, '').trim();
+        itunesMeta = await fetchItunesMetadata(searchTerm);
+      }
+
+      const payload = {
+        track_id: trackId,
+        track_name: currentArticle.title_ko,
+        track_name_en: currentArticle.title_ko,
+        artist_name: currentArticle.artist || 'K-POP',
+        artist_name_en: currentArticle.artist || 'K-POP',
+        country: 'KR',
+        genre: 'Ballad',
+        preview_url: itunesMeta?.preview_url || null,
+        itunes_url: itunesMeta?.itunes_url || null,
+        album_cover: itunesMeta?.album_cover || null,
+        spotify_id: currentArticle.spotify_url || '',
+        description: currentArticle.title_ja || '',
+        lyrics: JSON.stringify(currentArticle)
+      };
+
+      try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/tracks`, {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'resolution=merge-duplicates'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (res.ok || res.status === 201 || res.status === 204) {
+          currentArticle.is_supabase = true;
+          document.getElementById('badge-supabase').style.display = 'inline-block';
+          showToast(`「${currentArticle.title_ko}」を音源URL・ジャケット付きでSupabaseに保存しました！ ☁️✨`);
+          renderHubChips();
+        } else {
+          showToast('Supabaseへの保存に失敗しました。');
+        }
+      } catch(err) {
+        console.error(err);
+        showToast('Supabase接続エラーが発生しました。');
+      }
+    }
+
+    // ── INITIALIZATION ──
+    document.addEventListener('DOMContentLoaded', () => {
+      initMap();
+      renderHubChips();
+      loadArticle(currentArticle);
+      updateWordbookCount();
+
+      // 初回起動時にSupabaseから歌詞データを優先取得
+      syncSupabaseLyricsToApp();
+
+      document.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+          e.preventDefault();
+          togglePlayPause();
+        }
+      });
+    });
+
+    // ── LEAFLET MAP INITIALIZATION ──
+    function initMap() {
+      const el = document.getElementById('leaflet-map');
+      if (!el) return;
+      mapInstance = L.map('leaflet-map', { zoomControl: true }).setView([37.6917, 129.0328], 13);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(mapInstance);
+      
+      const customIcon = L.divIcon({
+        html: `<div style="background:linear-gradient(135deg, #00d4aa, #3b82f6); width:28px; height:28px; border-radius:50% 50% 50% 0; transform:rotate(-45deg); border:3px solid #fff; box-shadow:0 3px 12px rgba(0,212,170,0.6); display:flex; align-items:center; justify-content:center;"><span style="transform:rotate(45deg); font-size:12px;">📍</span></div>`,
+        iconSize: [28, 28],
+        iconAnchor: [14, 28]
+      });
+      mapMarker = L.marker([37.6917, 129.0328], { icon: customIcon }).addTo(mapInstance);
+    }
+
+    function updateMap(loc) {
+      if (!mapInstance || !loc) return;
+      const { lat, lng, name, desc } = loc;
+      mapInstance.setView([lat, lng], 13);
+      if (mapMarker) mapMarker.setLatLng([lat, lng]);
+      
+      mapMarker.bindPopup(`<b>📍 ${name}</b><br><span style="font-size:0.78rem;color:#475569;">${desc}</span>`).openPopup();
+      
+      const infoBox = document.getElementById('map-info-text');
+      if (infoBox) {
+        infoBox.innerHTML = `<div class="map-loc-name">📍 ${name}</div><div>${desc}</div>`;
+      }
+      setTimeout(() => mapInstance.invalidateSize(), 200);
+    }
+
+    // ── CATEGORY FILTER ──
+    function filterCategory(cat, btn) {
+      currentCategoryFilter = cat;
+      document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      renderHubChips();
+    }
+
+    // ── TAB & MODE SWITCHING ──
+    function switchMainTab(mode) {
+      currentMode = mode;
+      stopSpeech();
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      const activeBtn = document.getElementById(`tab-btn-${mode}`);
+      if (activeBtn) activeBtn.classList.add('active');
+
+      const ws = document.getElementById('workspace-view');
+      const wb = document.getElementById('wordbook-view');
+      const catBar = document.getElementById('category-filter-bar');
+      const customInp = document.getElementById('custom-search-input');
+      const lyricsPanel = document.getElementById('lyrics-panel');
+      const legalPanel = document.getElementById('legal-panel');
+      const openPasteBtn = document.getElementById('open-paste-btn');
+
+      if (mode === 'wordbook') {
+        ws.style.display = 'none';
+        wb.style.display = 'flex';
+        renderWordbookGrid();
+        return;
+      }
+
+      ws.style.display = 'grid';
+      wb.style.display = 'none';
+
+      if (mode === 'lyrics') {
+        catBar.style.display = 'none';
+        customInp.placeholder = '登録済みの曲名（例: AKMU, 김나영, G-DRAGON）を入力...';
+        openPasteBtn.style.display = 'inline-flex';
+        lyricsPanel.style.display = 'block';
+        legalPanel.style.display = 'none';
+        currentArticle = SAMPLE_DATABASE.lyrics[0];
+        syncSupabaseLyricsToApp();
+      } else {
+        catBar.style.display = 'flex';
+        customInp.placeholder = '事件・政治・ほっこりニュースのキーワード、URL、韓国語テキストを入力...';
+        openPasteBtn.style.display = 'none';
+        lyricsPanel.style.display = 'none';
+        legalPanel.style.display = 'block';
+        currentArticle = SAMPLE_DATABASE.news[0];
+      }
+
+      renderHubChips();
+      loadArticle(currentArticle);
+    }
+
+    // ── RENDER HUB CHIPS ──
+    function renderHubChips() {
+      const container = document.getElementById('hub-chip-container');
+      container.innerHTML = '';
+      let list = SAMPLE_DATABASE[currentMode] || [];
+
+      if (currentMode === 'news' && currentCategoryFilter !== 'all') {
+        list = list.filter(item => item.category_type === currentCategoryFilter);
+      }
+
+      if (list.length === 0) {
+        container.innerHTML = '<div style="font-size:0.8rem; color:var(--tm); padding:6px 10px;">該当する項目がありません</div>';
+        return;
+      }
+
+      list.forEach((item) => {
+        const chip = document.createElement('div');
+        chip.className = `hub-chip ${currentMode === 'lyrics' ? 'lyrics-chip' : ''} ${item.id === currentArticle.id ? 'active' : ''}`;
+        const cloudIcon = item.is_supabase ? ' ☁️' : '';
+        chip.innerHTML = `${item.category ? `<span style="font-size:0.75rem;">${item.category.split(' ')[0]}</span>` : ''} <span>${item.title_ko.split(' - ')[0].slice(0, 22)}${cloudIcon}</span>`;
+        chip.onclick = () => {
+          stopSpeech();
+          currentArticle = item;
+          renderHubChips();
+          loadArticle(item);
+        };
+        container.appendChild(chip);
+      });
+    }
+
+    // ── WORD SPAN GENERATOR ──
+    function wrapClickableWords(text, sentenceIdx) {
+      const parts = text.split(/(\s+)/);
+      let charOffset = 0;
+      return parts.map((part) => {
+        if (/^\s+$/.test(part)) {
+          charOffset += part.length;
+          return part;
+        }
+        const start = charOffset;
+        const end = charOffset + part.length;
+        charOffset += part.length;
+        const cleanWord = part.replace(/[.,!?'"()…]/g, '');
+        return `<span class="clickable-word" id="w-${sentenceIdx}-${start}" data-start="${start}" data-end="${end}" onclick="handleWordClick('${cleanWord.replace(/'/g, "\\'")}', '${sentenceIdx}')">${part}</span>`;
+      }).join('');
+    }
+
+    // ── LOAD ARTICLE INTO WORKSPACE ──
+    function loadArticle(item) {
+      stopSpeech();
+      currentSentenceIndex = 0;
+
+      document.getElementById('article-title-ko').textContent = item.title_ko;
+      document.getElementById('article-title-ja').textContent = item.title_ja;
+      document.getElementById('badge-cat').textContent = item.category;
+      document.getElementById('badge-cat').className = `tag-badge ${item.cat_class || ''}`;
+      document.getElementById('badge-level').textContent = item.level;
+      document.getElementById('badge-source').textContent = item.source || 'K-Learner';
+      document.getElementById('article-date').textContent = item.date || '2026.08.21';
+
+      // ☁️ Supabaseバッジと保存ボタンの切り替え
+      const supaBadge = document.getElementById('badge-supabase');
+      const supaSaveBtn = document.getElementById('save-to-supabase-btn');
+      if (currentMode === 'lyrics') {
+        supaSaveBtn.style.display = 'inline-flex';
+        supaBadge.style.display = item.is_supabase ? 'inline-block' : 'none';
+      } else {
+        supaSaveBtn.style.display = 'none';
+        supaBadge.style.display = 'none';
+      }
+
+      // 🎵 Spotifyリンクボタンの表示切り替え
+      const spotifyBtn = document.getElementById('header-spotify-btn');
+      if (spotifyBtn) {
+        if (item.spotify_url) {
+          spotifyBtn.href = item.spotify_url;
+          spotifyBtn.style.display = 'inline-flex';
+        } else if (currentMode === 'lyrics' || /曲|歌|ost|music/i.test(item.category || '')) {
+          spotifyBtn.href = `https://open.spotify.com/search/${encodeURIComponent(item.title_ko.split(' - ')[0])}`;
+          spotifyBtn.style.display = 'inline-flex';
+        } else {
+          spotifyBtn.style.display = 'none';
+        }
+      }
+
+      // 1. Render Sentences
+      const sContainer = document.getElementById('sentence-container');
+      sContainer.innerHTML = '';
+      (item.sentences || []).forEach((s, idx) => {
+        const card = document.createElement('div');
+        card.className = 'sentence-card';
+        card.id = `sent-card-${idx}`;
+        
+        const rubiHtml = showRubi && s.rubi ? `<div class="sentence-rubi">${s.rubi}</div>` : '';
+        const wrappedKo = wrapClickableWords(s.ko, idx);
+
+        card.innerHTML = `
+          <div class="sentence-num">${idx + 1}</div>
+          <div class="sentence-content">
+            <div class="reading-live-indicator">
+              <span class="eq-bar b1"></span>
+              <span class="eq-bar b2"></span>
+              <span class="eq-bar b3"></span>
+              読上げ中 🔊
+            </div>
+            ${rubiHtml}
+            <div class="sentence-ko" id="sent-ko-${idx}">${wrappedKo}</div>
+            <div class="sentence-ja">${s.ja}</div>
+            
+            <!-- 🔍 クイック単語調べ・コピペバー（✕クリアボタン付き） -->
+            <div class="card-lookup-box" id="lookup-box-${idx}">
+              <div class="card-lookup-input-row">
+                <span style="font-size:0.75rem; color:var(--ac); font-weight:700;">🔍 単語調べ:</span>
+                <div class="input-wrapper-clear">
+                  <input type="text" class="card-lookup-inp" id="lookup-inp-${idx}" placeholder="単語をクリック または コピペ..." onkeydown="if(event.key==='Enter') executeCardLookup(${idx})" />
+                  <button class="input-clear-x" onclick="clearCardLookup(${idx})" title="入力欄をクリア">✕</button>
+                </div>
+                <button class="mini-action-btn" onclick="executeCardLookup(${idx})">調べ</button>
+                <button class="mini-action-btn" onclick="pasteClipboardToCard(${idx})" title="クリップボードから貼付">📋 貼付</button>
+              </div>
+              <div class="card-lookup-result" id="lookup-res-${idx}"></div>
+            </div>
+
+            <!-- 🎛️ 各文の操作バー -->
+            <div class="sentence-actions">
+              <div class="action-left">
+                <button class="mini-action-btn play-btn-card" id="card-play-btn-${idx}" onclick="playSpecificSentence(${idx})">▶ 再生</button>
+                <button class="mini-action-btn pause-btn-card" onclick="togglePlayPause()" title="一時停止 / 再開">⏸ 一時停止</button>
+                <button class="mini-action-btn stop-btn-card" onclick="stopSpeech()" title="停止">⏹ 停止</button>
+                <button class="mini-action-btn" onclick="triggerSpeechSingle('${s.ko.replace(/'/g, "\\'")}')" title="この文だけ1回発音">🔊 1回だけ</button>
+              </div>
+              <div class="action-right">
+                <button class="mini-action-btn" onclick="copySentenceText('${s.ko.replace(/'/g, "\\'")}')">📋 コピー</button>
+                <button class="mini-action-btn" onclick="savePhraseToWordbook('${s.ko.replace(/'/g, "\\'")}', '${s.ja.replace(/'/g, "\\'")}')">⭐ フレーズ保存</button>
+              </div>
+            </div>
+          </div>
+        `;
+        sContainer.appendChild(card);
+      });
+
+      // 2. Render Map
+      if (item.location) {
+        updateMap(item.location);
+      }
+
+      // 3. Render Legal Comparison
+      const legalBody = document.getElementById('legal-compare-body');
+      if (legalBody) {
+        legalBody.innerHTML = '';
+        if (item.legal && item.legal.length > 0) {
+          item.legal.forEach(l => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+              <td>
+                <span class="law-badge kr">${l.kr_badge}</span>
+                <div>${l.kr_desc}</div>
+              </td>
+              <td>
+                <span class="law-badge jp">${l.jp_badge}</span>
+                <div>${l.jp_desc}</div>
+              </td>
+            `;
+            legalBody.appendChild(row);
+          });
+        }
+      }
+
+      // 4. Render Lyrics Notes if applicable
+      const lyricsNotesBox = document.getElementById('lyrics-notes-container');
+      if (lyricsNotesBox && item.lyrics_notes) {
+        lyricsNotesBox.innerHTML = item.lyrics_notes.map(n => `<div class="grammar-item" style="border-left-color:var(--pink);">${n}</div>`).join('');
+      }
+
+      // 5. Render Vocab
+      const vContainer = document.getElementById('vocab-container');
+      vContainer.innerHTML = '';
+      document.getElementById('vocab-count').textContent = (item.vocab || []).length;
+      (item.vocab || []).forEach(v => {
+        const row = document.createElement('div');
+        row.className = 'vocab-item';
+        const isSaved = isWordSaved(v.word);
+        row.innerHTML = `
+          <div class="vocab-main">
+            <div class="vocab-word-row">
+              <span class="vocab-word">${v.word}</span>
+              ${v.hanja ? `<span class="vocab-hanja">(${v.hanja})</span>` : ''}
+              <span class="vocab-pos">${v.pos || ''}</span>
+              <span class="tag-badge topik" style="padding:1px 6px; font-size:0.6rem;">${v.level}</span>
+            </div>
+            <div class="vocab-meaning">${v.meaning}</div>
+          </div>
+          <div style="display:flex; gap:6px;">
+            <button class="mini-action-btn" onclick="triggerSpeechSingle('${v.word}')">🔊</button>
+            <button class="vocab-save-btn ${isSaved ? 'saved' : ''}" onclick="toggleSaveWord('${v.word}', '${v.meaning}', '${v.level}', this)">${isSaved ? '★ 保存済' : '☆ 単語帳'}</button>
+          </div>
+        `;
+        vContainer.appendChild(row);
+      });
+
+      // 6. Render Grammar
+      const gContainer = document.getElementById('grammar-container');
+      gContainer.innerHTML = '';
+      (item.grammar || []).forEach(g => {
+        const gBox = document.createElement('div');
+        gBox.className = 'grammar-item';
+        gBox.innerHTML = `
+          <div class="grammar-pattern">${g.pattern} <span style="font-size:0.75rem; color:var(--tm); font-weight:normal;">(${g.meaning})</span></div>
+          <div class="grammar-desc">${g.desc}</div>
+        `;
+        gContainer.appendChild(gBox);
+      });
+
+      updatePlayerToolbar();
+    }
+
+    // ── WORD CLICK / LOOKUP / CLEAR HANDLER ──
+    function handleWordClick(word, sentenceIdx) {
+      const inp = document.getElementById(`lookup-inp-${sentenceIdx}`);
+      if (inp) {
+        inp.value = word;
+        executeCardLookup(sentenceIdx);
+      }
+    }
+
+    function executeCardLookup(sentenceIdx) {
+      const inp = document.getElementById(`lookup-inp-${sentenceIdx}`);
+      const resBox = document.getElementById(`lookup-res-${sentenceIdx}`);
+      if (!inp || !resBox) return;
+
+      const q = inp.value.trim();
+      if (!q) {
+        clearCardLookup(sentenceIdx);
+        return;
+      }
+
+      const match = lookupKoreanWord(q);
+      if (match) {
+        resBox.style.display = 'block';
+        resBox.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+            <div style="flex:1;">
+              <strong style="font-size:0.95rem; color:#fff;">${match.base}</strong>
+              ${match.hanja ? `<span style="font-size:0.72rem; color:var(--tm);">(${match.hanja})</span>` : ''}
+              <span style="font-size:0.68rem; color:var(--ac2); font-weight:700;">[${match.pos}]</span>
+              <span style="font-size:0.75rem; color:#60a5fa;">${match.particle || ''}</span>
+              <div style="font-size:0.85rem; color:var(--ac); font-weight:600; margin-top:3px; line-height:1.5;">${match.meaning}</div>
+            </div>
+            <div style="display:flex; gap:4px; align-items:center; flex-shrink:0;">
+              <button class="mini-action-btn" onclick="triggerSpeechSingle('${match.base}')" title="発音">🔊</button>
+              <button class="mini-action-btn" onclick="toggleSaveWord('${match.base}', '${match.meaning}', '${match.level}', this)">⭐ 保存</button>
+              <button class="result-close-x" onclick="clearCardLookup('${sentenceIdx}')" title="この解説を閉じる">✕</button>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    function clearCardLookup(sentenceIdx) {
+      const inp = document.getElementById(`lookup-inp-${sentenceIdx}`);
+      const resBox = document.getElementById(`lookup-res-${sentenceIdx}`);
+      if (inp) inp.value = '';
+      if (resBox) {
+        resBox.style.display = 'none';
+        resBox.innerHTML = '';
+      }
+    }
+
+    async function pasteClipboardToCard(sentenceIdx) {
+      try {
+        const text = await navigator.clipboard.readText();
+        const inp = document.getElementById(`lookup-inp-${sentenceIdx}`);
+        if (inp && text) {
+          inp.value = text.trim();
+          executeCardLookup(sentenceIdx);
+          showToast(`「${text.trim()}」を貼り付けて検索しました！`);
+        }
+      } catch (err) {
+        alert('クリップボードの読み取り権限を許可するか、入力欄に直接Ctrl+Vで貼り付けてください。');
+      }
+    }
+
+    function copySentenceText(text) {
+      navigator.clipboard.writeText(text);
+      showToast('文章をクリップボードにコピーしました！ 📋');
+    }
+
+    // ── SMART AUDIO PLAYER CONTROLS ──
+    function updatePlayerToolbar() {
+      const sentences = currentArticle.sentences || [];
+      const total = sentences.length;
+      const currentNum = Math.min(currentSentenceIndex + 1, total);
+      document.getElementById('player-status-badge').textContent = `文 ${currentNum} / ${total}`;
+      
+      const currentSentence = sentences[currentSentenceIndex];
+      const nowText = currentSentence ? currentSentence.ko : currentArticle.title_ko;
+      document.getElementById('player-now-text').textContent = nowText;
+      
+      document.getElementById('player-play-btn').textContent = isPlaying ? '⏸' : '▶';
+    }
+
+    function highlightReadingWord(sentenceIdx, charIndex) {
+      const sentBox = document.getElementById(`sent-ko-${sentenceIdx}`);
+      if (!sentBox) return;
+
+      const words = sentBox.querySelectorAll('.clickable-word');
+      let currentWordEl = null;
+
+      words.forEach(w => {
+        const start = parseInt(w.getAttribute('data-start') || '0', 10);
+        const end = parseInt(w.getAttribute('data-end') || '0', 10);
+        if (charIndex >= start && charIndex < end) {
+          w.classList.add('active-reading-word');
+          currentWordEl = w;
+        } else {
+          w.classList.remove('active-reading-word');
+        }
+      });
+
+      if (currentWordEl) {
+        document.getElementById('player-now-text').innerHTML = `🔊 読上げ中: <span style="color:var(--ac); font-weight:800;">${currentWordEl.textContent}</span>`;
+      }
+    }
+
+    function clearAllWordHighlights() {
+      document.querySelectorAll('.active-reading-word').forEach(w => w.classList.remove('active-reading-word'));
+    }
+
+    function togglePlayPause() {
+      if (isPlaying) {
+        if (synth) synth.cancel();
+        isPlaying = false;
+        isPaused = true;
+        clearAllWordHighlights();
+        updatePlayerToolbar();
+        showToast('一時停止しました ⏸');
+      } else {
+        playSentenceSequence(currentSentenceIndex);
+      }
+    }
+
+    function playSpecificSentence(idx) {
+      if (synth) synth.cancel();
+      currentSentenceIndex = idx;
+      playSentenceSequence(idx);
+    }
+
+    function playNextSentence() {
+      const sentences = currentArticle.sentences || [];
+      if (currentSentenceIndex < sentences.length - 1) {
+        currentSentenceIndex++;
+        playSentenceSequence(currentSentenceIndex);
+      } else {
+        showToast('最後の文です 🏁');
+      }
+    }
+
+    function playPrevSentence() {
+      if (currentSentenceIndex > 0) {
+        currentSentenceIndex--;
+        playSentenceSequence(currentSentenceIndex);
+      }
+    }
+
+    function toggleRepeatSingle() {
+      isRepeatSingle = !isRepeatSingle;
+      const btn = document.getElementById('repeat-btn');
+      btn.style.borderColor = isRepeatSingle ? 'var(--ac)' : 'var(--bd)';
+      btn.style.color = isRepeatSingle ? 'var(--ac)' : 'var(--tx)';
+      showToast(isRepeatSingle ? '1文リピート再生: ON 🔁' : '1文リピート再生: OFF');
+    }
+
+    function stopSpeech() {
+      if (synth) synth.cancel();
+      isPlaying = false;
+      isPaused = false;
+      clearAllWordHighlights();
+      document.querySelectorAll('.sentence-card').forEach(c => c.classList.remove('active'));
+      updatePlayerToolbar();
+      showToast('音声を停止しました ⏹');
+    }
+
+    function triggerSpeechSingle(text) {
+      if (!synth) return;
+      synth.cancel();
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = 'ko-KR';
+      const speed = parseFloat(document.getElementById('speech-speed')?.value || '1.0');
+      utter.rate = speed;
+      synth.speak(utter);
+    }
+
+    function playSentenceSequence(idx) {
+      const sentences = currentArticle.sentences || [];
+      if (idx >= sentences.length) {
+        stopSpeech();
+        showToast('全文の再生が完了しました！ ✨');
+        return;
+      }
+
+      currentSentenceIndex = idx;
+      isPlaying = true;
+      isPaused = false;
+      clearAllWordHighlights();
+      updatePlayerToolbar();
+
+      document.querySelectorAll('.sentence-card').forEach(c => c.classList.remove('active'));
+      const activeCard = document.getElementById(`sent-card-${idx}`);
+      if (activeCard) {
+        activeCard.classList.add('active');
+        activeCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+
+      if (!synth) return;
+      synth.cancel();
+      const utter = new SpeechSynthesisUtterance(sentences[idx].ko);
+      utter.lang = 'ko-KR';
+      const speed = parseFloat(document.getElementById('speech-speed')?.value || '1.0');
+      utter.rate = speed;
+
+      utter.onboundary = (e) => {
+        if (!isPlaying) return;
+        if (e.name === 'word' || typeof e.charIndex === 'number') {
+          highlightReadingWord(idx, e.charIndex);
+        }
+      };
+
+      utter.onend = () => {
+        clearAllWordHighlights();
+        if (!isPlaying) return;
+        if (isRepeatSingle) {
+          setTimeout(() => playSentenceSequence(currentSentenceIndex), 500);
+        } else {
+          setTimeout(() => playSentenceSequence(idx + 1), 600);
+        }
+      };
+
+      utter.onerror = () => {
+        clearAllWordHighlights();
+        isPlaying = false;
+        updatePlayerToolbar();
+      };
+
+      synth.speak(utter);
+    }
+
+    function updateSpeed() {
+      if (isPlaying) {
+        playSentenceSequence(currentSentenceIndex);
+      }
+    }
+
+    function toggleRubi() {
+      showRubi = !showRubi;
+      document.getElementById('rubi-status').textContent = showRubi ? 'ON' : 'OFF';
+      document.getElementById('rubi-toggle').classList.toggle('active', showRubi);
+      loadArticle(currentArticle);
+    }
+
+    // ── WORDBOOK LOCALSTORAGE ──
+    function getWordbook() {
+      try { return JSON.parse(localStorage.getItem('klearner_wordbook') || '[]'); } catch(e) { return []; }
+    }
+    function saveWordbook(list) {
+      localStorage.setItem('klearner_wordbook', JSON.stringify(list));
+      updateWordbookCount();
+    }
+    function isWordSaved(word) {
+      return getWordbook().some(w => w.word === word);
+    }
+    function updateWordbookCount() {
+      const count = getWordbook().length;
+      document.getElementById('wb-count').textContent = count;
+    }
+
+    function toggleSaveWord(word, meaning, level, btn) {
+      let list = getWordbook();
+      const exists = list.some(w => w.word === word);
+      if (exists) {
+        list = list.filter(w => w.word !== word);
+        if (btn) {
+          btn.classList.remove('saved');
+          btn.textContent = '☆ 単語帳';
+        }
+        showToast(`「${word}」を単語帳から削除しました`);
+      } else {
+        list.unshift({ word, meaning, level, addedAt: new Date().toLocaleDateString('ja-JP') });
+        if (btn) {
+          btn.classList.add('saved');
+          btn.textContent = '★ 保存済';
+        }
+        showToast(`「${word}」を単語帳に保存しました！ ⭐`);
+      }
+      saveWordbook(list);
+    }
+
+    function savePhraseToWordbook(ko, ja) {
+      let list = getWordbook();
+      list.unshift({ word: ko, meaning: ja, level: 'フレーズ', addedAt: new Date().toLocaleDateString('ja-JP') });
+      saveWordbook(list);
+      showToast('フレーズをマイ単語帳に保存しました！ 💖');
+    }
+
+    function renderWordbookGrid() {
+      const grid = document.getElementById('wb-grid-container');
+      grid.innerHTML = '';
+      const list = getWordbook();
+      if (list.length === 0) {
+        grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--tm);">まだ保存された単語やフレーズがありません。<br>ニュースや歌詞の重要語彙にある「☆ 単語帳」を押して追加しましょう！</div>`;
+        return;
+      }
+      list.forEach(w => {
+        const card = document.createElement('div');
+        card.className = 'flashcard';
+        card.innerHTML = `
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+              <div class="flashcard-word">${w.word}</div>
+              <button class="mini-action-btn" onclick="event.stopPropagation(); triggerSpeechSingle('${w.word.replace(/'/g, "\\'")}')">🔊</button>
+            </div>
+            <div class="flashcard-meaning">${w.meaning}</div>
+          </div>
+          <div class="flashcard-meta">
+            <span class="tag-badge topik">${w.level || '語彙'}</span>
+            <span>${w.addedAt || ''}</span>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function clearWordbook() {
+      if (confirm('マイ単語帳をすべて削除しますか？')) {
+        saveWordbook([]);
+        renderWordbookGrid();
+        loadArticle(currentArticle);
+      }
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast-msg');
+      t.textContent = msg;
+      t.style.display = 'block';
+      setTimeout(() => { t.style.display = 'none'; }, 2200);
+    }
+
+    // ── MODAL CONTROLS ──
+    function openPasteModal() {
+      document.getElementById('paste-lyrics-modal').style.display = 'flex';
+      document.getElementById('modal-song-title').focus();
+    }
+    function closePasteModal() {
+      document.getElementById('paste-lyrics-modal').style.display = 'none';
+    }
+
+    async function processPastedLyricsAndSave() {
+      const title = document.getElementById('modal-song-title').value.trim() || '新規楽曲';
+      const artist = document.getElementById('modal-song-artist').value.trim() || 'アーティスト';
+      const rawText = document.getElementById('modal-song-lyrics').value.trim();
+
+      if (!rawText) {
+        alert('ハングル歌詞を貼り付けてください！');
+        return;
+      }
+
+      // 改行で分割して文カードを作成
+      const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+      const sentences = lines.map((line) => {
+        return {
+          ko: line,
+          rubi: '',
+          ja: '（クリックして各単語の意味や発音を学習できます）'
+        };
+      });
+
+      const newSongItem = {
+        id: 'user_' + Date.now(),
+        title_ko: `${title} - ${artist}`,
+        title_ja: `${title} (${artist})`,
+        artist: artist,
+        category: '🎵 ユーザー登録曲',
+        cat_class: 'cat-music',
+        level: 'ユーザー歌詞',
+        source: 'カスタム登録',
+        date: new Date().toLocaleDateString('ja-JP'),
+        is_supabase: false,
+        spotify_url: `https://open.spotify.com/search/${encodeURIComponent(title + ' ' + artist)}`,
+        sentences: sentences,
+        vocab: [
+          { word: title.split(' ')[0], hanja: '', pos: '名詞', meaning: `${title}のキーワード`, level: '語彙' }
+        ],
+        grammar: [
+          { pattern: '歌詞学習', meaning: '自由学習モード', desc: '1文ずつ音声再生や単語調べが可能です。' }
+        ]
+      };
+
+      SAMPLE_DATABASE.lyrics.unshift(newSongItem);
+      currentArticle = newSongItem;
+      closePasteModal();
+      renderHubChips();
+      loadArticle(newSongItem);
+
+      // 自動でSupabaseにも保存！
+      await saveCurrentSongToSupabase();
+    }
+
+    // ── CUSTOM INPUT / SONG SEARCH HANDLER ──
+    async function handleCustomAnalyze() {
+      const q = document.getElementById('custom-search-input').value.trim();
+      if (!q) {
+        alert('曲名・アーティスト名または韓国語テキストを入力してください！');
+        return;
+      }
+
+      // 1. Check if already in database (Supabase or Built-in)
+      const foundMatch = (SAMPLE_DATABASE[currentMode] || []).find(item => {
+        const full = `${item.title_ko} ${item.title_ja} ${item.artist || ''}`.toLowerCase();
+        return full.includes(q.toLowerCase());
+      });
+
+      if (foundMatch) {
+        currentArticle = foundMatch;
+        renderHubChips();
+        loadArticle(foundMatch);
+        showToast(`「${foundMatch.title_ko}」を読み込みました！ ✨`);
+        document.getElementById('custom-search-input').value = '';
+        return;
+      }
+
+      if (/akmu|악뮤|악동뮤지션|어떻게 이별까지|이별까지/i.test(q)) {
+        currentMode = 'lyrics';
+        switchMainTab('lyrics');
+        currentArticle = SAMPLE_DATABASE.lyrics.find(l => l.id === 'lyrics-akmu-how-can-i-love') || SAMPLE_DATABASE.lyrics[0];
+        renderHubChips();
+        loadArticle(currentArticle);
+        showToast('AKMU『どうして別れまで愛せようか』の歌詞対訳を読み込みました！');
+        return;
+      }
+
+      if (/김나영|그렇게 사랑하고|버블|bubble/i.test(q)) {
+        currentMode = 'lyrics';
+        switchMainTab('lyrics');
+        currentArticle = SAMPLE_DATABASE.lyrics.find(l => l.id === 'lyrics-love-laugh') || SAMPLE_DATABASE.lyrics[0];
+        renderHubChips();
+        loadArticle(currentArticle);
+        showToast('キム・ナヨン『あんなに愛して、あんなに笑い合いました』の歌詞を読み込みました！');
+        return;
+      }
+
+      if (/g-dragon|gd|who you|니가 뭔데|지드래곤/i.test(q)) {
+        currentMode = 'lyrics';
+        switchMainTab('lyrics');
+        currentArticle = SAMPLE_DATABASE.lyrics.find(l => l.id === 'lyrics-whoyou') || SAMPLE_DATABASE.lyrics[1];
+        renderHubChips();
+        loadArticle(currentArticle);
+        showToast('G-DRAGON『WHO YOU?』の歌詞対訳と口語解説を読み込みました！');
+        return;
+      }
+
+      const isSong = currentMode === 'lyrics' || /曲|歌|feat|ost|kpop|idol/i.test(q);
+      const newCustomItem = {
+        id: 'custom-' + Date.now(),
+        category_type: isSong ? 'celeb' : 'crime',
+        title_ko: `${q} (新規曲)`,
+        title_ja: `${q} の学習`,
+        artist: q,
+        category: isSong ? '🎵 カスタム楽曲' : '📰 カスタムニュース',
+        cat_class: isSong ? 'cat-music' : 'cat-crime',
+        level: 'TOPIK 実践級',
+        source: 'ユーザー解析',
+        date: '2026.08.22',
+        spotify_url: `https://open.spotify.com/search/${encodeURIComponent(q)}`,
+        location: {
+          name: 'ソウル特別市 麻浦区 上岩洞 (DMCメディアセンター)',
+          lat: 37.5796,
+          lng: 126.8927,
+          desc: '韓国の主要テレビ局や音楽エンタメ企業が集まる放送・コンテンツ産業の中心地です。'
+        },
+        legal: [
+          {
+            kr_badge: '韓国著作権法 (第28条 引用・学習)',
+            kr_desc: '公表された著作物は、正当な範囲内において研究・学習のために引用して利用することができる。',
+            jp_badge: '日本著作権法 (第32条 引用)',
+            jp_desc: '報道、批評、研究その他の引用の目的上正当な範囲内で行なわれる私的使用が認められている。'
+          }
+        ],
+        sentences: [
+          {
+            ko: `${q} - 노래를 들으며 자연스러운 한국어 표현과 어휘를 함께 배워봅니다.`,
+            rubi: 'ノレルル トゥルミョ チャヨンスロウン ハングゴ ピョヒョンファ オフィルル ハムッケ ペウォボムニダ',
+            ja: `${q} の歌を聴きながら、自然な韓国語の表現と語彙を一緒に学びます。`
+          },
+          {
+            ko: '가사 속에 담긴 감정과 일상 구어체 표현을 문장별로 살펴볼 수 있습니다.',
+            rubi: 'カサ ソゲ タムギン カムジョンファ イルサン クオチェ ピョヒョヌル ムンジャンビョルロ サルピョボル ス イッスムニダ',
+            ja: '歌詞の中に込められた感情や日常の口語体表現を、1文ごとに詳しく確認できます。'
+          }
+        ],
+        vocab: [
+          { word: '가사', hanja: '歌詞', pos: '名詞', meaning: '歌詞', level: 'TOPIK 2級' },
+          { word: '구어체', hanja: '口語體', pos: '名詞', meaning: '口語体・話し言葉', level: 'TOPIK 4級' }
+        ],
+        grammar: [
+          { pattern: '~(으)면서', meaning: '〜しながら', desc: '同時進行の動作。' }
+        ],
+        lyrics_notes: [
+          `💬 <strong>『${q}』の学習ポイント:</strong> 好きな曲を繰り返し聴きながら音読しましょう。右上の「☁️ Supabaseに保存」または「➕ 歌詞をコピペ登録」で本格的な歌詞を保存できます。`
+        ]
+      };
+
+      SAMPLE_DATABASE[currentMode].unshift(newCustomItem);
+      currentArticle = newCustomItem;
+      renderHubChips();
+      loadArticle(newCustomItem);
+      showToast(`「${q}」の画面を生成しました！ ✨`);
+      document.getElementById('custom-search-input').value = '';
+    }
+  </script>
+</body>
+</html>
