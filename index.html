@@ -1283,6 +1283,11 @@
             <div class="article-title-ko" id="article-title-ko">서울 강남 귀금속점 특수강도 사건 발생… 피의자 긴급 체포</div>
             
             <div class="header-actions-right">
+              <!-- ⚡ 日本語訳＆ルビ自動再解析ボタン -->
+              <button id="auto-translate-lyrics-btn" class="mini-action-btn" onclick="autoTranslateCurrentSong()" style="background:linear-gradient(135deg, #ec4899, #8b5cf6); color:#fff; border:none; font-weight:700; padding:6px 12px; border-radius:8px; box-shadow:0 2px 8px rgba(236,72,153,0.3); display:inline-flex; align-items:center; gap:5px;" title="歌詞の全行に日本語対訳と発音カタカナルビ、語彙解説を自動生成・補完">
+                ⚡ 全文を自動翻訳・ルビ生成
+              </button>
+
               <!-- ☁️ Supabaseへ保存ボタン（歌詞モード時） -->
               <button id="save-to-supabase-btn" class="supabase-save-btn" onclick="saveCurrentSongToSupabase()" style="display:none;" title="この曲の歌詞とプレビュー音源・ジャケットをSupabaseへ保存">
                 ☁️ Supabaseに保存
@@ -1449,8 +1454,176 @@
     const SUPABASE_URL = 'https://uvjpiuinsgklddzhzpio.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_iW0cu7wjxn_rKjAd1O5Prg_tmecdAkX';
 
+    // ── 🔤 HANGUL TO KATAKANA CONVERTER ENGINE ──
+    function hangulToKatakana(text) {
+      if (!text) return '';
+      const CHOSUNG = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+      const JUNGSUNG = ['ㅏ','ㅐ','ㅑ','ㅒ','ㅓ','ㅔ','ㅕ','ㅖ','ㅗ','ㅘ','ㅙ','ㅚ','ㅛ','ㅜ','ㅝ','ㅞ','ㅟ','ㅠ','ㅡ','ㅢ','ㅣ'];
+      const JONGSUNG = ['','ㄱ','ㄲ','ㄳ','ㄴ','ㄵ','ㄶ','ㄷ','ㄹ','ㄺ','ㄻ','ㄼ','ㄽ','ㄾ','ㄿ','ㅀ','ㅁ','ㅂ','ㅄ','ㅅ','ㅆ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+
+      const SYLLABLE_MAP = {
+        'ㄱ': { 'ㅏ':'カ','ㅐ':'ケ','ㅑ':'キャ','ㅒ':'キェ','ㅓ':'コ','ㅔ':'ケ','ㅕ':'キョ','ㅖ':'キェ','ㅗ':'コ','ㅘ':'クァ','ㅙ':'クェ','ㅚ':'クェ','ㅛ':'キョ','ㅜ':'ク','ㅝ':'クォ','ㅞ':'クェ','ㅟ':'クィ','ㅠ':'キュ','ㅡ':'ク','ㅢ':'クイ','ㅣ':'キ' },
+        'ㄲ': { 'ㅏ':'ッカ','ㅐ':'ッケ','ㅑ':'ッキャ','ㅒ':'ッキェ','ㅓ':'ッコ','ㅔ':'ッケ','ㅕ':'ッキョ','ㅖ':'ッキェ','ㅗ':'ッコ','ㅘ':'ックァ','ㅙ':'ックェ','ㅚ':'ックェ','ㅛ':'ッキョ','ㅜ':'ック','ㅝ':'ックォ','ㅞ':'ックェ','ㅟ':'ックィ','ㅠ':'ッキュ','ㅡ':'ック','ㅢ':'ックイ','ㅣ':'ッキ' },
+        'ㄴ': { 'ㅏ':'ナ','ㅐ':'ネ','ㅑ':'ニャ','ㅒ':'ニェ','ㅓ':'ノ','ㅔ':'ネ','ㅕ':'ニョ','ㅖ':'ニェ','ㅗ':'ノ','ㅘ':'ヌァ','ㅙ':'ヌェ','ㅚ':'ヌェ','ㅛ':'ニョ','ㅜ':'ヌ','ㅝ':'ヌォ','ㅞ':'ヌェ','ㅟ':'ヌィ','ㅠ':'ニュ','ㅡ':'ヌ','ㅢ':'ヌイ','ㅣ':'ニ' },
+        'ㄷ': { 'ㅏ':'タ','ㅐ':'テ','ㅑ':'チャ','ㅒ':'チェ','ㅓ':'ト','ㅔ':'テ','ㅕ':'チョ','ㅖ':'チェ','ㅗ':'ト','ㅘ':'ドァ','ㅙ':'ドェ','ㅚ':'ドェ','ㅛ':'チョ','ㅜ':'トゥ','ㅝ':'ドォ','ㅞ':'ドェ','ㅟ':'ドィ','ㅠ':'テュ','ㅡ':'トゥ','ㅢ':'トゥイ','ㅣ':'ティ' },
+        'ㄸ': { 'ㅏ':'ッタ','ㅐ':'ッテ','ㅑ':'ッチャ','ㅒ':'ッチェ','ㅓ':'ット','ㅔ':'ッテ','ㅕ':'ッチョ','ㅖ':'ッチェ','ㅗ':'ット','ㅘ':'ットァ','ㅙ':'ットェ','ㅚ':'ットェ','ㅛ':'ッチョ','ㅜ':'ットゥ','ㅝ':'ットォ','ㅞ':'ットェ','ㅟ':'ットィ','ㅠ':'ッテュ','ㅡ':'ットゥ','ㅢ':'ットゥイ','ㅣ':'ッティ' },
+        'ㄹ': { 'ㅏ':'ラ','ㅐ':'レ','ㅑ':'リャ','ㅒ':'リェ','ㅓ':'ロ','ㅔ':'レ','ㅕ':'リョ','ㅖ':'リェ','ㅗ':'ロ','ㅘ':'ルァ','ㅙ':'ルェ','ㅚ':'ルェ','ㅛ':'リョ','ㅜ':'ル','ㅝ':'ルォ','ㅞ':'ルェ','ㅟ':'ルィ','ㅠ':'リュ','ㅡ':'ル','ㅢ':'ルイ','ㅣ':'リ' },
+        'ㅁ': { 'ㅏ':'マ','ㅐ':'メ','ㅑ':'ミャ','ㅒ':'ミェ','ㅓ':'モ','ㅔ':'メ','ㅕ':'ミョ','ㅖ':'ミェ','ㅗ':'モ','ㅘ':'ムァ','ㅙ':'ムェ','ㅚ':'ムェ','ㅛ':'ミョ','ㅜ':'ム','ㅝ':'ムォ','ㅞ':'ムェ','ㅟ':'ムィ','ㅠ':'ミュ','ㅡ':'ム','ㅢ':'ムイ','ㅣ':'ミ' },
+        'ㅂ': { 'ㅏ':'パ','ㅐ':'ペ','ㅑ':'ピャ','ㅒ':'ピェ','ㅓ':'ポ','ㅔ':'ペ','ㅕ':'ピョ','ㅖ':'ピェ','ㅗ':'ポ','ㅘ':'プァ','ㅙ':'プェ','ㅚ':'プェ','ㅛ':'ピョ','ㅜ':'プ','ㅝ':'プォ','ㅞ':'プェ','ㅟ':'プィ','ㅠ':'ピュ','ㅡ':'プ','ㅢ':'プイ','ㅣ':'ピ' },
+        'ㅃ': { 'ㅏ':'ッパ','ㅐ':'ッペ','ㅑ':'ッピャ','ㅒ':'ッピェ','ㅓ':'ッポ','ㅔ':'ッペ','ㅕ':'ッピョ','ㅖ':'ッピェ','ㅗ':'ッポ','ㅘ':'ップァ','ㅙ':'ップェ','ㅚ':'ップェ','ㅛ':'ッピョ','ㅜ':'ップ','ㅝ':'ップォ','ㅞ':'ップェ','ㅟ':'ップィ','ㅠ':'ッピュ','ㅡ':'ップ','ㅢ':'ップイ','ㅣ':'ッピ' },
+        'ㅅ': { 'ㅏ':'サ','ㅐ':'セ','ㅑ':'シャ','ㅒ':'シェ','ㅓ':'ソ','ㅔ':'セ','ㅕ':'ショ','ㅖ':'シェ','ㅗ':'ソ','ㅘ':'スァ','ㅙ':'スェ','ㅚ':'スェ','ㅛ':'ショ','ㅜ':'ス','ㅝ':'スォ','ㅞ':'スェ','ㅟ':'スィ','ㅠ':'シュ','ㅡ':'ス','ㅢ':'スイ','ㅣ':'シ' },
+        'ㅆ': { 'ㅏ':'ッサ','ㅐ':'ッセ','ㅑ':'ッシャ','ㅒ':'ッシェ','ㅓ':'ッソ','ㅔ':'ッセ','ㅕ':'ッショ','ㅖ':'ッシェ','ㅗ':'ッソ','ㅘ':'ッスァ','ㅙ':'ッスェ','ㅚ':'ッスェ','ㅛ':'ッショ','ㅜ':'ッス','ㅝ':'ッスォ','ㅞ':'ッスェ','ㅟ':'ッスィ','ㅠ':'ッシュ','ㅡ':'ッス','ㅢ':'ッスイ','ㅣ':'ッシ' },
+        'ㅇ': { 'ㅏ':'ア','ㅐ':'エ','ㅑ':'ヤ','ㅒ':'イェ','ㅓ':'オ','ㅔ':'エ','ㅕ':'ヨ','ㅖ':'イェ','ㅗ':'オ','ㅘ':'ワ','ㅙ':'ウェ','ㅚ':'ウェ','ㅛ':'ヨ','ㅜ':'ウ','ㅝ':'ウォ','ㅞ':'ウェ','ㅟ':'ウィ','ㅠ':'ユ','ㅡ':'ウ','ㅢ':'ウィ','ㅣ':'イ' },
+        'ㅈ': { 'ㅏ':'チャ','ㅐ':'チェ','ㅑ':'チャ','ㅒ':'チェ','ㅓ':'チョ','ㅔ':'チェ','ㅕ':'チョ','ㅖ':'チェ','ㅗ':'チョ','ㅘ':'チョァ','ㅙ':'チョェ','ㅚ':'チェ','ㅛ':'チョ','ㅜ':'チュ','ㅝ':'チョォ','ㅞ':'チェ','ㅟ':'チュィ','ㅠ':'チュ','ㅡ':'チュ','ㅢ':'チュイ','ㅣ':'チ' },
+        'ㅉ': { 'ㅏ':'ッチャ','ㅐ':'ッチェ','ㅑ':'ッチャ','ㅒ':'ッチェ','ㅓ':'ッチョ','ㅔ':'ッチェ','ㅕ':'ッチョ','ㅖ':'ッチェ','ㅗ':'ッチョ','ㅘ':'ッチョァ','ㅙ':'ッチョェ','ㅚ':'ッチェ','ㅛ':'ッチョ','ㅜ':'ッチュ','ㅝ':'ッチョォ','ㅞ':'ッチェ','ㅟ':'ッチュィ','ㅠ':'ッチュ','ㅡ':'ッチュ','ㅢ':'ッチュイ','ㅣ':'ッチ' },
+        'ㅊ': { 'ㅏ':'チャ','ㅐ':'チェ','ㅑ':'チャ','ㅒ':'チェ','ㅓ':'チョ','ㅔ':'チェ','ㅕ':'チョ','ㅖ':'チェ','ㅗ':'チョ','ㅘ':'チョァ','ㅙ':'チョェ','ㅚ':'チェ','ㅛ':'チョ','ㅜ':'チュ','ㅝ':'チョォ','ㅞ':'チェ','ㅟ':'チュィ','ㅠ':'チュ','ㅡ':'チュ','ㅢ':'チュイ','ㅣ':'チ' },
+        'ㅋ': { 'ㅏ':'カ','ㅐ':'ケ','ㅑ':'キャ','ㅒ':'キェ','ㅓ':'コ','ㅔ':'ケ','ㅕ':'キョ','ㅖ':'キェ','ㅗ':'コ','ㅘ':'クァ','ㅙ':'クェ','ㅚ':'クェ','ㅛ':'キョ','ㅜ':'ク','ㅝ':'クォ','ㅞ':'クェ','ㅟ':'クィ','ㅠ':'キュ','ㅡ':'ク','ㅢ':'クイ','ㅣ':'キ' },
+        'ㅌ': { 'ㅏ':'タ','ㅐ':'テ','ㅑ':'チャ','ㅒ':'チェ','ㅓ':'ト','ㅔ':'テ','ㅕ':'チョ','ㅖ':'チェ','ㅗ':'ト','ㅘ':'トァ','ㅙ':'トェ','ㅚ':'トェ','ㅛ':'チョ','ㅜ':'トゥ','ㅝ':'トォ','ㅞ':'トェ','ㅟ':'トィ','ㅠ':'テュ','ㅡ':'トゥ','ㅢ':'トゥイ','ㅣ':'ティ' },
+        'ㅍ': { 'ㅏ':'パ','ㅐ':'ペ','ㅑ':'ピャ','ㅒ':'ピェ','ㅓ':'ポ','ㅔ':'ペ','ㅕ':'ピョ','ㅖ':'ピェ','ㅗ':'ポ','ㅘ':'プァ','ㅙ':'プェ','ㅚ':'プェ','ㅛ':'ピョ','ㅜ':'プ','ㅝ':'プォ','ㅞ':'プェ','ㅟ':'プィ','ㅠ':'ピュ','ㅡ':'プ','ㅢ':'プイ','ㅣ':'ピ' },
+        'ㅎ': { 'ㅏ':'ハ','ㅐ':'ヘ','ㅑ':'ヒャ','ㅒ':'ヒェ','ㅓ':'ホ','ㅔ':'ヘ','ㅕ':'ヒョ','ㅖ':'ヒェ','ㅗ':'ホ','ㅘ':'ファ','ㅙ':'フェ','ㅚ':'フェ','ㅛ':'ヒョ','ㅜ':'フ','ㅝ':'フォ','ㅞ':'フェ','ㅟ':'フィ','ㅠ':'ヒュ','ㅡ':'フ','ㅢ':'フイ','ㅣ':'ヒ' }
+      };
+
+      const JONGSUNG_MAP = {
+        'ㄱ': 'ク', 'ㄲ': 'ッ', 'ㄳ': 'ク', 'ㄴ': 'ン', 'ㄵ': 'ン', 'ㄶ': 'ン',
+        'ㄷ': 'ッ', 'ㄹ': 'ル', 'ㄺ': 'ク', 'ㄻ': 'ム', 'ㄼ': 'ル', 'ㄽ': 'ル',
+        'ㄾ': 'ル', 'ㄿ': 'プ', 'ㅀ': 'ル', 'ㅁ': 'ム', 'ㅂ': 'プ', 'ㅄ': 'プ',
+        'ㅅ': 'ッ', 'ㅆ': 'ッ', 'ㅇ': 'ン', 'ㅈ': 'ッ', 'ㅊ': 'ッ', 'ㅋ': 'ク',
+        'ㅌ': 'ッ', 'ㅍ': 'プ', 'ㅎ': 'ッ'
+      };
+
+      let result = '';
+      for (let i = 0; i < text.length; i++) {
+        const code = text.charCodeAt(i);
+        if (code >= 0xAC00 && code <= 0xD7A3) {
+          const offset = code - 0xAC00;
+          const jongIdx = offset % 28;
+          const jungIdx = Math.floor(offset / 28) % 21;
+          const choIdx = Math.floor(offset / (28 * 21));
+
+          const cho = CHOSUNG[choIdx];
+          const jung = JUNGSUNG[jungIdx];
+          const jong = JONGSUNG[jongIdx];
+
+          let syl = SYLLABLE_MAP[cho]?.[jung] || '';
+          if (i > 0 && !/\s/.test(text[i - 1])) {
+            if (cho === 'ㄱ' && syl.startsWith('カ')) syl = 'ガ' + syl.slice(1);
+            else if (cho === 'ㄱ' && syl.startsWith('キ')) syl = 'ギ' + syl.slice(1);
+            else if (cho === 'ㄱ' && syl.startsWith('ク')) syl = 'グ' + syl.slice(1);
+            else if (cho === 'ㄱ' && syl.startsWith('ケ')) syl = 'ゲ' + syl.slice(1);
+            else if (cho === 'ㄱ' && syl.startsWith('コ')) syl = 'ゴ' + syl.slice(1);
+            else if (cho === 'ㄷ' && syl.startsWith('タ')) syl = 'ダ' + syl.slice(1);
+            else if (cho === 'ㄷ' && syl.startsWith('テ')) syl = 'デ' + syl.slice(1);
+            else if (cho === 'ㄷ' && syl.startsWith('ト')) syl = 'ド' + syl.slice(1);
+            else if (cho === 'ㅂ' && syl.startsWith('パ')) syl = 'バ' + syl.slice(1);
+            else if (cho === 'ㅂ' && syl.startsWith('ピ')) syl = 'ビ' + syl.slice(1);
+            else if (cho === 'ㅂ' && syl.startsWith('プ')) syl = 'ブ' + syl.slice(1);
+            else if (cho === 'ㅂ' && syl.startsWith('ペ')) syl = 'ベ' + syl.slice(1);
+            else if (cho === 'ㅂ' && syl.startsWith('ポ')) syl = 'ボ' + syl.slice(1);
+            else if (cho === 'ㅈ' && syl.startsWith('チャ')) syl = 'ジャ' + syl.slice(2);
+            else if (cho === 'ㅈ' && syl.startsWith('チ')) syl = 'ジ' + syl.slice(1);
+            else if (cho === 'ㅈ' && syl.startsWith('チュ')) syl = 'ジュ' + syl.slice(2);
+            else if (cho === 'ㅈ' && syl.startsWith('チェ')) syl = 'ジェ' + syl.slice(2);
+            else if (cho === 'ㅈ' && syl.startsWith('チョ')) syl = 'ジョ' + syl.slice(2);
+          }
+
+          let patchim = jong ? (JONGSUNG_MAP[jong] || '') : '';
+          result += syl + patchim;
+        } else {
+          result += text[i];
+        }
+      }
+      return result;
+    }
+
+    // ── 🌐 GOOGLE TRANSLATION API HELPER (韓国語 ➔ 日本語 自動翻訳) ──
+    const TRANSLATION_CACHE = {};
+
+    async function translateKoToJa(text) {
+      if (!text || !text.trim()) return '';
+      const clean = text.trim();
+      if (TRANSLATION_CACHE[clean]) return TRANSLATION_CACHE[clean];
+
+      // 1. Google Translate Public API
+      try {
+        const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=ko&tl=ja&dt=t&q=${encodeURIComponent(clean)}`;
+        const res = await fetch(url);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data[0]) {
+            const translated = data[0].map(item => item[0]).join('').trim();
+            if (translated) {
+              TRANSLATION_CACHE[clean] = translated;
+              return translated;
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('Google Translate API failed:', e);
+      }
+
+      // 2. MyMemory Fallback
+      try {
+        const mmUrl = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(clean)}&langpair=ko|ja`;
+        const mmRes = await fetch(mmUrl);
+        if (mmRes.ok) {
+          const mmData = await mmRes.json();
+          if (mmData && mmData.responseData && mmData.responseData.translatedText) {
+            const translated = mmData.responseData.translatedText.trim();
+            TRANSLATION_CACHE[clean] = translated;
+            return translated;
+          }
+        }
+      } catch (e) {
+        console.warn('MyMemory API fallback failed:', e);
+      }
+
+      return clean;
+    }
+
     // ── KOREAN DICTIONARY & PARTICLE RESOLVER ──
     const BUILTIN_DICT = {
+      '사랑': { hanja: '―', pos: '名詞', meaning: '愛・恋・愛情', level: '初級' },
+      '사랑이': { hanja: '―', pos: '名詞+助詞', meaning: '愛が・恋が (사랑 + 이)', level: '初級' },
+      '고마움': { hanja: '―', pos: '名詞', meaning: '感謝・ありがたさ・お礼の気持ち (고맙다の名詞形)', level: '初級' },
+      '고맙다': { hanja: '―', pos: '形容詞', meaning: 'ありがたい・感謝する', level: '初級' },
+      '쉬어가다': { hanja: '―', pos: '動詞', meaning: '休んでいく・一休みする (쉬다 + 가다)', level: '中級' },
+      '쉬어간대요': { hanja: '―', pos: '動詞+語尾', meaning: '休んでいくそうです・一休みするそうです (쉬어가다 + ㄴ대요)', level: '中級' },
+      '쉬다': { hanja: '―', pos: '動詞', meaning: '休む・息をする', level: '初級' },
+      '허락': { hanja: '許諾', pos: '名詞', meaning: '許し・許諾・受け入れ', level: '中級' },
+      '허락한': { hanja: '許諾―', pos: '動詞(連体形)', meaning: '許してくれた・受け入れてくれた (허락하다 + ㄴ)', level: '中級' },
+      '허락하다': { hanja: '許諾―', pos: '動詞', meaning: '許す・許可する・受け入れる', level: '中級' },
+      '어떻게': { hanja: '―', pos: '副詞', meaning: 'どのように・どうして・どうやって', level: '初級' },
+      '그래요': { hanja: '―', pos: '動詞/語尾', meaning: 'そうです・そうなんです・どうしてそんなことに (그렇다)', level: '初級' },
+      '잠시': { hanja: '暫時', pos: '副詞・名詞', meaning: 'しばらく・少しの間・一時', level: '初級' },
+      '나': { hanja: '―', pos: '代名詞', meaning: '私・僕・自分', level: '初級' },
+      '나를': { hanja: '―', pos: '代名詞+助詞', meaning: '私を・僕を (나 + 를)', level: '初級' },
+      '너': { hanja: '―', pos: '代名詞', meaning: '君・あなた・お前', level: '初級' },
+      '너를': { hanja: '―', pos: '代名詞+助詞', meaning: '君を・あなたを (너 + 를)', level: '初級' },
+      '우리': { hanja: '―', pos: '代名詞', meaning: '私たち・僕たち', level: '初級' },
+      '그대': { hanja: '―', pos: '代名詞', meaning: 'あなた・君（歌詞・詩的表現）', level: '中級' },
+      '눈물': { hanja: '―', pos: '名詞', meaning: '涙 (눈물이 나다 = 涙が出る)', level: '初級' },
+      '웃음': { hanja: '―', pos: '名詞', meaning: '笑い・笑顔 (웃다の名詞形)', level: '初級' },
+      '행복': { hanja: '幸福', pos: '名詞', meaning: '幸せ・幸福', level: '初級' },
+      '슬픔': { hanja: '―', pos: '名詞', meaning: '悲しみ (슬프다の名詞形)', level: '初級' },
+      '이別': { hanja: '離別', pos: '名詞', meaning: '別れ・離別', level: '初級' },
+      '이별': { hanja: '離別', pos: '名詞', meaning: '別れ・離別', level: '初級' },
+      '만남': { hanja: '―', pos: '名詞', meaning: '出会い・逢瀬 (만나다の名詞形)', level: '初級' },
+      '기억': { hanja: '記憶', pos: '名詞', meaning: '記憶・思い出', level: '初級' },
+      '생각': { hanja: '―', pos: '名詞', meaning: '思い・考え・記憶', level: '初級' },
+      '기다리다': { hanja: '―', pos: '動詞', meaning: '待つ・待ち望む', level: '初級' },
+      '잊다': { hanja: '―', pos: '動詞', meaning: '忘れる・断ち切る', level: '初級' },
+      '가슴': { hanja: '―', pos: '名詞', meaning: '胸・心・胸中', level: '初級' },
+      '하늘': { hanja: '―', pos: '名詞', meaning: '空・天', level: '初級' },
+      '바람': { hanja: '―', pos: '名詞', meaning: '風 / 願い・望み', level: '初級' },
+      '하루': { hanja: '―', pos: '名詞', meaning: '一日・1日', level: '初級' },
+      '오늘': { hanja: '―', pos: '名詞', meaning: '今日', level: '初級' },
+      '영원히': { hanja: '永遠―', pos: '副詞', meaning: '永遠に・いつまでも', level: '中級' },
+      '다시': { hanja: '―', pos: '副詞', meaning: '再び・また・もう一度', level: '初級' },
+      '항상': { hanja: '恒常', pos: '副詞', meaning: 'いつも・常に', level: '初級' },
+      '언제나': { hanja: '―', pos: '副詞', meaning: 'いつでも・いつまでも', level: '初級' },
+      '아직도': { hanja: '―', pos: '副詞', meaning: 'まだ・今なお・依然として', level: '初級' },
+      '정말': { hanja: '―', pos: '副詞', meaning: '本当に・実に', level: '初級' },
+      '진짜': { hanja: '―', pos: '副詞・名詞', meaning: '本当に・マジで・本物', level: '日常口語' },
       '꽃잎': { hanja: '―', pos: '名詞', meaning: '花びら (꽃잎이 날리다 = 花びらが舞う)', level: '初級' },
       '찬란한': { hanja: '燦爛―', pos: '形容詞', meaning: '眩しい・煌びやかな・輝かしい', level: 'TOPIK 5級' },
       '봄날': { hanja: '―', pos: '名詞', meaning: '春の日・うららかな日', level: '初級' },
@@ -1521,6 +1694,39 @@
       { p: '마저', desc: '〜までも・〜さえも' }
     ];
 
+    const GRAMMAR_ENDINGS = [
+      { e: 'ㄴ대요', desc: '〜だそうです・〜と言うそうです（伝聞）' },
+      { e: '는대요', desc: '〜だそうです・〜と言うそうです（伝聞）' },
+      { e: '대요', desc: '〜だそうです（伝聞）' },
+      { e: '래요', desc: '〜だそうです・〜と言っています' },
+      { e: '재요', desc: '〜しようそうです（勧誘の伝聞）' },
+      { e: '었던', desc: '〜していた（過去連体形）' },
+      { e: '았던', desc: '〜していた（過去連体形）' },
+      { e: '었던 것', desc: '〜していたこと・もの' },
+      { e: '았던 것', desc: '〜していたこと・もの' },
+      { e: '는 것', desc: '〜すること・もの（連体形名詞化）' },
+      { e: '은 것', desc: '〜したこと（過去連体形）' },
+      { e: 'ㄴ 것', desc: '〜したこと（過去連体形）' },
+      { e: '을 때', desc: '〜する時' },
+      { e: 'ㄹ 때', desc: '〜する時' },
+      { e: '지 마', desc: '〜しないで（禁止口語）' },
+      { e: '지 마요', desc: '〜しないでください' },
+      { e: '지 않아', desc: '〜しない・くない（否定）' },
+      { e: '지 않다', desc: '〜しない（否定）' },
+      { e: '고 싶어', desc: '〜したい（願望）' },
+      { e: '고 싶다', desc: '〜したい（願望）' },
+      { e: '아서', desc: '〜して・〜だから（理由・順序）' },
+      { e: '어서', desc: '〜して・〜だから（理由・順序）' },
+      { e: '여서', desc: '〜して・〜だから（理由・順序）' },
+      { e: '으면', desc: '〜すれば（条件）' },
+      { e: '면', desc: '〜すれば（条件）' },
+      { e: '지만', desc: '〜けれど・〜だが（逆接）' },
+      { e: '는데', desc: '〜だけど・〜するのに（前提・逆接）' },
+      { e: '은데', desc: '〜だけど（形容詞前提）' },
+      { e: 'ㄴ데', desc: '〜だけど（形容詞前提）' },
+      { e: '도록', desc: '〜するように・〜するほど' }
+    ];
+
     function lookupKoreanWord(rawQuery) {
       if (!rawQuery) return null;
       let q = rawQuery.trim().replace(/[.,!?'"()…]/g, '');
@@ -1543,6 +1749,7 @@
         return { base: q, ...BUILTIN_DICT[q], particle: '' };
       }
 
+      // 1. 助詞分解
       for (const item of PARTICLES) {
         if (q.endsWith(item.p) && q.length > item.p.length) {
           const stem = q.slice(0, -item.p.length);
@@ -1556,18 +1763,61 @@
         }
       }
 
-      if (q.endsWith('었던') || q.endsWith('았던')) {
-        const root = q.replace(/었던$|았던$/, '다');
-        if (BUILTIN_DICT[root]) return { base: root, ...BUILTIN_DICT[root], particle: ' (過去連体形: 〜していた)' };
+      // 2. 文法語尾分解
+      for (const g of GRAMMAR_ENDINGS) {
+        if (q.endsWith(g.e) && q.length > g.e.length) {
+          const stem = q.slice(0, -g.e.length);
+          const rootForm = stem + '다';
+          if (BUILTIN_DICT[rootForm]) {
+            return {
+              base: rootForm,
+              ...BUILTIN_DICT[rootForm],
+              particle: ` + 「~${g.e}」(${g.desc})`
+            };
+          }
+          if (BUILTIN_DICT[stem]) {
+            return {
+              base: stem,
+              ...BUILTIN_DICT[stem],
+              particle: ` + 「~${g.e}」(${g.desc})`
+            };
+          }
+        }
       }
 
+      // 3. 連体形 (~ㄴ, ~은, ~는)
+      if (q.endsWith('한')) {
+        const root = q.slice(0, -1) + '하다';
+        if (BUILTIN_DICT[root]) {
+          return {
+            base: root,
+            ...BUILTIN_DICT[root],
+            particle: ' + 「~ㄴ/은」（過去・完了の連体形: 〜した・〜してくれた）'
+          };
+        }
+      }
+
+      // 4. 名詞化 (~움, ~ㅁ)
+      if (q.endsWith('움') && q.length >= 2) {
+        const candidate = q.slice(0, -1) + 'ㅂ다';
+        if (BUILTIN_DICT[candidate]) {
+          return {
+            base: candidate,
+            ...BUILTIN_DICT[candidate],
+            particle: ' (名詞化形: 〜さ・〜み・〜こと)'
+          };
+        }
+      }
+
+      // 5. 辞書に直接ない場合は仮のオブジェクトを返し、非同期翻訳で即時補完
       return {
         base: q,
         hanja: '',
         pos: '単語・文節',
-        meaning: `「${q}」の表現（クリックで発音可能）`,
+        meaning: TRANSLATION_CACHE[q] || '調べ中...',
         level: '語彙',
-        particle: ''
+        particle: '',
+        needsAsync: !TRANSLATION_CACHE[q]
       };
     }
 
@@ -2333,6 +2583,88 @@
       }
     }
 
+        // ── ⚡ 日本語訳＆ルビ 一括自動生成・解析 (現在開いている曲を即時アップデート) ──
+    async function autoTranslateCurrentSong() {
+      if (!currentArticle || !currentArticle.sentences || currentArticle.sentences.length === 0) {
+        showToast('解析対象の文章がありません');
+        return;
+      }
+
+      const btn = document.getElementById('auto-translate-lyrics-btn');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '⏳ 全文をAI/自動翻訳中...';
+      }
+
+      showToast('⚡ 全行の日本語対訳と発音カタカナルビを自動生成中...');
+
+      try {
+        for (let i = 0; i < currentArticle.sentences.length; i++) {
+          const s = currentArticle.sentences[i];
+          // 1. ルビ生成
+          s.rubi = hangulToKatakana(s.ko);
+          
+          // 2. 日本語訳生成 (プレースホルダーまたは空の場合)
+          if (!s.ja || s.ja.includes('クリックして') || s.ja === s.ko) {
+            const translated = await translateKoToJa(s.ko);
+            if (translated && translated !== s.ko) {
+              s.ja = translated;
+            }
+          }
+        }
+
+        // 3. タイトルの日本語訳も補完
+        if (currentArticle.title_ko && (!currentArticle.title_ja || currentArticle.title_ja === currentArticle.title_ko)) {
+          const tJa = await translateKoToJa(currentArticle.title_ko);
+          if (tJa) currentArticle.title_ja = tJa;
+        }
+
+        // 4. 重要語彙の抽出と自動登録
+        const allWords = currentArticle.sentences.map(s => s.ko).join(' ').split(/\s+/);
+        const uniqueWords = [...new Set(allWords.map(w => w.replace(/[.,!?'"()…]/g, '')).filter(w => w.length >= 2))];
+        const newVocab = [];
+        
+        for (const w of uniqueWords.slice(0, 10)) {
+          const m = lookupKoreanWord(w);
+          let meaning = m?.meaning;
+          if (!meaning || meaning.includes('表現') || meaning.includes('調べ中')) {
+            const trans = await translateKoToJa(w);
+            if (trans) meaning = trans;
+          }
+          if (meaning && !meaning.includes('表現') && !meaning.includes('調べ中')) {
+            newVocab.push({
+              word: w,
+              hanja: m?.hanja || '―',
+              pos: m?.pos || '語彙',
+              meaning: meaning,
+              level: m?.level || '歌詞語彙'
+            });
+          }
+        }
+
+        if (newVocab.length > 0) {
+          currentArticle.vocab = newVocab;
+        }
+
+        // 5. 画面の再読み込み
+        loadArticle(currentArticle);
+        showToast('✨ 全行の日本語対訳・発音ルビ・語彙の生成が完了しました！');
+
+        // 6. Supabase に同期保存
+        if (currentMode === 'lyrics') {
+          await saveCurrentSongToSupabase();
+        }
+      } catch (err) {
+        console.error('Auto translate error:', err);
+        showToast('自動翻訳中にエラーが発生しました');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '⚡ 全文を自動翻訳・ルビ生成';
+        }
+      }
+    }
+
     // ── INITIALIZATION ──
     document.addEventListener('DOMContentLoaded', () => {
       initMap();
@@ -2663,7 +2995,7 @@
       }
     }
 
-    function executeCardLookup(sentenceIdx) {
+    async function executeCardLookup(sentenceIdx) {
       const inp = document.getElementById(`lookup-inp-${sentenceIdx}`);
       const resBox = document.getElementById(`lookup-res-${sentenceIdx}`);
       if (!inp || !resBox) return;
@@ -2675,24 +3007,48 @@
       }
 
       const match = lookupKoreanWord(q);
-      if (match) {
-        resBox.style.display = 'block';
+      if (!match) return;
+
+      resBox.style.display = 'block';
+      const renderContent = (meaningText, extraParticle = '') => {
         resBox.innerHTML = `
           <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
             <div style="flex:1;">
               <strong style="font-size:0.95rem; color:#fff;">${match.base}</strong>
               ${match.hanja ? `<span style="font-size:0.72rem; color:var(--tm);">(${match.hanja})</span>` : ''}
               <span style="font-size:0.68rem; color:var(--ac2); font-weight:700;">[${match.pos}]</span>
-              <span style="font-size:0.75rem; color:#60a5fa;">${match.particle || ''}</span>
-              <div style="font-size:0.85rem; color:var(--ac); font-weight:600; margin-top:3px; line-height:1.5;">${match.meaning}</div>
+              <span style="font-size:0.75rem; color:#60a5fa;">${extraParticle || match.particle || ''}</span>
+              <div style="font-size:0.88rem; color:var(--ac); font-weight:600; margin-top:3px; line-height:1.5;">${meaningText}</div>
             </div>
             <div style="display:flex; gap:4px; align-items:center; flex-shrink:0;">
-              <button class="mini-action-btn" onclick="triggerSpeechSingle('${match.base}')" title="発音">🔊</button>
-              <button class="mini-action-btn" onclick="toggleSaveWord('${match.base}', '${match.meaning}', '${match.level}', this)">⭐ 保存</button>
+              <button class="mini-action-btn" onclick="triggerSpeechSingle('${match.base.replace(/'/g, "\\'")}')" title="発音">🔊</button>
+              <button class="mini-action-btn" onclick="toggleSaveWord('${match.base.replace(/'/g, "\\'")}', '${meaningText.replace(/'/g, "\\'")}', '${match.level}', this)">⭐ 保存</button>
               <button class="result-close-x" onclick="clearCardLookup('${sentenceIdx}')" title="この解説を閉じる">✕</button>
             </div>
           </div>
         `;
+      };
+
+      if (match.needsAsync) {
+        renderContent('⏳ 意味をオンライン辞書・翻訳から取得中...');
+        
+        // 助詞や語尾の切り分けを試行
+        let stem = q;
+        let detectedParticle = '';
+        for (const item of PARTICLES) {
+          if (q.endsWith(item.p) && q.length > item.p.length) {
+            stem = q.slice(0, -item.p.length);
+            detectedParticle = ` + 「${item.p}」(${item.desc})`;
+            break;
+          }
+        }
+        
+        const translated = await translateKoToJa(stem);
+        const finalMeaning = translated ? `「${translated}」の表現・意味` : `「${q}」の表現`;
+        BUILTIN_DICT[stem] = { hanja: '―', pos: '語彙', meaning: translated, level: '語彙' };
+        renderContent(finalMeaning, detectedParticle);
+      } else {
+        renderContent(match.meaning);
       }
     }
 
@@ -3005,13 +3361,22 @@
 
       // 改行で分割して文カードを作成
       const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
-      const sentences = lines.map((line) => {
-        return {
+      showToast('⚡ 全文の日本語訳とルビを自動生成中... ⏳');
+
+      const sentences = [];
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const rubi = hangulToKatakana(line);
+        let ja = await translateKoToJa(line);
+        if (!ja || ja === line) {
+          ja = '（クリックして各単語の意味や発音を学習できます）';
+        }
+        sentences.push({
           ko: line,
-          rubi: '',
-          ja: '（クリックして各単語の意味や発音を学習できます）'
-        };
-      });
+          rubi: rubi,
+          ja: ja
+        });
+      }
 
       const newSongItem = {
         id: 'user_' + Date.now(),
