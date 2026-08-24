@@ -2925,13 +2925,12 @@
           });
           
           if (existingIdx >= 0) {
-            // 対訳情報が充実している方を優先してマージ
             const existing = SAMPLE_DATABASE.lyrics[existingIdx];
-            const hasCompleteExisting = (existing.sentences || []).some(s => s.ja && !s.ja.includes('クリックして'));
-            if (!hasCompleteExisting) {
-              SAMPLE_DATABASE.lyrics[existingIdx] = { ...existing, ...st };
+            // 内蔵データの文章数が多い、または自然な対訳が入っている場合は内蔵データを最優先！
+            if (existing.id === 'lyrics-how-love-is' || (existing.sentences && existing.sentences.length >= (st.sentences?.length || 0))) {
+              SAMPLE_DATABASE.lyrics[existingIdx] = { ...existing, id: st.id, is_supabase: true };
             } else {
-              SAMPLE_DATABASE.lyrics[existingIdx] = { ...st, ...existing, is_supabase: true };
+              SAMPLE_DATABASE.lyrics[existingIdx] = { ...existing, ...st };
             }
           } else {
             SAMPLE_DATABASE.lyrics.unshift(st);
