@@ -1293,6 +1293,11 @@
                 ☁️ Supabaseに保存
               </button>
 
+              <!-- 🗑️ 楽曲削除ボタン -->
+              <button id="delete-song-btn" class="mini-action-btn" onclick="deleteCurrentSong()" style="color:#f87171; border-color:rgba(239,68,68,0.3); background:rgba(239,68,68,0.1); display:none;" title="この楽曲を削除">
+                🗑️ 削除
+              </button>
+
               <!-- 🟢 Spotifyリンクボタン -->
               <a id="header-spotify-btn" href="#" target="_blank" rel="noopener noreferrer" class="spotify-badge-btn" style="display:none;" title="Spotifyで原曲を開く">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.485 17.307c-.215.353-.674.464-1.026.248-2.812-1.718-6.353-2.107-10.525-1.155-.403.093-.807-.156-.9-.558-.093-.403.156-.808.559-.9 4.568-1.042 8.484-.598 11.644 1.339.352.215.463.673.248 1.026zm1.464-3.253c-.27.44-.848.579-1.288.309-3.218-1.978-8.124-2.55-11.93-1.393-.497.15-1.027-.133-1.177-.63-.15-.497.133-1.027.63-1.177 4.354-1.321 9.774-.68 13.456 1.583.44.27.579.848.309 1.308zm.126-3.395C15.228 8.358 8.887 8.148 5.176 9.275c-.59.18-1.21-.16-1.39-.75-.18-.59.16-1.21.75-1.39 4.258-1.293 11.267-1.045 15.696 1.585.53.315.704 1.002.39 1.53-.315.53-1.002.705-1.547.39z"/></svg>
@@ -2515,6 +2520,53 @@
     let mapInstance = null;
     let mapMarker = null;
 
+        // ── 🗑️ 楽曲の削除機能 (Supabase & ローカルから完全削除) ──
+    async function deleteCurrentSong() {
+      if (!currentArticle || currentMode !== 'lyrics') return;
+      
+      const songTitle = currentArticle.title_ko;
+      if (!confirm(`楽曲「${songTitle}」を削除しますか？`)) {
+        return;
+      }
+
+      showToast(`「${songTitle}」を削除中... 🗑️`);
+
+      // 1. Supabase から削除を試行
+      try {
+        const trackId = currentArticle.id ? currentArticle.id.replace('supabase-', '') : '';
+        if (trackId) {
+          await fetch(`${SUPABASE_URL}/rest/v1/tracks?track_id=eq.${encodeURIComponent(trackId)}`, {
+            method: 'DELETE',
+            headers: {
+              'apikey': SUPABASE_KEY,
+              'Authorization': `Bearer ${SUPABASE_KEY}`
+            }
+          });
+        }
+      } catch (err) {
+        console.warn('Supabase delete error:', err);
+      }
+
+      // 2. ローカルリストから削除
+      SAMPLE_DATABASE.lyrics = SAMPLE_DATABASE.lyrics.filter(l => l.id !== currentArticle.id && l.title_ko !== songTitle);
+      
+      if (SAMPLE_DATABASE.lyrics.length === 0) {
+        SAMPLE_DATABASE.lyrics.push({
+          id: 'lyrics-empty',
+          title_ko: '登録曲なし',
+          title_ja: '右上の「➕ 歌詞をコピペ登録」から好きな曲を追加できます',
+          category: '🎵 K-POP',
+          level: '入門',
+          sentences: []
+        });
+      }
+
+      currentArticle = SAMPLE_DATABASE.lyrics[0];
+      renderHubChips();
+      loadArticle(currentArticle);
+      showToast('楽曲を削除しました 🗑️');
+    }
+
     // ── SMART AUDIO PLAYER STATE ──
     let synth = window.speechSynthesis;
     let isPlaying = false;
@@ -2581,17 +2633,44 @@
       }
     }
 
+    function normalizeSongTitle(str) {
+      if (!str) return '';
+      return str.replace(/\s+/g, '').replace(/[-–—_().,]/g, '').toLowerCase();
+    }
+
     async function syncSupabaseLyricsToApp() {
       const supaTracks = await fetchSupabaseLyricsTracks();
       if (supaTracks.length > 0) {
         supaTracks.forEach(st => {
-          const existingIdx = SAMPLE_DATABASE.lyrics.findIndex(l => l.title_ko === st.title_ko || l.id === st.id);
+          const normSt = normalizeSongTitle(st.title_ko);
+          const existingIdx = SAMPLE_DATABASE.lyrics.findIndex(l => {
+            const normL = normalizeSongTitle(l.title_ko);
+            return normL === normSt || normL.includes(normSt) || normSt.includes(normL) || l.id === st.id;
+          });
+          
           if (existingIdx >= 0) {
-            SAMPLE_DATABASE.lyrics[existingIdx] = st;
+            // 対訳情報が充実している方を優先してマージ
+            const existing = SAMPLE_DATABASE.lyrics[existingIdx];
+            const hasCompleteExisting = (existing.sentences || []).some(s => s.ja && !s.ja.includes('クリックして'));
+            if (!hasCompleteExisting) {
+              SAMPLE_DATABASE.lyrics[existingIdx] = { ...existing, ...st };
+            } else {
+              SAMPLE_DATABASE.lyrics[existingIdx] = { ...st, ...existing, is_supabase: true };
+            }
           } else {
             SAMPLE_DATABASE.lyrics.unshift(st);
           }
         });
+
+        // 念のためタイトル重複を完全除去
+        const seenTitles = new Set();
+        SAMPLE_DATABASE.lyrics = SAMPLE_DATABASE.lyrics.filter(item => {
+          const key = normalizeSongTitle(item.title_ko.split('-')[0]);
+          if (seenTitles.has(key)) return false;
+          seenTitles.add(key);
+          return true;
+        });
+
         if (currentMode === 'lyrics') {
           currentArticle = SAMPLE_DATABASE.lyrics[0];
           renderHubChips();
@@ -2939,12 +3018,15 @@
       // ☁️ Supabaseバッジと保存ボタンの切り替え
       const supaBadge = document.getElementById('badge-supabase');
       const supaSaveBtn = document.getElementById('save-to-supabase-btn');
+      const deleteBtn = document.getElementById('delete-song-btn');
       if (currentMode === 'lyrics') {
         supaSaveBtn.style.display = 'inline-flex';
         supaBadge.style.display = item.is_supabase ? 'inline-block' : 'none';
+        if (deleteBtn) deleteBtn.style.display = 'inline-flex';
       } else {
         supaSaveBtn.style.display = 'none';
         supaBadge.style.display = 'none';
+        if (deleteBtn) deleteBtn.style.display = 'none';
       }
 
       // 🎵 Spotifyリンクボタンの表示切り替え
