@@ -3905,6 +3905,16 @@
         return;
       }
 
+      if (/어떻게 사랑이|사랑이 그래요|어떻게사랑이/i.test(q)) {
+        currentMode = 'lyrics';
+        switchMainTab('lyrics');
+        currentArticle = SAMPLE_DATABASE.lyrics.find(l => l.id === 'lyrics-how-love-is') || SAMPLE_DATABASE.lyrics[0];
+        renderHubChips();
+        loadArticle(currentArticle);
+        showToast('キム・ナヨン『どうして愛はこんなにも残酷なの』の本格対訳を読み込みました！ ✨');
+        return;
+      }
+
       if (/김나영|그렇게 사랑하고|버블|bubble/i.test(q)) {
         currentMode = 'lyrics';
         switchMainTab('lyrics');
