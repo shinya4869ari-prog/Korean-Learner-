@@ -2124,6 +2124,78 @@
       ],
       lyrics: [
         {
+          id: 'lyrics-how-love-is',
+          title_ko: '어떻게 사랑이 그래요 - 김나영',
+          title_ja: 'どうして愛がそんななの (キム・ナヨン)',
+          artist: '김나영 (Kim Na Young)',
+          category: '🎵 K-POP / OST',
+          cat_class: 'cat-music',
+          level: 'TOPIK 3級 (感情・バラード)',
+          source: 'OST名曲 (이승환 原曲)',
+          date: '2026.08.24',
+          spotify_url: 'https://open.spotify.com/search/%EC%96%B4%EB%96%BB%EA%B2%8C%20%EC%82%AC%EB%9E%91%EC%9D%B4%20%EA%B7%B8%EB%9E%98%EC%9A%94%20%EA%B9%80%EB%82%98%EC%98%81',
+          sentences: [
+            {
+              ko: '사랑이 잠시 쉬어간대요',
+              rubi: 'サランイ チャムシ スィオガンデヨ',
+              ja: '愛が少しの間 休んでいくそうです'
+            },
+            {
+              ko: '나를 허락한 고마움',
+              rubi: 'ナルル ホラカン コマウム',
+              ja: '私を受け入れてくれたありがたさ（感謝）'
+            },
+            {
+              ko: '갚지도 못했는데',
+              rubi: 'カプチド モテンヌンデ',
+              ja: '恩返しさえもできなかったのに'
+            },
+            {
+              ko: '다가온 이별에 난',
+              rubi: 'タガオン イビョレ ナン',
+              ja: '近づいてきた別れに 私は'
+            },
+            {
+              ko: '어찌할 바를 몰라',
+              rubi: 'オッチハル パルル モルラ',
+              ja: 'どうすればいいのか分からなくて'
+            },
+            {
+              ko: '어떻게 사랑이 그래요',
+              rubi: 'オットケ サランイ クレヨ',
+              ja: 'どうして愛がそんな仕打ちなの'
+            },
+            {
+              ko: '그렇게 쉽게 변하나요',
+              rubi: 'クロッケ スィプケ ピョナナヨ',
+              ja: 'そんなに簡単に変わってしまうのですか'
+            },
+            {
+              ko: '영원할 거라 믿었던 내 사랑이',
+              rubi: 'ヨンウォナル コラ ミドットン ネ サランイ',
+              ja: '永遠だと信じていた 私の愛が'
+            }
+          ],
+          vocab: [
+            { word: '사랑이', hanja: '―', pos: '名詞+助詞', meaning: '愛が (사랑 + 이)', level: '初級' },
+            { word: '잠시', hanja: '暫時', pos: '副詞', meaning: 'しばらく・少しの間・一時', level: '初級' },
+            { word: '쉬어간대요', hanja: '―', pos: '動詞+語尾', meaning: '休んでいくそうです (쉬어가다 + ㄴ대요)', level: '中級' },
+            { word: '고마움', hanja: '―', pos: '名詞', meaning: '感謝・ありがたさ (고맙다の名詞形)', level: '初級' },
+            { word: '허락한', hanja: '許諾―', pos: '動詞(連体形)', meaning: '許してくれた・受け入れてくれた (허락하다 + ㄴ)', level: '中級' },
+            { word: '갚지도', hanja: '―', pos: '動詞+助詞', meaning: '返金・恩返しさえも (갚다 + 지 + 도)', level: 'TOPIK 3級' },
+            { word: '이별', hanja: '離別', pos: '名詞', meaning: '別れ・離別', level: '初級' },
+            { word: '어떻게', hanja: '―', pos: '副詞', meaning: 'どうして・どのように', level: '初級' }
+          ],
+          grammar: [
+            { pattern: '~ㄴ/은/는대요', meaning: '〜だそうです / 〜と言うそうです', desc: '伝聞・間接話法を表す表現。' },
+            { pattern: '~지도 못하다', meaning: '〜さえもできない', desc: '不可能な否定の強調表現。' },
+            { pattern: '~(으)ㄹ 바를 모르다', meaning: 'どう〜すればいいか分からない', desc: '途方に暮れた状態を表す表現。' }
+          ],
+          lyrics_notes: [
+            '💬 <strong>「어떻게 사랑이 그래요」の背景:</strong> 愛した人との突然の別れに戸惑い、「愛がどうしてこんなに簡単に冷めてしまうの？」と胸が張り裂けそうな感情を切なく歌い上げた名バラードです。'
+          ]
+        },
+        {
           id: 'lyrics-akmu-how-can-i-love',
           title_ko: '어떻게 이별까지 사랑하겠어, 널 사랑하는 거지 - AKMU',
           title_ja: 'どうして別れまで愛せようか、君を愛してるだけなのに (How can I love the heartbreak, you\'re the one I love)',
@@ -2818,9 +2890,43 @@
     }
 
     // ── LOAD ARTICLE INTO WORKSPACE ──
-    function loadArticle(item) {
+        // ── LOAD ARTICLE INTO WORKSPACE ──
+    async function loadArticle(item) {
       stopSpeech();
       currentSentenceIndex = 0;
+
+      // ⚡ 未翻訳・プレースホルダーの歌詞がある場合、バックグラウンドで全自動翻訳＆ルビ生成！
+      const hasUntranslated = (item.sentences || []).some(s => !s.ja || s.ja.includes('クリックして') || s.ja === s.ko || !s.rubi);
+      if (hasUntranslated) {
+        (async () => {
+          let updated = false;
+          for (const s of (item.sentences || [])) {
+            if (!s.rubi) {
+              s.rubi = hangulToKatakana(s.ko);
+              updated = true;
+            }
+            if (!s.ja || s.ja.includes('クリックして') || s.ja === s.ko) {
+              const trans = await translateKoToJa(s.ko);
+              if (trans && trans !== s.ko) {
+                s.ja = trans;
+                updated = true;
+              }
+            }
+          }
+          if (updated) {
+            // 自動で画面の対訳とルビを最新化
+            (item.sentences || []).forEach((s, idx) => {
+              const card = document.getElementById(`sent-card-${idx}`);
+              if (card) {
+                const jaEl = card.querySelector('.sentence-ja');
+                if (jaEl) jaEl.textContent = s.ja;
+                const rubiEl = card.querySelector('.sentence-rubi');
+                if (rubiEl) rubiEl.textContent = s.rubi;
+              }
+            });
+          }
+        })();
+      }
 
       document.getElementById('article-title-ko').textContent = item.title_ko;
       document.getElementById('article-title-ja').textContent = item.title_ja;
