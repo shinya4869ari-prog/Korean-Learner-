@@ -1197,7 +1197,92 @@
       from { transform: translateY(20px); opacity: 0; }
       to { transform: translateY(0); opacity: 1; }
     }
-  </style>
+  
+    /* ── 📰 NEWS PARAGRAPH BLOCK VIEW (案B: 段落対訳スタイル) ── */
+    .news-control-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      background: var(--s2);
+      border: 1px solid var(--bd);
+      border-radius: var(--r);
+      padding: 12px 18px;
+      margin-bottom: 16px;
+    }
+    .news-control-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .news-para-card {
+      background: var(--s1);
+      border: 1px solid var(--bd);
+      border-radius: var(--r);
+      padding: 24px 26px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-bottom: 16px;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    }
+    .news-para-card:hover {
+      border-color: rgba(0, 212, 170, 0.4);
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+    }
+    .news-para-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .news-para-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--ac);
+      background: rgba(0, 212, 170, 0.12);
+      padding: 4px 12px;
+      border-radius: 14px;
+    }
+    .news-para-ko {
+      font-family: var(--font-kr);
+      font-size: 1.15rem;
+      font-weight: 500;
+      line-height: 1.9;
+      color: var(--tx);
+      letter-spacing: -0.01em;
+      word-break: keep-all;
+    }
+    .news-para-rubi {
+      font-size: 0.8rem;
+      color: var(--tm);
+      margin-bottom: 6px;
+      letter-spacing: 0.02em;
+    }
+    .news-para-ja {
+      font-size: 0.95rem;
+      line-height: 1.75;
+      color: #94a3b8;
+      border-top: 1px solid var(--bd-light);
+      padding-top: 14px;
+      font-weight: 400;
+    }
+    .news-para-ja.hidden-ja {
+      display: none !important;
+    }
+    .global-news-lookup {
+      background: var(--s2);
+      border: 1px solid var(--bd);
+      border-radius: var(--r);
+      padding: 14px 18px;
+      margin-bottom: 16px;
+    }
+
+</style>
 </head>
 
 <body>
@@ -2848,6 +2933,7 @@
     };
 
     let currentMode = 'news';
+    let isJaTranslationVisible = true; // ニュース日本語訳の表示トグル
     let currentCategoryFilter = 'all';
     let currentArticle = SAMPLE_DATABASE.news[0];
     let showRubi = false;
@@ -3150,6 +3236,115 @@
       } finally {
         if (btn) btn.disabled = false;
       }
+    }
+
+    
+    // ── 📰 NEWS PARAGRAPH BLOCK RENDERER (案B: 段落対訳 ＆ まとまり型ビュー) ──
+    function toggleJaTranslation() {
+      isJaTranslationVisible = !isJaTranslationVisible;
+      const btn = document.getElementById('toggle-ja-btn');
+      if (btn) {
+        btn.innerHTML = isJaTranslationVisible ? '👁️ 日本語訳を隠す' : '👁️ 日本語訳を表示';
+        btn.style.color = isJaTranslationVisible ? 'var(--ac)' : 'var(--tm)';
+      }
+      document.querySelectorAll('.news-para-ja').forEach(el => {
+        if (isJaTranslationVisible) {
+          el.classList.remove('hidden-ja');
+        } else {
+          el.classList.add('hidden-ja');
+        }
+      });
+    }
+
+    function renderNewsParagraphs(item, container) {
+      // 1. ニュース専用コントロールバー（再生・日本語訳トグル・ルビ切替）
+      const ctrlBar = document.createElement('div');
+      ctrlBar.className = 'news-control-bar';
+      ctrlBar.innerHTML = `
+        <div class="news-control-group">
+          <button class="cat-btn active" onclick="playArticleAll()" title="記事全体を順番に音声読み上げ">
+            ▶ 記事全文を聴く
+          </button>
+          <button class="cat-btn" onclick="togglePlayPause()" title="一時停止 / 再開">
+            ⏸ 一時停止
+          </button>
+          <button class="cat-btn" onclick="stopSpeech()" title="読み上げ停止">
+            ⏹ 停止
+          </button>
+        </div>
+        <div class="news-control-group">
+          <button class="cat-btn" id="toggle-ja-btn" onclick="toggleJaTranslation()" style="color:${isJaTranslationVisible ? 'var(--ac)' : 'var(--tm)'};">
+            ${isJaTranslationVisible ? '👁️ 日本語訳を隠す' : '👁️ 日本語訳を表示'}
+          </button>
+          <button class="cat-btn" onclick="toggleRubi()">
+            🔤 ルビ: ${showRubi ? 'ON' : 'OFF'}
+          </button>
+        </div>
+      `;
+      container.appendChild(ctrlBar);
+
+      // 2. 共通単語調べバー（クリックした単語がここに瞬時反映）
+      const lookupBox = document.createElement('div');
+      lookupBox.className = 'global-news-lookup';
+      lookupBox.innerHTML = `
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+          <span style="font-size:0.8rem; color:var(--ac); font-weight:700;">🔍 単語辞書（本文のハングル単語をタップまたは入力）:</span>
+          <div class="input-wrapper-clear" style="flex:1;">
+            <input type="text" class="card-lookup-inp" id="news-global-lookup-inp" placeholder="単語をクリック または 入力..." onkeydown="if(event.key==='Enter') executeNewsGlobalLookup()" />
+            <button class="input-clear-x" onclick="document.getElementById('news-global-lookup-inp').value=''; document.getElementById('news-global-lookup-res').innerHTML='';" title="クリア">✕</button>
+          </div>
+          <button class="mini-action-btn" onclick="executeNewsGlobalLookup()">調べ</button>
+        </div>
+        <div id="news-global-lookup-res" style="font-size:0.85rem;"></div>
+      `;
+      container.appendChild(lookupBox);
+
+      // 3. 段落リストの構築（paragraphs配列がある場合はそれを使い、なければsentencesを段落化）
+      let paraList = [];
+      if (item.paragraphs && item.paragraphs.length > 0) {
+        paraList = item.paragraphs;
+      } else if (item.sentences && item.sentences.length > 0) {
+        // 既存の2〜3文を自然な段落にまとめる
+        const chunkSize = 2;
+        for (let i = 0; i < item.sentences.length; i += chunkSize) {
+          const chunk = item.sentences.slice(i, i + chunkSize);
+          paraList.push({
+            ko: chunk.map(s => s.ko).join(' '),
+            ja: chunk.map(s => s.ja).join(' '),
+            rubi: chunk.map(s => s.rubi || '').filter(Boolean).join(' ')
+          });
+        }
+      }
+
+      paraList.forEach((para, pIdx) => {
+        const card = document.createElement('div');
+        card.className = 'news-para-card';
+        card.id = `news-para-${pIdx}`;
+
+        const rubiHtml = showRubi && para.rubi ? `<div class="news-para-rubi">${para.rubi}</div>` : '';
+        const wrappedKo = wrapClickableWords(para.ko, pIdx);
+
+        card.innerHTML = `
+          <div class="news-para-header">
+            <span class="news-para-badge">📰 段落 ${pIdx + 1}</span>
+            <div style="display:flex; gap:6px;">
+              <button class="mini-action-btn" onclick="triggerSpeechSingle('${para.ko.replace(/'/g, "\\'")}')" title="この段落だけ発音">🔊 聴く</button>
+              <button class="mini-action-btn" onclick="copySentenceText('${para.ko.replace(/'/g, "\\'")}')" title="韓国語をコピー">📋 コピー</button>
+            </div>
+          </div>
+          ${rubiHtml}
+          <p class="news-para-ko" id="news-ko-${pIdx}">${wrappedKo}</p>
+          <div class="news-para-ja ${isJaTranslationVisible ? '' : 'hidden-ja'}">${para.ja}</div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function executeNewsGlobalLookup() {
+      const q = (document.getElementById('news-global-lookup-inp')?.value || '').trim();
+      const resEl = document.getElementById('news-global-lookup-res');
+      if (!q || !resEl) return;
+      lookupDictionary(q, resEl);
     }
 
     async function syncSupabaseLyricsToApp() {
@@ -3573,10 +3768,14 @@
         }
       }
 
-      // 1. Render Sentences
+      // 1. Render Content (News: Paragraph Block View / Lyrics: Sentence Cards)
       const sContainer = document.getElementById('sentence-container');
       sContainer.innerHTML = '';
-      (item.sentences || []).forEach((s, idx) => {
+
+      if (currentMode === 'news') {
+        renderNewsParagraphs(item, sContainer);
+      } else {
+        (item.sentences || []).forEach((s, idx) => {
         const card = document.createElement('div');
         card.className = 'sentence-card';
         card.id = `sent-card-${idx}`;
@@ -3627,7 +3826,8 @@
           </div>
         `;
         sContainer.appendChild(card);
-      });
+        });
+      }
 
       // 2. Render Map
       if (item.location) {
