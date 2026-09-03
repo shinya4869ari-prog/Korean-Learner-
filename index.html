@@ -1226,6 +1226,9 @@
 
     <!-- Controls -->
     <div class="header-controls">
+      <button class="cat-btn" onclick="openFavModal()" style="background:rgba(245, 158, 11, 0.15); border-color:var(--amber); color:var(--amber); font-weight:700;" title="Supabaseのお気に入り人物（俳優・監督・歌手）を管理">
+        ⭐ 推し人物管理
+      </button>
       <div class="control-pill" id="rubi-toggle" onclick="toggleRubi()" title="カタカナ発音ルビの表示切り替え">
         🔤 ルビ: <span id="rubi-status">OFF</span>
       </div>
@@ -1236,12 +1239,13 @@
     <!-- ── 1. CATEGORY & NEWS/LYRICS SELECTION HUB ── -->
     <section class="hub-bar" id="news-hub-bar">
       <div class="category-filter-row" id="category-filter-bar">
-        <button class="cat-btn active" onclick="filterCategory('all', this)">🌐 すべて</button>
-        <button class="cat-btn" onclick="filterCategory('crime', this)">🚔 事件・司法</button>
-        <button class="cat-btn" onclick="filterCategory('politics', this)">🏛️ 政治・社会</button>
-        <button class="cat-btn" onclick="filterCategory('warm', this)">🐱 ほっこり・動物・美談</button>
-        <button class="cat-btn" onclick="filterCategory('celeb', this)">🎬 芸能・アーティスト</button>
-        <button class="cat-btn" onclick="filterCategory('variety', this)">🎭 バラエティ・文化</button>
+        <button class="cat-btn active" onclick="filterCategory('all', this)">🌐 今週のTop 10 (すべて)</button>
+        <button class="cat-btn" onclick="filterCategory('crime', this)">🚨 犯罪・治安</button>
+        <button class="cat-btn" onclick="filterCategory('life', this)">🏡 暮らし・社会</button>
+        <button class="cat-btn" onclick="filterCategory('politics', this)">🏛️ 政治</button>
+        <button class="cat-btn" onclick="filterCategory('economy', this)">📈 経済</button>
+        <button class="cat-btn" onclick="filterCategory('diplomacy', this)">🌐 外交・国際</button>
+        <button class="cat-btn" onclick="filterCategory('celeb', this)">⭐ 推し・エンタメ</button>
       </div>
 
       <div class="hub-chips" id="hub-chip-container">
@@ -1395,6 +1399,34 @@
       </div>
     </section>
   </main>
+
+  <!-- ── MODAL: 推し人物（俳優・監督・歌手）管理 ── -->
+  <div class="modal-backdrop" id="favorite-persons-modal" style="display:none;" onclick="if(event.target===this) closeFavModal()">
+    <div class="modal-card" style="max-width: 680px; max-height: 85vh; display:flex; flex-direction:column;">
+      <div class="modal-header">
+        <div class="modal-title" style="color:var(--amber);">⭐ 推し人物管理（俳優・監督・歌手）</div>
+        <button class="modal-close-btn" onclick="closeFavModal()">✕</button>
+      </div>
+      <p style="font-size:0.8rem; color:var(--tm); margin-bottom:12px;">
+        ★を付けた推しのニュースが、毎朝「⭐ 推し・エンタメ」カテゴリに優先配信されます（Supabase Persons連携）。
+      </p>
+      
+      <!-- 検索バー -->
+      <div style="display:flex; gap:8px; margin-bottom:14px;">
+        <input type="text" id="fav-search-input" class="form-input" placeholder="俳優・監督・歌手名で検索（例: 김남길, 박은빈, 봉준호, IU）..." style="flex:1;" onkeydown="if(event.key==='Enter') searchFavPersons()" />
+        <button class="cat-btn active" onclick="searchFavPersons()" style="padding:0 18px;">検索</button>
+      </div>
+
+      <!-- 人物リスト -->
+      <div id="fav-persons-list" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:8px; max-height:48vh; padding-right:4px;">
+        <div style="text-align:center; padding:30px; color:var(--tm); font-size:0.85rem;">読み込み中... ☁️</div>
+      </div>
+
+      <div style="margin-top:14px; border-top:1px solid var(--bd-light); padding-top:12px; display:flex; justify-content:flex-end;">
+        <button class="cat-btn" onclick="closeFavModal()">閉じる</button>
+      </div>
+    </div>
+  </div>
 
   <!-- ── MODAL: 歌詞コピペ新規登録 ── -->
   <div class="modal-backdrop" id="paste-lyrics-modal" onclick="if(event.target===this) closePasteModal()">
@@ -2940,6 +2972,186 @@
       return str.replace(/\s+/g, '').replace(/[-–—_().,]/g, '').toLowerCase();
     }
 
+    // ── ☁️ SUPABASE NEWS SYNC FUNCTIONS (6大カテゴリ ＆ 推しニュース自動同期) ──
+    async function fetchSupabaseNews() {
+      try {
+        const url = `${SUPABASE_URL}/rest/v1/news?select=*&order=rank.asc,published_at.desc&limit=30`;
+        const res = await fetch(url, {
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`
+          }
+        });
+        if (!res.ok) return [];
+        const rawNews = await res.json();
+        
+        const catMap = {
+          'crime': '🚨 犯罪・治安',
+          'life': '🏡 暮らし・社会',
+          'politics': '🏛️ 政治',
+          'economy': '📈 経済',
+          'diplomacy': '🌐 外交・国際',
+          'celeb': '⭐ 推し・エンタメ'
+        };
+
+        return (rawNews || []).map(n => {
+          const catLabel = catMap[n.category] || '📰 ニュース';
+          
+          // 記事段落の生成
+          const paragraphs = [];
+          if (n.summary_ko) {
+            paragraphs.push({
+              ko: n.summary_ko,
+              rubi: katakanaHelper(n.summary_ko),
+              ja: n.summary_ja || ''
+            });
+          }
+
+          // 重要単語リストの正規化
+          const vocab = (Array.isArray(n.key_vocabulary) ? n.key_vocabulary : []).map(v => ({
+            word: v.word,
+            hanja: v.hanja || '―',
+            pos: '語彙',
+            meaning: v.meaning,
+            level: v.level ? `重要 (${v.level})` : 'TOPIK 3-5級'
+          }));
+
+          return {
+            id: `supabase-news-${n.id}`,
+            category: catLabel,
+            category_type: n.category,
+            rank: n.rank || 1,
+            title_ko: n.title_ko,
+            title_ja: n.title_ja,
+            source: `${n.source_name || '韓国主要メディア'} (Supabase ☁️)`,
+            source_url: n.source_url || '',
+            person_name: n.person_name || '',
+            person_profile_url: n.person_profile_url || '',
+            paragraphs: paragraphs,
+            vocab: vocab,
+            legal_point: `【${catLabel} TOP ${n.rank || 1}】生きたニュース韓国語と最新動向を読解できます。`,
+            is_supabase: true,
+            published_at: n.published_at
+          };
+        });
+      } catch(err) {
+        console.warn('Supabase news fetch failed:', err);
+        return [];
+      }
+    }
+
+    async function syncSupabaseNewsToApp() {
+      const supaNews = await fetchSupabaseNews();
+      if (supaNews.length > 0) {
+        // 重複を除去しながらSupabaseの最新ニュースを先頭にマージ
+        const merged = [...supaNews];
+        SAMPLE_DATABASE.news.forEach(localN => {
+          if (!merged.some(m => m.id === localN.id || m.title_ko === localN.title_ko)) {
+            merged.push(localN);
+          }
+        });
+        SAMPLE_DATABASE.news = merged;
+        
+        if (currentMode === 'news') {
+          currentArticle = SAMPLE_DATABASE.news[0];
+          renderHubChips();
+          loadArticle(currentArticle);
+        }
+      }
+    }
+
+    // ── ⭐ 推し人物モーダル制御 (Supabase Persons連携) ──
+    async function openFavModal() {
+      document.getElementById('favorite-persons-modal').style.display = 'flex';
+      await searchFavPersons();
+    }
+
+    function closeFavModal() {
+      document.getElementById('favorite-persons-modal').style.display = 'none';
+    }
+
+    async function searchFavPersons() {
+      const q = (document.getElementById('fav-search-input')?.value || '').trim();
+      const container = document.getElementById('fav-persons-list');
+      if (!container) return;
+      container.innerHTML = '<div style="text-align:center; padding:30px; color:var(--tm);">Supabaseから人物リストを取得中... ☁️</div>';
+
+      try {
+        let url = `${SUPABASE_URL}/rest/v1/Persons?select=id,name,name_en,profile_url,occupation,is_favorite&order=is_favorite.desc,name.asc&limit=60`;
+        if (q) {
+          url = `${SUPABASE_URL}/rest/v1/Persons?or=(name.ilike.*${encodeURIComponent(q)}*,name_en.ilike.*${encodeURIComponent(q)}*)&select=id,name,name_en,profile_url,occupation,is_favorite&limit=40`;
+        }
+
+        const res = await fetch(url, {
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`
+          }
+        });
+        if (!res.ok) throw new Error('Persons API error');
+        const persons = await res.json();
+
+        if (!persons || persons.length === 0) {
+          container.innerHTML = '<div style="text-align:center; padding:30px; color:var(--tm);">該当する人物が見つかりませんでした</div>';
+          return;
+        }
+
+        container.innerHTML = '';
+        persons.forEach(p => {
+          const card = document.createElement('div');
+          card.style.cssText = 'display:flex; align-items:center; justify-content:space-between; background:var(--s2); border:1px solid var(--bd); border-radius:12px; padding:8px 14px; gap:12px;';
+          
+          const avatarHtml = p.profile_url 
+            ? `<img src="${p.profile_url}" style="width:40px; height:40px; border-radius:50%; object-fit:cover; border:1.5px solid var(--bd);" />`
+            : `<div style="width:40px; height:40px; border-radius:50%; background:var(--s3); display:flex; align-items:center; justify-content:center; font-size:18px;">👤</div>`;
+
+          const isFav = p.is_favorite === true;
+
+          card.innerHTML = `
+            <div style="display:flex; align-items:center; gap:10px;">
+              ${avatarHtml}
+              <div>
+                <div style="font-weight:700; font-size:0.95rem; color:var(--tx);">${p.name} <span style="font-size:0.75rem; color:var(--tm); font-weight:normal;">${p.name_en || ''}</span></div>
+                <div style="font-size:0.72rem; color:var(--ac); font-weight:600;">${p.occupation || '俳優・人物'}</div>
+              </div>
+            </div>
+            <button class="cat-btn" onclick="togglePersonFav(${p.id}, ${!isFav}, this)" style="border-color:${isFav ? 'var(--amber)' : 'var(--bd)'}; color:${isFav ? 'var(--amber)' : 'var(--tm)'}; background:${isFav ? 'rgba(245,158,11,0.18)' : 'var(--s1)'}; font-size:0.78rem; font-weight:700; padding:5px 12px;">
+              ${isFav ? '⭐ 推し中' : '☆ 追加'}
+            </button>
+          `;
+          container.appendChild(card);
+        });
+      } catch(e) {
+        container.innerHTML = `<div style="text-align:center; padding:30px; color:var(--red);">取得エラー: ${e.message}</div>`;
+      }
+    }
+
+    async function togglePersonFav(personId, newStatus, btn) {
+      if (btn) btn.disabled = true;
+      try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/Persons?id=eq.${personId}`, {
+          method: 'PATCH',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal'
+          },
+          body: JSON.stringify({ is_favorite: newStatus })
+        });
+        if (res.ok) {
+          showToast(newStatus ? '⭐ 推しに登録しました！' : 'お気に入りを解除しました');
+          await searchFavPersons();
+        } else {
+          showToast('⚠️ 更新に失敗しました');
+        }
+      } catch(e) {
+        showToast('⚠️ 通信エラー');
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
     async function syncSupabaseLyricsToApp() {
       const supaTracks = await fetchSupabaseLyricsTracks();
       if (supaTracks.length > 0) {
@@ -3126,6 +3338,7 @@
 
       // 初回起動時にSupabaseから歌詞データを優先取得
       syncSupabaseLyricsToApp();
+      syncSupabaseNewsToApp();
 
       document.addEventListener('keydown', (e) => {
         if (e.code === 'Space' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
@@ -3326,8 +3539,24 @@
         if (deleteBtn) deleteBtn.style.display = 'inline-flex';
       } else {
         supaSaveBtn.style.display = 'none';
-        supaBadge.style.display = 'none';
+        supaBadge.style.display = item.is_supabase ? 'inline-block' : 'none';
         if (deleteBtn) deleteBtn.style.display = 'none';
+      }
+
+      // ⭐ 推し人物ニュースの場合の推しバッジ表示
+      let celebBadge = document.getElementById('celeb-person-badge');
+      if (item.person_name) {
+        if (!celebBadge) {
+          celebBadge = document.createElement('div');
+          celebBadge.id = 'celeb-person-badge';
+          celebBadge.style.cssText = 'display:inline-flex; align-items:center; gap:8px; background:rgba(245,158,11,0.15); border:1px solid var(--amber); border-radius:20px; padding:3px 12px; margin-bottom:8px; font-size:0.8rem; font-weight:700; color:var(--amber);';
+          const titleEl = document.getElementById('article-title-ko');
+          titleEl.parentNode.insertBefore(celebBadge, titleEl);
+        }
+        celebBadge.style.display = 'inline-flex';
+        celebBadge.innerHTML = `${item.person_profile_url ? `<img src="${item.person_profile_url}" style="width:20px; height:20px; border-radius:50%; object-fit:cover;" />` : '⭐'} 推しニュース: ${item.person_name}`;
+      } else if (celebBadge) {
+        celebBadge.style.display = 'none';
       }
 
       // 🎵 Spotifyリンクボタンの表示切り替え
