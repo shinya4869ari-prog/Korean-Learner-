@@ -1753,7 +1753,7 @@
   </div>
 
   <!-- ── FLOATING SMART AUDIO PLAYER TOOLBAR ── -->
-  <div class="floating-audio-bar" id="audio-toolbar">
+  <div class="floating-audio-bar" id="audio-toolbar" style="display:none;">
     <div class="player-left">
       <span class="player-progress-badge" id="player-status-badge">文 1 / 14</span>
       <div class="player-title" id="player-now-text">再生準備完了（各文または下のボタンで操作）</div>
@@ -1764,6 +1764,7 @@
       <button class="player-btn play-main" id="player-play-btn" onclick="togglePlayPause()" title="再生 / 一時停止 (Space)">▶</button>
       <button class="player-btn" onclick="stopSpeech()" title="停止 (⏹)">⏹</button>
       <button class="player-btn" onclick="playNextSentence()" title="次の文へ (⏭)">⏭</button>
+      <button class="player-btn" onclick="document.getElementById('audio-toolbar').style.display='none'; document.body.style.paddingBottom='24px';" title="プレイヤーを閉じる" style="font-size:0.8rem; margin-right:4px;">✕</button>
       <button class="player-btn" id="repeat-btn" onclick="toggleRepeatSingle()" title="1文リピート切り替え" style="font-size:0.8rem;">🔁</button>
     </div>
 
@@ -3693,18 +3694,24 @@
       const contentInp = document.getElementById('memo-edit-content');
       const statusEl = document.getElementById('memo-save-status');
       if (!titleInp || !contentInp) return;
-      const note = userNotes.find(n => n.id === currentNoteId) || userNotes[0];
+
+      const note = userNotes.find(n => n.id === currentNoteId) || (userNotes.length > 0 ? userNotes[0] : null);
 
       if (!note) {
-        if (titleInp) titleInp.value = '';
-        if (contentInp) contentInp.value = '';
+        // メモが0件の時はエディタを完全クリアして白紙状態にする
+        currentNoteId = null;
+        titleInp.value = '';
+        contentInp.value = '';
+        if (catInp) catInp.value = 'idea';
+        if (statusEl) statusEl.innerHTML = '📝 新規メモを作成できます';
+        isNoteUnsaved = false;
         return;
       }
 
       currentNoteId = note.id;
-      if (titleInp) titleInp.value = note.title || '';
+      titleInp.value = note.title || '';
       if (catInp) catInp.value = note.category || 'idea';
-      if (contentInp) contentInp.value = note.content || '';
+      contentInp.value = note.content || '';
       if (statusEl) statusEl.innerHTML = '☁️ クラウド同期済';
       isNoteUnsaved = false;
     }
@@ -3824,8 +3831,9 @@
       } catch(e) {}
 
       currentNoteId = userNotes[0]?.id || null;
+      loadCurrentNoteToEditor();
       renderNotesList();
-      showToast('🗑️ メモを削除しました');
+      showToast('🗑️ メモを完全に削除しました');
     }
 
     function copyCurrentMemo() {
@@ -4092,10 +4100,14 @@
 
       const memoSection = document.getElementById('memo-view');
 
+      const audioBar = document.getElementById('audio-toolbar');
+
       if (mode === 'wordbook') {
         ws.style.display = 'none';
         wb.style.display = 'flex';
         if (memoSection) memoSection.style.display = 'none';
+        if (audioBar) audioBar.style.display = 'none';
+        document.body.style.paddingBottom = '24px';
         renderWordbookGrid();
         return;
       }
@@ -4104,6 +4116,8 @@
         ws.style.display = 'none';
         wb.style.display = 'none';
         if (memoSection) memoSection.style.display = 'flex';
+        if (audioBar) audioBar.style.display = 'none';
+        document.body.style.paddingBottom = '24px';
         renderNotesList();
         return;
       }
@@ -4119,6 +4133,8 @@
         openPasteBtn.style.display = 'inline-flex';
         lyricsPanel.style.display = 'block';
         legalPanel.style.display = 'none';
+        if (audioBar) audioBar.style.display = 'flex';
+        document.body.style.paddingBottom = '95px';
         currentArticle = SAMPLE_DATABASE.lyrics[0];
         syncSupabaseLyricsToApp();
       } else {
@@ -4127,6 +4143,9 @@
         openPasteBtn.style.display = 'none';
         lyricsPanel.style.display = 'none';
         legalPanel.style.display = 'block';
+        // ニュースモード時は下部プレイヤーバーを非表示にし、画面を広々使う！
+        if (audioBar) audioBar.style.display = 'none';
+        document.body.style.paddingBottom = '24px';
         currentArticle = SAMPLE_DATABASE.news[0];
       }
 
