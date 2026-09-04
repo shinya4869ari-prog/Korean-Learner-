@@ -1282,6 +1282,143 @@
       margin-bottom: 16px;
     }
 
+
+    /* ── 💡 MEMO & IDEAS TAB VIEW STYLES ── */
+    #memo-view {
+      display: none;
+      flex-direction: column;
+      gap: 20px;
+      width: 100%;
+      max-width: 1520px;
+      margin: 0 auto;
+    }
+    .memo-layout {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+    @media (max-width: 900px) {
+      .memo-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+    .memo-sidebar-card {
+      background: var(--s1);
+      border: 1px solid var(--bd);
+      border-radius: var(--r);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    }
+    .memo-list-scroll {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 65vh;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .memo-item-card {
+      background: var(--s2);
+      border: 1px solid var(--bd);
+      border-radius: 12px;
+      padding: 12px 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .memo-item-card:hover {
+      border-color: var(--ac);
+      background: var(--s3);
+      transform: translateY(-2px);
+    }
+    .memo-item-card.active {
+      border-color: var(--ac);
+      background: rgba(0, 212, 170, 0.12);
+    }
+    .memo-item-title {
+      font-weight: 700;
+      font-size: 0.92rem;
+      color: var(--tx);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .memo-item-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.72rem;
+      color: var(--tm);
+    }
+    .memo-cat-tag {
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+    }
+    .cat-idea { background: rgba(245, 158, 11, 0.18); color: var(--amber); border: 1px solid rgba(245, 158, 11, 0.4); }
+    .cat-study { background: rgba(0, 212, 170, 0.18); color: var(--ac); border: 1px solid rgba(0, 212, 170, 0.4); }
+    .cat-question { background: rgba(139, 92, 246, 0.18); color: var(--ac2); border: 1px solid rgba(139, 92, 246, 0.4); }
+
+    .memo-editor-card {
+      background: var(--s1);
+      border: 1px solid var(--bd);
+      border-radius: var(--r);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    }
+    .memo-inp-title {
+      background: var(--s2);
+      border: 1px solid var(--bd);
+      border-radius: 10px;
+      padding: 12px 16px;
+      color: var(--tx);
+      font-size: 1.1rem;
+      font-weight: 700;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .memo-inp-title:focus {
+      border-color: var(--ac);
+    }
+    .memo-inp-content {
+      background: var(--s2);
+      border: 1px solid var(--bd);
+      border-radius: 10px;
+      padding: 16px;
+      color: var(--tx);
+      font-size: 0.95rem;
+      line-height: 1.7;
+      min-height: 380px;
+      width: 100%;
+      resize: vertical;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .memo-inp-content:focus {
+      border-color: var(--ac);
+    }
+    .memo-footer-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      border-top: 1px solid var(--bd-light);
+      padding-top: 16px;
+    }
+
 </style>
 </head>
 
@@ -1306,6 +1443,9 @@
       </button>
       <button class="nav-btn" id="tab-btn-wordbook" onclick="switchMainTab('wordbook')">
         📚 マイ単語帳 (<span id="wb-count">0</span>)
+      </button>
+      <button class="nav-btn" id="tab-btn-memo" onclick="switchMainTab('memo')">
+        💡 アイデア・メモ (<span id="memo-count">0</span>)
       </button>
     </div>
 
@@ -3347,6 +3487,291 @@
       lookupDictionary(q, resEl);
     }
 
+    
+    // ── 💡 USER NOTES & AI SHARING SYSTEM (LocalStorage + Supabase クラウド同期) ──
+    let userNotes = [];
+    let currentNoteId = null;
+    let isNoteUnsaved = false;
+
+    function initUserNotes() {
+      // 1. LocalStorageから初期読み込み
+      try {
+        const local = localStorage.getItem('k_learner_notes');
+        if (local) {
+          userNotes = JSON.parse(local);
+        }
+      } catch(e) {
+        userNotes = [];
+      }
+
+      // サンプル初期メモが空の場合
+      if (userNotes.length === 0) {
+        userNotes = [
+          {
+            id: Date.now(),
+            title: '💡 韓国語ニュース学習のアイデアメモ',
+            content: 'ニュースを読んでいて思いついたことや、アプリに追加してほしい機能をここに書いておくと、AI（Antigravity）も直接読み取ることができます！\n\n【例】\n・読み上げのスピード調整ボタンがほしい\n・今週の重要単語テストモードを作りたい',
+            category: 'idea',
+            updated_at: new Date().toISOString()
+          }
+        ];
+        saveNotesToLocal();
+      }
+
+      currentNoteId = userNotes[0]?.id || null;
+      updateNotesCount();
+      
+      // 2. Supabaseからクラウド同期
+      syncNotesWithSupabase();
+    }
+
+    function saveNotesToLocal() {
+      try {
+        localStorage.setItem('k_learner_notes', JSON.stringify(userNotes));
+      } catch(e) {}
+      updateNotesCount();
+    }
+
+    function updateNotesCount() {
+      const el = document.getElementById('memo-count');
+      if (el) el.textContent = userNotes.length;
+      const sideEl = document.getElementById('memo-sidebar-count');
+      if (sideEl) sideEl.textContent = userNotes.length;
+    }
+
+    async function syncNotesWithSupabase() {
+      try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/user_notes?select=*&order=updated_at.desc`, {
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`
+          }
+        });
+        if (res.ok) {
+          const cloudNotes = await res.json();
+          if (Array.isArray(cloudNotes) && cloudNotes.length > 0) {
+            // ローカルとクラウドをマージ（ID重複を除去しつつ最新化）
+            const merged = [...cloudNotes];
+            userNotes.forEach(ln => {
+              if (!merged.some(cn => cn.id === ln.id || cn.title === ln.title)) {
+                merged.push(ln);
+              }
+            });
+            userNotes = merged;
+            saveNotesToLocal();
+            if (currentMode === 'memo') {
+              renderNotesList();
+            }
+          }
+        }
+      } catch(e) {
+        console.warn('Supabase notes sync failed (using local):', e);
+      }
+    }
+
+    function renderNotesList() {
+      const container = document.getElementById('memo-list-container');
+      if (!container) return;
+
+      const q = (document.getElementById('memo-search-inp')?.value || '').toLowerCase().trim();
+      let list = userNotes;
+      if (q) {
+        list = list.filter(n => (n.title || '').toLowerCase().includes(q) || (n.content || '').toLowerCase().includes(q));
+      }
+
+      container.innerHTML = '';
+      if (list.length === 0) {
+        container.innerHTML = '<div style="text-align:center; padding:24px; color:var(--tm); font-size:0.8rem;">メモがありません</div>';
+        return;
+      }
+
+      list.forEach(n => {
+        const card = document.createElement('div');
+        card.className = `memo-item-card ${n.id === currentNoteId ? 'active' : ''}`;
+        
+        let catLabel = '💡 アイデア';
+        let catClass = 'cat-idea';
+        if (n.category === 'study') { catLabel = '📚 語学メモ'; catClass = 'cat-study'; }
+        else if (n.category === 'question') { catLabel = '🤖 AI相談'; catClass = 'cat-question'; }
+
+        const dateStr = n.updated_at ? new Date(n.updated_at).toLocaleDateString('ja-JP', { month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit' }) : '';
+
+        card.innerHTML = `
+          <div class="memo-item-title">${n.title || '無題のメモ'}</div>
+          <div class="memo-item-meta">
+            <span class="memo-cat-tag ${catClass}">${catLabel}</span>
+            <span>${dateStr}</span>
+          </div>
+        `;
+        card.onclick = () => selectNote(n.id);
+        container.appendChild(card);
+      });
+
+      // 現在選択中のメモをエディタにセット
+      loadCurrentNoteToEditor();
+    }
+
+    function filterNotesList() {
+      renderNotesList();
+    }
+
+    function selectNote(noteId) {
+      if (isNoteUnsaved) {
+        saveCurrentNote(false);
+      }
+      currentNoteId = noteId;
+      renderNotesList();
+    }
+
+    function loadCurrentNoteToEditor() {
+      const note = userNotes.find(n => n.id === currentNoteId) || userNotes[0];
+      const titleInp = document.getElementById('memo-edit-title');
+      const catInp = document.getElementById('memo-edit-category');
+      const contentInp = document.getElementById('memo-edit-content');
+      const statusEl = document.getElementById('memo-save-status');
+
+      if (!note) {
+        if (titleInp) titleInp.value = '';
+        if (contentInp) contentInp.value = '';
+        return;
+      }
+
+      currentNoteId = note.id;
+      if (titleInp) titleInp.value = note.title || '';
+      if (catInp) catInp.value = note.category || 'idea';
+      if (contentInp) contentInp.value = note.content || '';
+      if (statusEl) statusEl.innerHTML = '☁️ クラウド同期済';
+      isNoteUnsaved = false;
+    }
+
+    function markMemoUnsaved() {
+      isNoteUnsaved = true;
+      const statusEl = document.getElementById('memo-save-status');
+      if (statusEl) statusEl.innerHTML = '✏️ 編集中 (自動保存中...)';
+      
+      // デバウンス保存
+      if (window._memoSaveTimer) clearTimeout(window._memoSaveTimer);
+      window._memoSaveTimer = setTimeout(() => {
+        saveCurrentNote(false);
+      }, 1500);
+    }
+
+    function createNewNote() {
+      if (isNoteUnsaved) saveCurrentNote(false);
+      const newNote = {
+        id: Date.now(),
+        title: '',
+        content: '',
+        category: 'idea',
+        updated_at: new Date().toISOString()
+      };
+      userNotes.unshift(newNote);
+      currentNoteId = newNote.id;
+      saveNotesToLocal();
+      renderNotesList();
+      document.getElementById('memo-edit-title')?.focus();
+    }
+
+    async function saveCurrentNote(showToastMsg = true) {
+      const titleInp = document.getElementById('memo-edit-title');
+      const catInp = document.getElementById('memo-edit-category');
+      const contentInp = document.getElementById('memo-edit-content');
+      const statusEl = document.getElementById('memo-save-status');
+
+      if (!titleInp || !contentInp) return;
+      let title = titleInp.value.trim();
+      let content = contentInp.value;
+      let category = catInp?.value || 'idea';
+
+      if (!title && !content.trim()) return;
+      if (!title) {
+        title = content.split('\n')[0].slice(0, 30) || '無題のメモ';
+        titleInp.value = title;
+      }
+
+      const noteIdx = userNotes.findIndex(n => n.id === currentNoteId);
+      const now = new Date().toISOString();
+
+      if (noteIdx >= 0) {
+        userNotes[noteIdx] = {
+          ...userNotes[noteIdx],
+          title,
+          content,
+          category,
+          updated_at: now
+        };
+      } else {
+        const newNote = {
+          id: currentNoteId || Date.now(),
+          title,
+          content,
+          category,
+          updated_at: now
+        };
+        userNotes.unshift(newNote);
+        currentNoteId = newNote.id;
+      }
+
+      saveNotesToLocal();
+      isNoteUnsaved = false;
+      if (statusEl) statusEl.innerHTML = '☁️ 保存済 (AI共有完了)';
+
+      // Supabase へのクラウド送信
+      try {
+        await fetch(`${SUPABASE_URL}/rest/v1/user_notes`, {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'resolution=merge-duplicates'
+          },
+          body: JSON.stringify({
+            id: currentNoteId,
+            title,
+            content,
+            category,
+            updated_at: now
+          })
+        });
+      } catch(e) {}
+
+      if (showToastMsg) {
+        showToast('💡 メモを保存しました！（AIと共有中 ☁️）');
+      }
+      renderNotesList();
+    }
+
+    async function deleteCurrentNote() {
+      if (!confirm('このメモを削除してもよろしいですか？')) return;
+      const targetId = currentNoteId;
+      userNotes = userNotes.filter(n => n.id !== targetId);
+      saveNotesToLocal();
+
+      try {
+        await fetch(`${SUPABASE_URL}/rest/v1/user_notes?id=eq.${targetId}`, {
+          method: 'DELETE',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`
+          }
+        });
+      } catch(e) {}
+
+      currentNoteId = userNotes[0]?.id || null;
+      renderNotesList();
+      showToast('🗑️ メモを削除しました');
+    }
+
+    function copyCurrentMemo() {
+      const title = document.getElementById('memo-edit-title')?.value || '';
+      const content = document.getElementById('memo-edit-content')?.value || '';
+      const fullText = `【${title}】\n\n${content}`;
+      navigator.clipboard.writeText(fullText).then(() => {
+        showToast('📋 メモをクリップボードにコピーしました！');
+      });
+    }
+
     async function syncSupabaseLyricsToApp() {
       const supaTracks = await fetchSupabaseLyricsTracks();
       if (supaTracks.length > 0) {
@@ -3534,6 +3959,7 @@
       // 初回起動時にSupabaseから歌詞データを優先取得
       syncSupabaseLyricsToApp();
       syncSupabaseNewsToApp();
+      initUserNotes();
 
       document.addEventListener('keydown', (e) => {
         if (e.code === 'Space' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
@@ -3599,12 +4025,25 @@
       const legalPanel = document.getElementById('legal-panel');
       const openPasteBtn = document.getElementById('open-paste-btn');
 
+      const memoSection = document.getElementById('memo-view');
+
       if (mode === 'wordbook') {
         ws.style.display = 'none';
         wb.style.display = 'flex';
+        if (memoSection) memoSection.style.display = 'none';
         renderWordbookGrid();
         return;
       }
+
+      if (mode === 'memo') {
+        ws.style.display = 'none';
+        wb.style.display = 'none';
+        if (memoSection) memoSection.style.display = 'flex';
+        renderNotesList();
+        return;
+      }
+
+      if (memoSection) memoSection.style.display = 'none';
 
       ws.style.display = 'grid';
       wb.style.display = 'none';
