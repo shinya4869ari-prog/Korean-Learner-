@@ -3692,12 +3692,8 @@
       const catInp = document.getElementById('memo-edit-category');
       const contentInp = document.getElementById('memo-edit-content');
       const statusEl = document.getElementById('memo-save-status');
-      if (!titleInp || !contentInp) return; // 安全ガード
+      if (!titleInp || !contentInp) return;
       const note = userNotes.find(n => n.id === currentNoteId) || userNotes[0];
-      const titleInp = document.getElementById('memo-edit-title');
-      const catInp = document.getElementById('memo-edit-category');
-      const contentInp = document.getElementById('memo-edit-content');
-      const statusEl = document.getElementById('memo-save-status');
 
       if (!note) {
         if (titleInp) titleInp.value = '';
