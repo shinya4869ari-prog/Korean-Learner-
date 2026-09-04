@@ -1623,6 +1623,79 @@
         <!-- Populated from LocalStorage -->
       </div>
     </section>
+
+    <!-- ── 4. 💡 MEMO & IDEAS TAB VIEW (AI共有メモ) ── -->
+    <section id="memo-view" style="display:none; flex-direction:column; gap:20px; width:100%; max-width:1520px; margin:0 auto;">
+      <div class="wb-controls">
+        <div>
+          <h2 style="font-size:1.3rem; font-weight:800; color:#fff; display:flex; align-items:center; gap:8px;">
+            💡 アイデア・学習メモ帳
+            <span style="font-size:0.75rem; background:rgba(62,207,142,0.18); color:var(--supabase); border:1px solid var(--supabase); padding:2px 8px; border-radius:12px; font-weight:700;">
+              ☁️ Supabase連携・AI共有
+            </span>
+          </h2>
+          <p style="font-size:0.8rem; color:var(--tm); margin-top:4px;">
+            思いついたアイデアや質問をメモしておくと、クラウド保存されAI（Antigravity）も直接読み取ることができます。
+          </p>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button class="cat-btn active" onclick="createNewNote()" style="padding:6px 16px; font-weight:700;">
+            ➕ 新規メモを書く
+          </button>
+        </div>
+      </div>
+
+      <div class="memo-layout">
+        <!-- 左側: メモ一覧リスト -->
+        <div class="memo-sidebar-card">
+          <div style="display:flex; align-items:center; justify-content:space-between;">
+            <span style="font-size:0.85rem; font-weight:700; color:var(--tx);">メモ一覧 (<span id="memo-sidebar-count">0</span>)</span>
+            <button class="mini-action-btn" onclick="syncNotesWithSupabase()" title="Supabaseと同期">🔄 同期</button>
+          </div>
+          <input type="text" id="memo-search-inp" class="card-lookup-inp" placeholder="タイトルや内容で検索..." oninput="filterNotesList()" />
+          <div class="memo-list-scroll" id="memo-list-container">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <!-- 右側: メモ編集エディタ -->
+        <div class="memo-editor-card">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+            <input type="text" id="memo-edit-title" class="memo-inp-title" placeholder="メモのタイトル（例: 読み上げ速度の調整機能をつけたい）..." oninput="markMemoUnsaved()" />
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-size:0.75rem; color:var(--tm); font-weight:600;">種別:</span>
+              <select id="memo-edit-category" class="cat-btn" style="background:var(--s2); outline:none; cursor:pointer;" onchange="markMemoUnsaved()">
+                <option value="idea">💡 アプリのアイデア・機能要望</option>
+                <option value="study">📚 韓国語・学習メモ</option>
+                <option value="question">🤖 AIへの相談・質問</option>
+              </select>
+            </div>
+          </div>
+
+          <textarea id="memo-edit-content" class="memo-inp-content" placeholder="思いついたことや、AIに相談したい内容を自由に書いてください...&#10;（例: ニュースを読んでいるときに、この単語の使い方や用例をもっと簡単に比較できるようにしたい！）" oninput="markMemoUnsaved()"></textarea>
+
+          <div class="memo-footer-bar">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span id="memo-save-status" style="font-size:0.78rem; color:var(--tm); display:flex; align-items:center; gap:4px;">
+                ☁️ クラウド同期
+              </span>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button class="mini-action-btn" onclick="copyCurrentMemo()" title="メモをクリップボードにコピー">
+                📋 コピー
+              </button>
+              <button class="mini-action-btn" onclick="deleteCurrentNote()" style="color:#f87171;" title="このメモを削除">
+                🗑️ 削除
+              </button>
+              <button class="cat-btn active" onclick="saveCurrentNote(true)" style="padding:6px 18px; font-weight:700;">
+                💾 保存する
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
   </main>
 
   <!-- ── MODAL: 推し人物（俳優・監督・歌手）管理 ── -->
@@ -3504,18 +3577,9 @@
         userNotes = [];
       }
 
-      // サンプル初期メモが空の場合
-      if (userNotes.length === 0) {
-        userNotes = [
-          {
-            id: Date.now(),
-            title: '💡 韓国語ニュース学習のアイデアメモ',
-            content: 'ニュースを読んでいて思いついたことや、アプリに追加してほしい機能をここに書いておくと、AI（Antigravity）も直接読み取ることができます！\n\n【例】\n・読み上げのスピード調整ボタンがほしい\n・今週の重要単語テストモードを作りたい',
-            category: 'idea',
-            updated_at: new Date().toISOString()
-          }
-        ];
-        saveNotesToLocal();
+      // 初期状態は空配列（0件スタート）
+      if (!Array.isArray(userNotes)) {
+        userNotes = [];
       }
 
       currentNoteId = userNotes[0]?.id || null;
@@ -3624,6 +3688,11 @@
     }
 
     function loadCurrentNoteToEditor() {
+      const titleInp = document.getElementById('memo-edit-title');
+      const catInp = document.getElementById('memo-edit-category');
+      const contentInp = document.getElementById('memo-edit-content');
+      const statusEl = document.getElementById('memo-save-status');
+      if (!titleInp || !contentInp) return; // 安全ガード
       const note = userNotes.find(n => n.id === currentNoteId) || userNotes[0];
       const titleInp = document.getElementById('memo-edit-title');
       const catInp = document.getElementById('memo-edit-category');
