@@ -1807,27 +1807,49 @@
 
   <!-- ── MODAL: 推し人物（俳優・監督・歌手）管理 ── -->
   <div class="modal-backdrop" id="favorite-persons-modal" style="display:none;" onclick="if(event.target===this) closeFavModal()">
-    <div class="modal-card" style="max-width: 680px; max-height: 85vh; display:flex; flex-direction:column;">
+    <div class="modal-card" style="max-width: 680px; max-height: 88vh; display:flex; flex-direction:column;">
       <div class="modal-header">
-        <div class="modal-title" style="color:var(--amber);">⭐ 推し人物管理（俳優・監督・歌手）</div>
+        <div class="modal-title" style="color:var(--amber); display:flex; align-items:center; gap:8px;">
+          <span>⭐ 推し人物管理（俳優・監督・歌手）</span>
+        </div>
         <button class="modal-close-btn" onclick="closeFavModal()">✕</button>
       </div>
-      <p style="font-size:0.8rem; color:var(--tm); margin-bottom:12px;">
-        ★を付けた推しのニュースが、毎朝「⭐ 推し・エンタメ」カテゴリに優先配信されます（Supabase Persons連携）。
+      <p style="font-size:0.8rem; color:var(--tm); margin-bottom:10px;">
+        ★を付けた推しのニュースが、毎朝「⭐ 推し・エンタメ」カテゴリに優先配信されます（全772名のDB連携）。
       </p>
+
+      <!-- カテゴリ切り替えタブ -->
+      <div style="display:flex; align-items:center; gap:6px; overflow-x:auto; padding-bottom:6px; margin-bottom:10px; border-bottom:1px solid var(--bd-light);" id="fav-modal-tabs">
+        <button class="cat-btn active" id="fav-tab-favorites" onclick="switchFavModalTab('favorites')">⭐ 登録中 (<span id="fav-count-badge">3</span>)</button>
+        <button class="cat-btn" id="fav-tab-all" onclick="switchFavModalTab('all')">👥 全員 (<span id="total-persons-badge">772</span>)</button>
+        <button class="cat-btn" id="fav-tab-actor" onclick="switchFavModalTab('actor')">🎭 俳優 (699)</button>
+        <button class="cat-btn" id="fav-tab-director" onclick="switchFavModalTab('director')">🎬 監督 (64)</button>
+        <button class="cat-btn" id="fav-tab-singer" onclick="switchFavModalTab('singer')">🎤 歌手・グループ (7)</button>
+      </div>
       
-      <!-- 検索バー -->
-      <div style="display:flex; gap:8px; margin-bottom:14px;">
-        <input type="text" id="fav-search-input" class="form-input" placeholder="俳優・監督・歌手名で検索（例: 김남길, 박은빈, 봉준호, IU）..." style="flex:1;" onkeydown="if(event.key==='Enter') searchFavPersons()" />
-        <button class="cat-btn active" onclick="searchFavPersons()" style="padding:0 18px;">検索</button>
+      <!-- 検索バー ＆ 件数インジケーター -->
+      <div style="display:flex; gap:8px; margin-bottom:8px;">
+        <div style="position:relative; flex:1;">
+          <input type="text" id="fav-search-input" class="form-input" placeholder="名前で検索（日: イ・ジョンソク, 韓: 이종석, IU, ポン・ジュノ 等）..." style="width:100%; padding-right:32px;" oninput="toggleFavSearchClearBtn()" onkeydown="if(event.key==='Enter') executeFavSearch()" />
+          <button id="fav-search-clear-btn" onclick="clearFavSearch()" style="display:none; position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--tm); cursor:pointer; font-size:14px;" title="クリア">✕</button>
+        </div>
+        <button class="cat-btn active" onclick="executeFavSearch()" style="padding:0 18px;">検索</button>
       </div>
 
-      <!-- 人物リスト -->
-      <div id="fav-persons-list" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:8px; max-height:48vh; padding-right:4px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; padding:0 2px;">
+        <span id="fav-list-status" style="font-size:0.75rem; color:var(--tm);">表示中: 0件</span>
+      </div>
+
+      <!-- 人物リスト (スクロール領域) -->
+      <div id="fav-persons-list" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:8px; max-height:50vh; padding-right:4px;" onscroll="checkFavScroll(this)">
         <div style="text-align:center; padding:30px; color:var(--tm); font-size:0.85rem;">読み込み中... ☁️</div>
       </div>
 
-      <div style="margin-top:14px; border-top:1px solid var(--bd-light); padding-top:12px; display:flex; justify-content:flex-end;">
+      <!-- 下部バー: さらに読み込む ＆ 閉じる -->
+      <div style="margin-top:12px; border-top:1px solid var(--bd-light); padding-top:10px; display:flex; justify-content:space-between; align-items:center;">
+        <div id="fav-more-btn-area">
+          <!-- 「👇 さらに50人を読み込む」ボタン -->
+        </div>
         <button class="cat-btn" onclick="closeFavModal()">閉じる</button>
       </div>
     </div>
@@ -3572,69 +3594,266 @@
       }
     }
 
-    // ── ⭐ 推し人物モーダル制御 (Supabase Persons連携) ──
+    // ── ⭐ 推し人物モーダル制御 (全772名 ページング＆カテゴリ切替 Supabase連携) ──
+    let favModalTab = 'favorites';
+    let favOffset = 0;
+    const favLimit = 50;
+    let favTotalCount = 0;
+    let isFavLoading = false;
+    let favHasMore = true;
+
     async function openFavModal() {
       document.getElementById('favorite-persons-modal').style.display = 'flex';
-      await searchFavPersons();
+      favModalTab = 'favorites';
+      document.getElementById('fav-search-input').value = '';
+      toggleFavSearchClearBtn();
+      updateFavTabButtons();
+      await updateFavCounts();
+      await fetchAndRenderPersons(false);
     }
 
     function closeFavModal() {
       document.getElementById('favorite-persons-modal').style.display = 'none';
     }
 
-    async function searchFavPersons() {
-      const q = (document.getElementById('fav-search-input')?.value || '').trim();
+    function switchFavModalTab(tab) {
+      if (favModalTab === tab) return;
+      favModalTab = tab;
+      updateFavTabButtons();
+      favOffset = 0;
+      favHasMore = true;
+      fetchAndRenderPersons(false);
+    }
+
+    function updateFavTabButtons() {
+      const tabs = ['favorites', 'all', 'actor', 'director', 'singer'];
+      tabs.forEach(t => {
+        const btn = document.getElementById(`fav-tab-${t}`);
+        if (btn) {
+          if (t === favModalTab) {
+            btn.classList.add('active');
+          } else {
+            btn.classList.remove('active');
+          }
+        }
+      });
+    }
+
+    function toggleFavSearchClearBtn() {
+      const val = (document.getElementById('fav-search-input')?.value || '').trim();
+      const clearBtn = document.getElementById('fav-search-clear-btn');
+      if (clearBtn) clearBtn.style.display = val ? 'inline-block' : 'none';
+    }
+
+    function clearFavSearch() {
+      const inp = document.getElementById('fav-search-input');
+      if (inp) inp.value = '';
+      toggleFavSearchClearBtn();
+      favOffset = 0;
+      favHasMore = true;
+      fetchAndRenderPersons(false);
+    }
+
+    function executeFavSearch() {
+      favOffset = 0;
+      favHasMore = true;
+      fetchAndRenderPersons(false);
+    }
+
+    async function updateFavCounts() {
+      try {
+        // 推し登録中の件数を取得
+        const favRes = await fetch(`${SUPABASE_URL}/rest/v1/Persons?is_favorite=eq.true&select=count`, {
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Prefer': 'count=exact'
+          }
+        });
+        const favRange = favRes.headers.get('content-range');
+        if (favRange) {
+          const total = favRange.split('/')[1];
+          if (total) document.getElementById('fav-count-badge').textContent = total;
+        }
+
+        // 全体の件数を取得
+        const allRes = await fetch(`${SUPABASE_URL}/rest/v1/Persons?select=count`, {
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Prefer': 'count=exact'
+          }
+        });
+        const allRange = allRes.headers.get('content-range');
+        if (allRange) {
+          const total = allRange.split('/')[1];
+          if (total) document.getElementById('total-persons-badge').textContent = total;
+        }
+      } catch(e) {
+        console.warn('Count update error:', e);
+      }
+    }
+
+    async function fetchAndRenderPersons(isAppend = false) {
+      if (isFavLoading) return;
+      isFavLoading = true;
+
       const container = document.getElementById('fav-persons-list');
-      if (!container) return;
-      container.innerHTML = '<div style="text-align:center; padding:30px; color:var(--tm);">Supabaseから人物リストを取得中... ☁️</div>';
+      const statusEl = document.getElementById('fav-list-status');
+      const moreArea = document.getElementById('fav-more-btn-area');
+      const q = (document.getElementById('fav-search-input')?.value || '').trim();
+
+      if (!isAppend) {
+        favOffset = 0;
+        container.innerHTML = '<div style="text-align:center; padding:30px; color:var(--tm); font-size:0.85rem;">Supabaseから人物リストを取得中... ☁️</div>';
+        if (moreArea) moreArea.innerHTML = '';
+      }
 
       try {
-        let url = `${SUPABASE_URL}/rest/v1/Persons?select=id,name,name_en,profile_url,occupation,is_favorite&order=is_favorite.desc,name.asc&limit=60`;
+        let url = `${SUPABASE_URL}/rest/v1/Persons?select=id,name,name_en,profile_url,occupation,is_favorite&limit=${favLimit}&offset=${favOffset}`;
+
+        // タブに応じたフィルタリング
+        if (favModalTab === 'favorites') {
+          url += '&is_favorite=eq.true&order=name.asc';
+        } else if (favModalTab === 'actor') {
+          url += '&occupation=eq.俳優&order=is_favorite.desc,name.asc';
+        } else if (favModalTab === 'director') {
+          url += '&occupation=eq.監督&order=is_favorite.desc,name.asc';
+        } else if (favModalTab === 'singer') {
+          url += '&or=(occupation.eq.歌手,occupation.eq.グループ)&order=is_favorite.desc,name.asc';
+        } else {
+          // 'all'
+          url += '&order=is_favorite.desc,name.asc';
+        }
+
+        // 検索クエリ適用
         if (q) {
-          url = `${SUPABASE_URL}/rest/v1/Persons?or=(name.ilike.*${encodeURIComponent(q)}*,name_en.ilike.*${encodeURIComponent(q)}*)&select=id,name,name_en,profile_url,occupation,is_favorite&limit=40`;
+          url += `&or=(name.ilike.*\${encodeURIComponent(q)}*,name_en.ilike.*\${encodeURIComponent(q)}*)`;
         }
 
         const res = await fetch(url, {
           headers: {
             'apikey': SUPABASE_KEY,
-            'Authorization': `Bearer ${SUPABASE_KEY}`
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Prefer': 'count=exact'
           }
         });
-        if (!res.ok) throw new Error('Persons API error');
+
+        if (!res.ok) throw new Error('Persons API error: ' + res.status);
+
+        // 総件数の把握
+        const range = res.headers.get('content-range');
+        if (range) {
+          const parts = range.split('/');
+          favTotalCount = parseInt(parts[1], 10) || 0;
+        }
+
         const persons = await res.json();
 
-        if (!persons || persons.length === 0) {
-          container.innerHTML = '<div style="text-align:center; padding:30px; color:var(--tm);">該当する人物が見つかりませんでした</div>';
+        if (!isAppend) {
+          container.innerHTML = '';
+        }
+
+        if ((!persons || persons.length === 0) && !isAppend) {
+          if (favModalTab === 'favorites') {
+            container.innerHTML = `
+              <div style="text-align:center; padding:35px 20px; color:var(--tm);">
+                <div style="font-size:2rem; margin-bottom:8px;">⭐</div>
+                <div style="font-weight:700; color:var(--tx); margin-bottom:4px;">まだ推し人物が登録されていません</div>
+                <div style="font-size:0.8rem;">「👥 全員」や「🎭 俳優」タブから好きなスターの「☆ 追加」を押してください！</div>
+              </div>
+            `;
+          } else {
+            container.innerHTML = '<div style="text-align:center; padding:30px; color:var(--tm);">該当する人物が見つかりませんでした</div>';
+          }
+          if (statusEl) statusEl.textContent = '0件表示中';
+          favHasMore = false;
           return;
         }
 
-        container.innerHTML = '';
+        // カード描画
         persons.forEach(p => {
-          const card = document.createElement('div');
-          card.style.cssText = 'display:flex; align-items:center; justify-content:space-between; background:var(--s2); border:1px solid var(--bd); border-radius:12px; padding:8px 14px; gap:12px;';
-          
-          const avatarHtml = p.profile_url 
-            ? `<img src="${p.profile_url}" style="width:40px; height:40px; border-radius:50%; object-fit:cover; border:1.5px solid var(--bd);" />`
-            : `<div style="width:40px; height:40px; border-radius:50%; background:var(--s3); display:flex; align-items:center; justify-content:center; font-size:18px;">👤</div>`;
-
-          const isFav = p.is_favorite === true;
-
-          card.innerHTML = `
-            <div style="display:flex; align-items:center; gap:10px;">
-              ${avatarHtml}
-              <div>
-                <div style="font-weight:700; font-size:0.95rem; color:var(--tx);">${p.name} <span style="font-size:0.75rem; color:var(--tm); font-weight:normal;">${p.name_en || ''}</span></div>
-                <div style="font-size:0.72rem; color:var(--ac); font-weight:600;">${p.occupation || '俳優・人物'}</div>
-              </div>
-            </div>
-            <button class="cat-btn" onclick="togglePersonFav(${p.id}, ${!isFav}, this)" style="border-color:${isFav ? 'var(--amber)' : 'var(--bd)'}; color:${isFav ? 'var(--amber)' : 'var(--tm)'}; background:${isFav ? 'rgba(245,158,11,0.18)' : 'var(--s1)'}; font-size:0.78rem; font-weight:700; padding:5px 12px;">
-              ${isFav ? '⭐ 推し中' : '☆ 追加'}
-            </button>
-          `;
+          const card = createPersonCard(p);
           container.appendChild(card);
         });
+
+        favOffset += persons.length;
+        favHasMore = favOffset < favTotalCount;
+
+        const currentCount = container.querySelectorAll('.person-card').length;
+        if (statusEl) {
+          statusEl.innerHTML = `全 <strong>${favTotalCount}</strong> 件中 <strong>${currentCount}</strong> 人を表示中`;
+        }
+
+        // 「さらに読み込む」ボタン制御
+        if (moreArea) {
+          if (favHasMore) {
+            const remaining = favTotalCount - currentCount;
+            moreArea.innerHTML = `
+              <button class="cat-btn" onclick="loadMorePersons()" style="background:rgba(0,212,170,0.1); border-color:var(--ac); color:var(--ac); font-weight:700;">
+                👇 さらに50人を読み込む (残り ${remaining}人)
+              </button>
+            `;
+          } else {
+            moreArea.innerHTML = `<span style="font-size:0.75rem; color:var(--tm);">全件表示中 (計${currentCount}名)</span>`;
+          }
+        }
+
       } catch(e) {
-        container.innerHTML = `<div style="text-align:center; padding:30px; color:var(--red);">取得エラー: ${e.message}</div>`;
+        console.error('fetchAndRenderPersons error:', e);
+        if (!isAppend) {
+          container.innerHTML = `<div style="text-align:center; padding:30px; color:var(--red);">取得エラー: ${e.message}</div>`;
+        }
+      } finally {
+        isFavLoading = false;
+      }
+    }
+
+    function createPersonCard(p) {
+      const card = document.createElement('div');
+      card.className = 'person-card';
+      card.id = `person-card-${p.id}`;
+      const isFav = p.is_favorite === true;
+      
+      card.style.cssText = `display:flex; align-items:center; justify-content:space-between; background:var(--s2); border:1px solid ${isFav ? 'var(--amber)' : 'var(--bd)'}; border-radius:12px; padding:10px 14px; gap:12px; transition:all 0.2s;`;
+      if (isFav) {
+        card.style.background = 'rgba(245, 158, 11, 0.08)';
+      }
+
+      const avatarHtml = p.profile_url 
+        ? `<img src="${p.profile_url}" style="width:42px; height:42px; border-radius:50%; object-fit:cover; border:1.5px solid ${isFav ? 'var(--amber)' : 'var(--bd)'}; flex-shrink:0;" />`
+        : `<div style="width:42px; height:42px; border-radius:50%; background:var(--s3); display:flex; align-items:center; justify-content:center; font-size:18px; border:1.5px solid var(--bd); flex-shrink:0;">👤</div>`;
+
+      card.innerHTML = `
+        <div style="display:flex; align-items:center; gap:12px; min-width:0;">
+          ${avatarHtml}
+          <div style="min-width:0;">
+            <div style="font-weight:700; font-size:0.95rem; color:var(--tx); display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+              <span>${p.name}</span>
+              ${p.name_en ? `<span style="font-size:0.75rem; color:var(--tm); font-weight:normal;">(${p.name_en})</span>` : ''}
+              ${isFav ? '<span style="font-size:0.7rem; background:var(--amber); color:#000; font-weight:800; border-radius:10px; padding:1px 6px;">推し</span>' : ''}
+            </div>
+            <div style="font-size:0.72rem; color:var(--ac); font-weight:600; margin-top:2px;">${p.occupation || '俳優・人物'}</div>
+          </div>
+        </div>
+        <button class="cat-btn" id="fav-btn-${p.id}" onclick="togglePersonFav(${p.id}, ${!isFav}, this)" style="border-color:${isFav ? 'var(--amber)' : 'var(--bd)'}; color:${isFav ? 'var(--amber)' : 'var(--tm)'}; background:${isFav ? 'rgba(245,158,11,0.22)' : 'var(--s1)'}; font-size:0.78rem; font-weight:700; padding:6px 14px; white-space:nowrap; flex-shrink:0;">
+          ${isFav ? '★ 解除' : '☆ 追加'}
+        </button>
+      `;
+      return card;
+    }
+
+    async function loadMorePersons() {
+      if (favHasMore && !isFavLoading) {
+        await fetchAndRenderPersons(true);
+      }
+    }
+
+    function checkFavScroll(container) {
+      if (!favHasMore || isFavLoading) return;
+      // スクロールが下部付近（100px以内）に達したら自動で次の50件を読み込む (無限スクロール)
+      if (container.scrollTop + container.clientHeight >= container.scrollHeight - 100) {
+        loadMorePersons();
       }
     }
 
@@ -3653,7 +3872,47 @@
         });
         if (res.ok) {
           showToast(newStatus ? '⭐ 推しに登録しました！' : 'お気に入りを解除しました');
-          await searchFavPersons();
+          await updateFavCounts();
+
+          // お気に入りタブ表示中の場合は、解除時にカードを除去
+          if (favModalTab === 'favorites' && !newStatus) {
+            const card = document.getElementById(`person-card-${personId}`);
+            if (card) {
+              card.style.opacity = '0';
+              card.style.transform = 'scale(0.95)';
+              setTimeout(() => {
+                card.remove();
+                const container = document.getElementById('fav-persons-list');
+                const remainingCards = container.querySelectorAll('.person-card').length;
+                const statusEl = document.getElementById('fav-list-status');
+                if (statusEl) statusEl.textContent = `表示中: ${remainingCards}件`;
+                if (remainingCards === 0) {
+                  container.innerHTML = `
+                    <div style="text-align:center; padding:35px 20px; color:var(--tm);">
+                      <div style="font-size:2rem; margin-bottom:8px;">⭐</div>
+                      <div style="font-weight:700; color:var(--tx); margin-bottom:4px;">まだ推し人物が登録されていません</div>
+                      <div style="font-size:0.8rem;">「👥 全員」や「🎭 俳優」タブから好きなスターの「☆ 追加」を押してください！</div>
+                    </div>
+                  `;
+                }
+              }, 200);
+            }
+          } else {
+            // 他タブではカードのスタイルとボタン表示を即時更新
+            const card = document.getElementById(`person-card-${personId}`);
+            if (card) {
+              card.style.borderColor = newStatus ? 'var(--amber)' : 'var(--bd)';
+              card.style.background = newStatus ? 'rgba(245, 158, 11, 0.08)' : 'var(--s2)';
+              const btnEl = document.getElementById(`fav-btn-${personId}`);
+              if (btnEl) {
+                btnEl.textContent = newStatus ? '★ 解除' : '☆ 追加';
+                btnEl.style.borderColor = newStatus ? 'var(--amber)' : 'var(--bd)';
+                btnEl.style.color = newStatus ? 'var(--amber)' : 'var(--tm)';
+                btnEl.style.background = newStatus ? 'rgba(245,158,11,0.22)' : 'var(--s1)';
+                btnEl.setAttribute('onclick', `togglePersonFav(${personId}, ${!newStatus}, this)`);
+              }
+            }
+          }
         } else {
           showToast('⚠️ 更新に失敗しました');
         }
@@ -3664,7 +3923,6 @@
       }
     }
 
-    
     // ── 📰 NEWS PARAGRAPH BLOCK RENDERER (案B: 段落対訳 ＆ まとまり型ビュー) ──
     function toggleJaTranslation() {
       isJaTranslationVisible = !isJaTranslationVisible;
