@@ -3447,7 +3447,7 @@
     // ── ☁️ SUPABASE NEWS SYNC FUNCTIONS (6大カテゴリ ＆ 推しニュース自動同期) ──
     async function fetchSupabaseNews() {
       try {
-        const url = `${SUPABASE_URL}/rest/v1/news?select=*&order=rank.asc,published_at.desc&limit=30`;
+        const url = `${SUPABASE_URL}/rest/v1/news?select=*&order=created_at.desc,published_at.desc&limit=30`;
         const res = await fetch(url, {
           headers: {
             'apikey': SUPABASE_KEY,
@@ -3469,12 +3469,37 @@
         return (rawNews || []).map(n => {
           const catLabel = catMap[n.category] || '📰 ニュース';
           
-          // 記事段落の生成
+          // 記事段落の生成 (paragraphs配列を優先、なければsummary)
           const paragraphs = [];
-          if (n.summary_ko) {
+          const sentences = [];
+          if (Array.isArray(n.paragraphs) && n.paragraphs.length > 0) {
+            n.paragraphs.forEach(p => {
+              const rubi = hangulToKatakana(p.ko);
+              paragraphs.push({
+                para_num: p.para_num || (paragraphs.length + 1),
+                title: p.title || '',
+                ko: p.ko,
+                rubi: rubi,
+                ja: p.ja || ''
+              });
+              sentences.push({
+                ko: p.ko,
+                rubi: rubi,
+                ja: p.ja || ''
+              });
+            });
+          } else if (n.summary_ko) {
+            const rubi = hangulToKatakana(n.summary_ko);
             paragraphs.push({
+              para_num: 1,
+              title: '要約',
               ko: n.summary_ko,
-              rubi: katakanaHelper(n.summary_ko),
+              rubi: rubi,
+              ja: n.summary_ja || ''
+            });
+            sentences.push({
+              ko: n.summary_ko,
+              rubi: rubi,
               ja: n.summary_ja || ''
             });
           }
@@ -3483,7 +3508,7 @@
           const vocab = (Array.isArray(n.key_vocabulary) ? n.key_vocabulary : []).map(v => ({
             word: v.word,
             hanja: v.hanja || '―',
-            pos: '語彙',
+            pos: v.pos || '語彙',
             meaning: v.meaning,
             level: v.level ? `重要 (${v.level})` : 'TOPIK 3-5級'
           }));
@@ -3500,16 +3525,31 @@
             person_name: n.person_name || '',
             person_profile_url: n.person_profile_url || '',
             paragraphs: paragraphs,
+            sentences: sentences,
             vocab: vocab,
             legal_point: `【${catLabel} TOP ${n.rank || 1}】生きたニュース韓国語と最新動向を読解できます。`,
             is_supabase: true,
-            published_at: n.published_at
+            published_at: n.published_at,
+            created_at: n.created_at
           };
         });
       } catch(err) {
         console.warn('Supabase news fetch failed:', err);
         return [];
       }
+    }
+
+    function playArticleAll() {
+      if (currentArticle && currentArticle.paragraphs && currentArticle.paragraphs.length > 0) {
+        if (!currentArticle.sentences || currentArticle.sentences.length === 0) {
+          currentArticle.sentences = currentArticle.paragraphs.map(p => ({
+            ko: p.ko,
+            ja: p.ja,
+            rubi: p.rubi || hangulToKatakana(p.ko)
+          }));
+        }
+      }
+      playSentenceSequence(0);
     }
 
     async function syncSupabaseNewsToApp() {
