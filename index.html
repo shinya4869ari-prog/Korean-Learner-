@@ -224,44 +224,111 @@
 
     .hub-chips {
       display: flex;
-      gap: 10px;
+      gap: 12px;
       overflow-x: auto;
-      padding: 4px 0;
+      padding: 6px 2px 12px;
       scrollbar-width: thin;
     }
     .hub-chip {
       background: var(--s2);
       border: 1px solid var(--bd);
       padding: 8px 16px;
-      border-radius: 12px;
+      border-radius: 14px;
       font-size: 0.82rem;
       color: var(--tx);
       cursor: pointer;
       white-space: nowrap;
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      transition: all 0.2s ease;
+      gap: 10px;
+      transition: all 0.22s ease;
       flex-shrink: 0;
+      position: relative;
     }
     .hub-chip:hover {
       border-color: var(--ac);
       background: var(--s3);
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.3);
     }
     .hub-chip.active {
       background: rgba(0, 212, 170, 0.15);
       border-color: var(--ac);
-      color: var(--ac);
+      color: #fff;
       font-weight: 700;
-      box-shadow: 0 0 14px var(--ac-glow);
+      box-shadow: 0 0 16px var(--ac-glow);
     }
     .hub-chip.lyrics-chip.active {
       background: rgba(236, 72, 153, 0.15);
       border-color: var(--pink);
       color: var(--pink);
-      box-shadow: 0 0 14px rgba(236, 72, 153, 0.35);
+      box-shadow: 0 0 16px rgba(236, 72, 153, 0.35);
+    }
+
+    /* 既読・未読の明確な識別スタイル */
+    .hub-chip.is-read {
+      opacity: 0.62;
+      border-color: rgba(255, 255, 255, 0.08);
+      background: rgba(19, 21, 36, 0.65);
+    }
+    .hub-chip.is-read:hover,
+    .hub-chip.is-read.active {
+      opacity: 1;
+      border-color: var(--ac);
+    }
+    .chip-badge-unread {
+      font-size: 0.65rem;
+      font-weight: 800;
+      color: #0b0c14;
+      background: var(--ac);
+      padding: 1px 7px;
+      border-radius: 8px;
+      letter-spacing: 0.02em;
+      box-shadow: 0 0 8px var(--ac-glow);
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      flex-shrink: 0;
+    }
+    .chip-badge-read {
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: var(--tm);
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 1px 5px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      flex-shrink: 0;
+    }
+    .chip-content {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      text-align: left;
+    }
+    .chip-main-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--tx);
+      line-height: 1.25;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .hub-chip.active .chip-main-title {
+      color: var(--ac);
+    }
+    .hub-chip.lyrics-chip.active .chip-main-title {
+      color: var(--pink);
+    }
+    .chip-sub-title {
+      font-size: 0.72rem;
+      font-weight: 500;
+      color: var(--tm);
+      line-height: 1.2;
     }
 
     /* Custom Input Bar */
@@ -4153,6 +4220,25 @@
       loadArticle(currentArticle);
     }
 
+    // ── READ / UNREAD TRACKING ──
+    const STORAGE_KEY_READ_ARTICLES = 'kr_learner_read_articles_v1';
+    function getReadArticles() {
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY_READ_ARTICLES) || '[]');
+      } catch (e) {
+        return [];
+      }
+    }
+    function markArticleAsRead(id) {
+      if (!id) return;
+      const readList = getReadArticles();
+      const strId = String(id);
+      if (!readList.includes(strId)) {
+        readList.push(strId);
+        localStorage.setItem(STORAGE_KEY_READ_ARTICLES, JSON.stringify(readList));
+      }
+    }
+
     // ── RENDER HUB CHIPS ──
     function renderHubChips() {
       const container = document.getElementById('hub-chip-container');
@@ -4168,14 +4254,57 @@
         return;
       }
 
+      const readArticles = getReadArticles();
+
       list.forEach((item) => {
         const chip = document.createElement('div');
-        chip.className = `hub-chip ${currentMode === 'lyrics' ? 'lyrics-chip' : ''} ${item.id === currentArticle.id ? 'active' : ''}`;
+        const isSelected = (item.id === currentArticle.id);
+        const isRead = readArticles.includes(String(item.id));
+        
+        chip.className = `hub-chip ${currentMode === 'lyrics' ? 'lyrics-chip' : ''} ${isSelected ? 'active' : ''} ${isRead ? 'is-read' : 'is-unread'}`;
+        
         const cloudIcon = item.is_supabase ? ' ☁️' : '';
-        chip.innerHTML = `${item.category ? `<span style="font-size:0.75rem;">${item.category.split(' ')[0]}</span>` : ''} <span>${item.title_ko.split(' - ')[0].slice(0, 22)}${cloudIcon}</span>`;
+        const catIcon = item.category ? item.category.split(' ')[0] : (currentMode === 'lyrics' ? '🎵' : '📰');
+        
+        // 日本語見出しと韓国語見出しをスマートに構築
+        const titleJa = item.title_ja ? item.title_ja.split(' - ')[0].trim() : '';
+        const titleKo = item.title_ko ? item.title_ko.split(' - ')[0].trim() : '';
+        
+        // メイン見出し: 日本語があれば日本語を優先して大きく表示（どんなニュースか即座にわかる！）
+        let mainText = '';
+        let subText = '';
+        if (currentMode === 'news') {
+          if (titleJa) {
+            mainText = titleJa.slice(0, 24) + (titleJa.length > 24 ? '…' : '');
+            subText = titleKo.slice(0, 22) + (titleKo.length > 22 ? '…' : '');
+          } else {
+            mainText = titleKo.slice(0, 24) + (titleKo.length > 24 ? '…' : '');
+          }
+        } else {
+          mainText = titleKo.slice(0, 22) + (titleKo.length > 22 ? '…' : '');
+          subText = titleJa ? titleJa.slice(0, 22) + (titleJa.length > 22 ? '…' : '') : '';
+        }
+
+        // 既読・未読バッジ
+        const statusBadge = isRead
+          ? `<span class="chip-badge-read">✔ 既読</span>`
+          : `<span class="chip-badge-unread">● NEW</span>`;
+
+        chip.innerHTML = `
+          <div style="font-size:1.05rem; flex-shrink:0;">${catIcon}</div>
+          <div class="chip-content">
+            <div class="chip-main-title">
+              <span>${mainText}${cloudIcon}</span>
+              ${currentMode === 'news' ? statusBadge : ''}
+            </div>
+            ${subText ? `<div class="chip-sub-title">${subText}</div>` : ''}
+          </div>
+        `;
+
         chip.onclick = () => {
           stopSpeech();
           currentArticle = item;
+          markArticleAsRead(item.id);
           renderHubChips();
           loadArticle(item);
         };
