@@ -223,65 +223,85 @@
     }
 
     .hub-chips {
-      display: flex;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
       gap: 12px;
-      overflow-x: auto;
-      padding: 6px 2px 12px;
+      padding: 8px 2px 14px;
+      max-height: 440px;
+      overflow-y: auto;
       scrollbar-width: thin;
+      transition: all 0.3s ease;
     }
     .hub-chip {
       background: var(--s2);
       border: 1px solid var(--bd);
-      padding: 8px 16px;
+      padding: 12px 16px;
       border-radius: 14px;
-      font-size: 0.82rem;
       color: var(--tx);
       cursor: pointer;
-      white-space: nowrap;
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
       transition: all 0.22s ease;
-      flex-shrink: 0;
       position: relative;
+      text-align: left;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.25);
     }
     .hub-chip:hover {
       border-color: var(--ac);
       background: var(--s3);
       transform: translateY(-2px);
-      box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.4);
     }
     .hub-chip.active {
-      background: rgba(0, 212, 170, 0.15);
+      background: rgba(0, 212, 170, 0.12);
       border-color: var(--ac);
-      color: #fff;
-      font-weight: 700;
-      box-shadow: 0 0 16px var(--ac-glow);
+      box-shadow: 0 0 18px var(--ac-glow);
+    }
+    .hub-chip.active .chip-title-ja {
+      color: var(--ac);
     }
     .hub-chip.lyrics-chip.active {
-      background: rgba(236, 72, 153, 0.15);
+      background: rgba(236, 72, 153, 0.12);
       border-color: var(--pink);
+      box-shadow: 0 0 18px rgba(236, 72, 153, 0.35);
+    }
+    .hub-chip.lyrics-chip.active .chip-title-ja {
       color: var(--pink);
-      box-shadow: 0 0 16px rgba(236, 72, 153, 0.35);
     }
 
     /* 既読・未読の明確な識別スタイル */
     .hub-chip.is-read {
-      opacity: 0.62;
-      border-color: rgba(255, 255, 255, 0.08);
-      background: rgba(19, 21, 36, 0.65);
+      opacity: 0.58;
+      border-color: rgba(255, 255, 255, 0.06);
+      background: rgba(19, 21, 36, 0.6);
     }
     .hub-chip.is-read:hover,
     .hub-chip.is-read.active {
       opacity: 1;
       border-color: var(--ac);
     }
+    .chip-top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 0.72rem;
+      color: var(--tm);
+    }
+    .chip-cat-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-weight: 700;
+      color: var(--tx);
+    }
     .chip-badge-unread {
       font-size: 0.65rem;
       font-weight: 800;
       color: #0b0c14;
       background: var(--ac);
-      padding: 1px 7px;
+      padding: 2px 7px;
       border-radius: 8px;
       letter-spacing: 0.02em;
       box-shadow: 0 0 8px var(--ac-glow);
@@ -296,39 +316,34 @@
       color: var(--tm);
       background: rgba(255, 255, 255, 0.06);
       border: 1px solid rgba(255, 255, 255, 0.08);
-      padding: 1px 5px;
+      padding: 1px 6px;
       border-radius: 8px;
       display: inline-flex;
       align-items: center;
       gap: 2px;
       flex-shrink: 0;
     }
-    .chip-content {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      text-align: left;
-    }
-    .chip-main-title {
-      font-size: 0.85rem;
+    .chip-title-ja {
+      font-size: 0.94rem;
       font-weight: 700;
-      color: var(--tx);
-      line-height: 1.25;
-      display: flex;
-      align-items: center;
-      gap: 8px;
+      color: #fff;
+      line-height: 1.35;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      word-break: break-word;
     }
-    .hub-chip.active .chip-main-title {
-      color: var(--ac);
-    }
-    .hub-chip.lyrics-chip.active .chip-main-title {
-      color: var(--pink);
-    }
-    .chip-sub-title {
-      font-size: 0.72rem;
+    .chip-title-ko {
+      font-size: 0.76rem;
       font-weight: 500;
       color: var(--tm);
-      line-height: 1.2;
+      line-height: 1.25;
+      display: -webkit-box;
+      -webkit-line-clamp: 1;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      word-break: break-word;
     }
 
     /* Custom Input Bar */
@@ -4265,25 +4280,16 @@
         
         const cloudIcon = item.is_supabase ? ' ☁️' : '';
         const catIcon = item.category ? item.category.split(' ')[0] : (currentMode === 'lyrics' ? '🎵' : '📰');
+        const catName = item.category ? item.category.replace(/^[^\s]+\s*/, '') : '';
+        const sourceText = item.source_name ? `• ${item.source_name}` : '';
         
-        // 日本語見出しと韓国語見出しをスマートに構築
+        // 日本語見出しと韓国語見出し
         const titleJa = item.title_ja ? item.title_ja.split(' - ')[0].trim() : '';
         const titleKo = item.title_ko ? item.title_ko.split(' - ')[0].trim() : '';
         
-        // メイン見出し: 日本語があれば日本語を優先して大きく表示（どんなニュースか即座にわかる！）
-        let mainText = '';
-        let subText = '';
-        if (currentMode === 'news') {
-          if (titleJa) {
-            mainText = titleJa.slice(0, 24) + (titleJa.length > 24 ? '…' : '');
-            subText = titleKo.slice(0, 22) + (titleKo.length > 22 ? '…' : '');
-          } else {
-            mainText = titleKo.slice(0, 24) + (titleKo.length > 24 ? '…' : '');
-          }
-        } else {
-          mainText = titleKo.slice(0, 22) + (titleKo.length > 22 ? '…' : '');
-          subText = titleJa ? titleJa.slice(0, 22) + (titleJa.length > 22 ? '…' : '') : '';
-        }
+        // ニュースの場合は日本語見出しを最優先で大きく、韓国語を下に添える
+        const mainTitle = (currentMode === 'news' && titleJa) ? titleJa : titleKo;
+        const subTitle = (currentMode === 'news' && titleJa) ? titleKo : (titleJa || '');
 
         // 既読・未読バッジ
         const statusBadge = isRead
@@ -4291,14 +4297,15 @@
           : `<span class="chip-badge-unread">● NEW</span>`;
 
         chip.innerHTML = `
-          <div style="font-size:1.05rem; flex-shrink:0;">${catIcon}</div>
-          <div class="chip-content">
-            <div class="chip-main-title">
-              <span>${mainText}${cloudIcon}</span>
+          <div class="chip-top-bar">
+            <span class="chip-cat-tag"><span>${catIcon}</span> <span>${catName}</span> <span style="opacity:0.65; font-size:0.7rem;">${sourceText}</span></span>
+            <div style="display:flex; align-items:center; gap:6px;">
+              ${cloudIcon}
               ${currentMode === 'news' ? statusBadge : ''}
             </div>
-            ${subText ? `<div class="chip-sub-title">${subText}</div>` : ''}
           </div>
+          <div class="chip-title-ja">${mainTitle}</div>
+          ${subTitle ? `<div class="chip-title-ko">${subTitle}</div>` : ''}
         `;
 
         chip.onclick = () => {
