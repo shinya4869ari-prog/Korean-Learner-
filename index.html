@@ -323,6 +323,28 @@
       gap: 2px;
       flex-shrink: 0;
     }
+    .chip-delete-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--tm);
+      font-size: 0.8rem;
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: 6px;
+      transition: all 0.18s ease;
+      opacity: 0.6;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .chip-delete-btn:hover {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: rgba(239, 68, 68, 0.4);
+      color: #ef4444;
+      opacity: 1;
+      transform: scale(1.15);
+    }
     .chip-title-ja {
       font-size: 0.94rem;
       font-weight: 700;
@@ -1606,7 +1628,10 @@
 
               <!-- 🗑️ 楽曲削除ボタン -->
               <button id="delete-song-btn" class="mini-action-btn" onclick="deleteCurrentSong()" style="color:#f87171; border-color:rgba(239,68,68,0.3); background:rgba(239,68,68,0.1); display:none;" title="この楽曲を削除">
-                🗑️ 削除
+                🗑️ 楽曲を削除
+              </button>
+              <button id="delete-news-btn" class="mini-action-btn" onclick="deleteNewsItem(currentArticle ? currentArticle.id : null)" style="color:#f87171; border-color:rgba(239,68,68,0.3); background:rgba(239,68,68,0.1); display:inline-flex; align-items:center; gap:4px;" title="このニュースをSupabaseと画面から削除">
+                🗑️ 記事を削除
               </button>
 
               <!-- 🟢 Spotifyリンクボタン -->
@@ -3237,6 +3262,71 @@
     let mapMarker = null;
 
         // ── 🗑️ 楽曲の削除機能 (Supabase & ローカルから完全削除) ──
+    // ── 🗑️ ニュースの削除機能 (Supabase & ローカル完全削除) ──
+    async function deleteNewsItem(itemId, event) {
+      if (event) event.stopPropagation();
+      
+      const item = (SAMPLE_DATABASE.news || []).find(n => n.id === itemId) || currentArticle;
+      if (!item) return;
+
+      const title = item.title_ja || item.title_ko || 'この記事';
+      if (!confirm(`ニュース「${title}」を削除しますか？\n※Supabaseからも完全に削除されます（復元できません）。`)) {
+        return;
+      }
+
+      showToast(`「${title.slice(0, 16)}…」を削除中... 🗑️`);
+
+      // 1. Supabase からの削除実行
+      try {
+        const rawId = item.id ? item.id.replace('supabase-news-', '') : '';
+        if (rawId && item.is_supabase) {
+          const res = await fetch(`${SUPABASE_URL}/rest/v1/news?id=eq.${encodeURIComponent(rawId)}`, {
+            method: 'DELETE',
+            headers: {
+              'apikey': SUPABASE_KEY,
+              'Authorization': `Bearer ${SUPABASE_KEY}`
+            }
+          });
+          if (!res.ok) {
+            console.warn('Supabase delete response status:', res.status);
+          }
+        }
+      } catch (err) {
+        console.warn('Supabase news delete error:', err);
+      }
+
+      // 2. ローカル配列からの削除
+      SAMPLE_DATABASE.news = (SAMPLE_DATABASE.news || []).filter(n => n.id !== item.id);
+
+      // 3. localStorage にも「削除済みID」として記録（次回フェッチ時にも確実に除外）
+      try {
+        const delList = JSON.parse(localStorage.getItem('kr_learner_deleted_news_ids') || '[]');
+        if (!delList.includes(item.id)) {
+          delList.push(item.id);
+          localStorage.setItem('kr_learner_deleted_news_ids', JSON.stringify(delList));
+        }
+      } catch (e) {}
+
+      // 4. 次の記事の選択と画面更新
+      if (SAMPLE_DATABASE.news.length === 0) {
+        SAMPLE_DATABASE.news.push({
+          id: 'news-empty',
+          title_ko: '뉴스가 없습니다',
+          title_ja: '登録されているニュースがありません',
+          category: '🚨 ニュース',
+          level: '初級',
+          sentences: []
+        });
+      }
+
+      if (currentArticle && currentArticle.id === item.id) {
+        currentArticle = SAMPLE_DATABASE.news[0];
+        loadArticle(currentArticle);
+      }
+      renderHubChips();
+      showToast('ニュースを削除しました 🗑️');
+    }
+
     async function deleteCurrentSong() {
       if (!currentArticle || currentMode !== 'lyrics') return;
       
@@ -4302,6 +4392,7 @@
             <div style="display:flex; align-items:center; gap:6px;">
               ${cloudIcon}
               ${currentMode === 'news' ? statusBadge : ''}
+              <button class="chip-delete-btn" onclick="deleteNewsItem('${item.id}', event)" title="このニュースを削除">🗑️</button>
             </div>
           </div>
           <div class="chip-title-ja">${mainTitle}</div>
@@ -4386,15 +4477,18 @@
       // ☁️ Supabaseバッジと保存ボタンの切り替え
       const supaBadge = document.getElementById('badge-supabase');
       const supaSaveBtn = document.getElementById('save-to-supabase-btn');
-      const deleteBtn = document.getElementById('delete-song-btn');
+      const deleteSongBtn = document.getElementById('delete-song-btn');
+      const deleteNewsBtn = document.getElementById('delete-news-btn');
       if (currentMode === 'lyrics') {
         supaSaveBtn.style.display = 'inline-flex';
         supaBadge.style.display = item.is_supabase ? 'inline-block' : 'none';
-        if (deleteBtn) deleteBtn.style.display = 'inline-flex';
+        if (deleteSongBtn) deleteSongBtn.style.display = 'inline-flex';
+        if (deleteNewsBtn) deleteNewsBtn.style.display = 'none';
       } else {
         supaSaveBtn.style.display = 'none';
         supaBadge.style.display = item.is_supabase ? 'inline-block' : 'none';
-        if (deleteBtn) deleteBtn.style.display = 'none';
+        if (deleteSongBtn) deleteSongBtn.style.display = 'none';
+        if (deleteNewsBtn) deleteNewsBtn.style.display = 'inline-flex';
       }
 
       // ⭐ 推し人物ニュースの場合の推しバッジ表示
