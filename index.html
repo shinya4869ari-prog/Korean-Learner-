@@ -1819,18 +1819,34 @@
       </p>
 
       <!-- カテゴリ切り替えタブ -->
-      <div style="display:flex; align-items:center; gap:6px; overflow-x:auto; padding-bottom:6px; margin-bottom:10px; border-bottom:1px solid var(--bd-light);" id="fav-modal-tabs">
+      <div style="display:flex; align-items:center; gap:6px; overflow-x:auto; padding-bottom:6px; margin-bottom:8px; border-bottom:1px solid var(--bd-light);" id="fav-modal-tabs">
         <button class="cat-btn active" id="fav-tab-favorites" onclick="switchFavModalTab('favorites')">⭐ 登録中 (<span id="fav-count-badge">3</span>)</button>
         <button class="cat-btn" id="fav-tab-all" onclick="switchFavModalTab('all')">👥 全員 (<span id="total-persons-badge">772</span>)</button>
         <button class="cat-btn" id="fav-tab-actor" onclick="switchFavModalTab('actor')">🎭 俳優 (699)</button>
         <button class="cat-btn" id="fav-tab-director" onclick="switchFavModalTab('director')">🎬 監督 (64)</button>
         <button class="cat-btn" id="fav-tab-singer" onclick="switchFavModalTab('singer')">🎤 歌手・グループ (7)</button>
       </div>
+
+      <!-- 🏷️ 韓国の主要な苗字（姓）クイック絞り込みバー -->
+      <div style="display:flex; align-items:center; gap:6px; overflow-x:auto; padding-bottom:6px; margin-bottom:8px; scrollbar-width:thin;" id="fav-surname-chips">
+        <span style="font-size:0.75rem; color:var(--tm); font-weight:700; white-space:nowrap;">苗字:</span>
+        <button class="cat-btn active" id="sur-chip-all" onclick="filterBySurname('')" style="padding:2px 10px; font-size:0.75rem;">✨ 全姓</button>
+        <button class="cat-btn" id="sur-chip-キム" onclick="filterBySurname('キム')" style="padding:2px 10px; font-size:0.75rem;">キム (111)</button>
+        <button class="cat-btn" id="sur-chip-イ" onclick="filterBySurname('イ')" style="padding:2px 10px; font-size:0.75rem;">イ (82)</button>
+        <button class="cat-btn" id="sur-chip-パク" onclick="filterBySurname('パク')" style="padding:2px 10px; font-size:0.75rem;">パク (54)</button>
+        <button class="cat-btn" id="sur-chip-チョン" onclick="filterBySurname('チョン')" style="padding:2px 10px; font-size:0.75rem;">チョン (46)</button>
+        <button class="cat-btn" id="sur-chip-チェ" onclick="filterBySurname('チェ')" style="padding:2px 10px; font-size:0.75rem;">チェ (24)</button>
+        <button class="cat-btn" id="sur-chip-チョ" onclick="filterBySurname('チョ')" style="padding:2px 10px; font-size:0.75rem;">チョ (20)</button>
+        <button class="cat-btn" id="sur-chip-ユン" onclick="filterBySurname('ユン')" style="padding:2px 10px; font-size:0.75rem;">ユン (17)</button>
+        <button class="cat-btn" id="sur-chip-ソン" onclick="filterBySurname('ソン')" style="padding:2px 10px; font-size:0.75rem;">ソン (15)</button>
+        <button class="cat-btn" id="sur-chip-チャン" onclick="filterBySurname('チャン')" style="padding:2px 10px; font-size:0.75rem;">チャン (13)</button>
+        <button class="cat-btn" id="sur-chip-ハン" onclick="filterBySurname('ハン')" style="padding:2px 10px; font-size:0.75rem;">ハン (10)</button>
+      </div>
       
-      <!-- 検索バー ＆ 件数インジケーター -->
-      <div style="display:flex; gap:8px; margin-bottom:8px;">
+      <!-- リアルタイム入力検索バー ＆ 件数インジケーター -->
+      <div style="display:flex; gap:8px; margin-bottom:6px;">
         <div style="position:relative; flex:1;">
-          <input type="text" id="fav-search-input" class="form-input" placeholder="名前で検索（日: イ・ジョンソク, 韓: 이종석, IU, ポン・ジュノ 等）..." style="width:100%; padding-right:32px;" oninput="toggleFavSearchClearBtn()" onkeydown="if(event.key==='Enter') executeFavSearch()" />
+          <input type="text" id="fav-search-input" class="form-input" placeholder="苗字や名前を入力（例: キム, イ, パク, ソン, IU 等）..." style="width:100%; padding-right:32px;" oninput="onFavSearchInput()" onkeydown="if(event.key==='Enter') executeFavSearch()" />
           <button id="fav-search-clear-btn" onclick="clearFavSearch()" style="display:none; position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--tm); cursor:pointer; font-size:14px;" title="クリア">✕</button>
         </div>
         <button class="cat-btn active" onclick="executeFavSearch()" style="padding:0 18px;">検索</button>
@@ -3594,20 +3610,24 @@
       }
     }
 
-    // ── ⭐ 推し人物モーダル制御 (全772名 ページング＆カテゴリ切替 Supabase連携) ──
+    // ── ⭐ 推し人物モーダル制御 (全772名 苗字クイック絞り込み＆リアルタイム前方一致ソート Supabase連携) ──
     let favModalTab = 'favorites';
+    let selectedSurname = '';
     let favOffset = 0;
     const favLimit = 50;
     let favTotalCount = 0;
     let isFavLoading = false;
     let favHasMore = true;
+    let favSearchDebounceTimer = null;
 
     async function openFavModal() {
       document.getElementById('favorite-persons-modal').style.display = 'flex';
       favModalTab = 'favorites';
+      selectedSurname = '';
       document.getElementById('fav-search-input').value = '';
       toggleFavSearchClearBtn();
       updateFavTabButtons();
+      updateSurnameChips();
       await updateFavCounts();
       await fetchAndRenderPersons(false);
     }
@@ -3639,6 +3659,45 @@
       });
     }
 
+    function filterBySurname(surname) {
+      selectedSurname = surname;
+      updateSurnameChips();
+      
+      // 苗字ボタンを押したら「全員」タブに自動切り替え（登録中タブの場合）
+      if (favModalTab === 'favorites' && surname) {
+        favModalTab = 'all';
+        updateFavTabButtons();
+      }
+
+      favOffset = 0;
+      favHasMore = true;
+      fetchAndRenderPersons(false);
+    }
+
+    function updateSurnameChips() {
+      const surnames = ['', 'キム', 'イ', 'パク', 'チョン', 'チェ', 'チョ', 'ユン', 'ソン', 'チャン', 'ハン'];
+      surnames.forEach(s => {
+        const id = s ? `sur-chip-${s}` : 'sur-chip-all';
+        const btn = document.getElementById(id);
+        if (btn) {
+          if (s === selectedSurname) {
+            btn.classList.add('active');
+          } else {
+            btn.classList.remove('active');
+          }
+        }
+      });
+    }
+
+    // ⚡ 入力と同時にリアルタイム検索（200msディバウンス）
+    function onFavSearchInput() {
+      toggleFavSearchClearBtn();
+      clearTimeout(favSearchDebounceTimer);
+      favSearchDebounceTimer = setTimeout(() => {
+        executeFavSearch();
+      }, 200);
+    }
+
     function toggleFavSearchClearBtn() {
       const val = (document.getElementById('fav-search-input')?.value || '').trim();
       const clearBtn = document.getElementById('fav-search-clear-btn');
@@ -3648,6 +3707,8 @@
     function clearFavSearch() {
       const inp = document.getElementById('fav-search-input');
       if (inp) inp.value = '';
+      selectedSurname = '';
+      updateSurnameChips();
       toggleFavSearchClearBtn();
       favOffset = 0;
       favHasMore = true;
@@ -3662,7 +3723,6 @@
 
     async function updateFavCounts() {
       try {
-        // 推し登録中の件数を取得
         const favRes = await fetch(`${SUPABASE_URL}/rest/v1/Persons?is_favorite=eq.true&select=count`, {
           headers: {
             'apikey': SUPABASE_KEY,
@@ -3676,7 +3736,6 @@
           if (total) document.getElementById('fav-count-badge').textContent = total;
         }
 
-        // 全体の件数を取得
         const allRes = await fetch(`${SUPABASE_URL}/rest/v1/Persons?select=count`, {
           headers: {
             'apikey': SUPABASE_KEY,
@@ -3712,24 +3771,29 @@
       try {
         let url = `${SUPABASE_URL}/rest/v1/Persons?select=id,name,name_en,profile_url,occupation,is_favorite&limit=${favLimit}&offset=${favOffset}`;
 
-        // タブに応じたフィルタリング
+        // 1. タブに応じた基本絞り込み
         if (favModalTab === 'favorites') {
-          url += '&is_favorite=eq.true&order=name.asc';
+          url += '&is_favorite=eq.true';
         } else if (favModalTab === 'actor') {
-          url += '&occupation=eq.俳優&order=is_favorite.desc,name.asc';
+          url += '&occupation=eq.俳優';
         } else if (favModalTab === 'director') {
-          url += '&occupation=eq.監督&order=is_favorite.desc,name.asc';
+          url += '&occupation=eq.監督';
         } else if (favModalTab === 'singer') {
-          url += '&or=(occupation.eq.歌手,occupation.eq.グループ)&order=is_favorite.desc,name.asc';
-        } else {
-          // 'all'
-          url += '&order=is_favorite.desc,name.asc';
+          url += '&or=(occupation.eq.歌手,occupation.eq.グループ)';
         }
 
-        // 検索クエリ適用
+        // 2. 苗字クイックチップの適用
+        if (selectedSurname) {
+          url += `&name=ilike.${encodeURIComponent(selectedSurname)}*`;
+        }
+
+        // 3. 入力検索ワードの適用（日・韓両対応の部分一致）
         if (q) {
           url += `&or=(name.ilike.*\${encodeURIComponent(q)}*,name_en.ilike.*\${encodeURIComponent(q)}*)`;
         }
+
+        // ソート順（推し優先 ＆ 名前順）
+        url += '&order=is_favorite.desc,name.asc';
 
         const res = await fetch(url, {
           headers: {
@@ -3741,14 +3805,33 @@
 
         if (!res.ok) throw new Error('Persons API error: ' + res.status);
 
-        // 総件数の把握
         const range = res.headers.get('content-range');
         if (range) {
           const parts = range.split('/');
           favTotalCount = parseInt(parts[1], 10) || 0;
         }
 
-        const persons = await res.json();
+        let persons = await res.json();
+
+        // ⚡「キム」等の前方一致（苗字一致）を最優先ソート
+        const searchWord = q || selectedSurname;
+        if (searchWord && persons && persons.length > 0) {
+          const sLower = searchWord.toLowerCase();
+          persons.sort((a, b) => {
+            // 推し登録中の人を最優先
+            if (a.is_favorite !== b.is_favorite) return a.is_favorite ? -1 : 1;
+            
+            // 前方一致（苗字一致）の優先度計算
+            const aStarts = (a.name && (a.name.startsWith(searchWord) || a.name.startsWith(searchWord + '・'))) || 
+                            (a.name_en && a.name_en.toLowerCase().startsWith(sLower));
+            const bStarts = (b.name && (b.name.startsWith(searchWord) || b.name.startsWith(searchWord + '・'))) || 
+                            (b.name_en && b.name_en.toLowerCase().startsWith(sLower));
+
+            if (aStarts && !bStarts) return -1;
+            if (!aStarts && bStarts) return 1;
+            return (a.name || '').localeCompare(b.name || '', 'ja');
+          });
+        }
 
         if (!isAppend) {
           container.innerHTML = '';
@@ -3760,7 +3843,7 @@
               <div style="text-align:center; padding:35px 20px; color:var(--tm);">
                 <div style="font-size:2rem; margin-bottom:8px;">⭐</div>
                 <div style="font-weight:700; color:var(--tx); margin-bottom:4px;">まだ推し人物が登録されていません</div>
-                <div style="font-size:0.8rem;">「👥 全員」や「🎭 俳優」タブから好きなスターの「☆ 追加」を押してください！</div>
+                <div style="font-size:0.8rem;">「👥 全員」タブや上の苗字チップから好きなスターの「☆ 追加」を押してください！</div>
               </div>
             `;
           } else {
@@ -3771,7 +3854,6 @@
           return;
         }
 
-        // カード描画
         persons.forEach(p => {
           const card = createPersonCard(p);
           container.appendChild(card);
@@ -3782,7 +3864,8 @@
 
         const currentCount = container.querySelectorAll('.person-card').length;
         if (statusEl) {
-          statusEl.innerHTML = `全 <strong>${favTotalCount}</strong> 件中 <strong>${currentCount}</strong> 人を表示中`;
+          const filterDesc = selectedSurname ? `「${selectedSurname}姓」` : (q ? `「${q}」の検索結果` : '');
+          statusEl.innerHTML = `${filterDesc} 全 <strong>${favTotalCount}</strong> 件中 <strong>${currentCount}</strong> 人を表示中`;
         }
 
         // 「さらに読み込む」ボタン制御
@@ -3851,7 +3934,6 @@
 
     function checkFavScroll(container) {
       if (!favHasMore || isFavLoading) return;
-      // スクロールが下部付近（100px以内）に達したら自動で次の50件を読み込む (無限スクロール)
       if (container.scrollTop + container.clientHeight >= container.scrollHeight - 100) {
         loadMorePersons();
       }
@@ -3874,7 +3956,6 @@
           showToast(newStatus ? '⭐ 推しに登録しました！' : 'お気に入りを解除しました');
           await updateFavCounts();
 
-          // お気に入りタブ表示中の場合は、解除時にカードを除去
           if (favModalTab === 'favorites' && !newStatus) {
             const card = document.getElementById(`person-card-${personId}`);
             if (card) {
@@ -3891,14 +3972,13 @@
                     <div style="text-align:center; padding:35px 20px; color:var(--tm);">
                       <div style="font-size:2rem; margin-bottom:8px;">⭐</div>
                       <div style="font-weight:700; color:var(--tx); margin-bottom:4px;">まだ推し人物が登録されていません</div>
-                      <div style="font-size:0.8rem;">「👥 全員」や「🎭 俳優」タブから好きなスターの「☆ 追加」を押してください！</div>
+                      <div style="font-size:0.8rem;">「👥 全員」タブや上の苗字チップから好きなスターの「☆ 追加」を押してください！</div>
                     </div>
                   `;
                 }
               }, 200);
             }
           } else {
-            // 他タブではカードのスタイルとボタン表示を即時更新
             const card = document.getElementById(`person-card-${personId}`);
             if (card) {
               card.style.borderColor = newStatus ? 'var(--amber)' : 'var(--bd)';
