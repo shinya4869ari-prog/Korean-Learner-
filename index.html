@@ -132,23 +132,6 @@
       color: #fff;
       box-shadow: 0 2px 12px rgba(236, 72, 153, 0.4);
     }
-    .nav-btn.fav-mode.active {
-      background: linear-gradient(135deg, #f59e0b, #d97706);
-      color: #000;
-      font-weight: 800;
-      box-shadow: 0 2px 12px rgba(245, 158, 11, 0.4);
-    }
-    .person-watchlist-card {
-      transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.25s, box-shadow 0.25s;
-    }
-    .person-watchlist-card:hover {
-      transform: translateY(-4px);
-      border-color: rgba(245, 158, 11, 0.7) !important;
-      box-shadow: 0 8px 24px rgba(245, 158, 11, 0.18) !important;
-    }
-    .person-watchlist-card:hover .pv-img {
-      transform: scale(1.05);
-    }
 
     .header-controls {
       display: flex;
@@ -1568,9 +1551,6 @@
       <button class="nav-btn" id="tab-btn-memo" onclick="switchMainTab('memo')">
         💡 アイデア・メモ (<span id="memo-count">0</span>)
       </button>
-      <button class="nav-btn fav-mode" id="tab-btn-persons" onclick="switchMainTab('persons')">
-        ⭐ 推し人物リスト (<span id="nav-fav-count">36</span>)
-      </button>
     </div>
 
     <!-- Controls -->
@@ -1820,97 +1800,6 @@
             </div>
           </div>
         </div>
-      </div>
-    </section>
-
-    <!-- ── 5. ⭐ 推し人物リスト (ウォッチリスト風ギャラリー) ── -->
-    <section id="persons-view" style="display:none; flex-direction:column; gap:16px; width:100%; max-width:1520px; margin:0 auto; padding:10px 0;">
-      <!-- ヘッダーバナー -->
-      <div style="background:linear-gradient(135deg, rgba(245,158,11,0.08), rgba(26,27,46,0.7)); border:1px solid rgba(245,158,11,0.25); border-radius:16px; padding:18px 24px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
-        <div>
-          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-            <span style="font-size:1.6rem;">⭐</span>
-            <h2 style="font-size:1.35rem; font-weight:800; color:#fff; margin:0;">推し人物ウォッチリスト</h2>
-            <span style="background:linear-gradient(135deg, rgba(245,158,11,0.2), rgba(217,119,6,0.3)); border:1px solid #f59e0b; color:#f59e0b; font-size:0.75rem; padding:3px 10px; border-radius:12px; font-weight:700;">
-              俳優・監督・歌手
-            </span>
-            <span style="font-size:0.75rem; background:rgba(62,207,142,0.15); color:var(--supabase); border:1px solid var(--supabase); padding:3px 10px; border-radius:12px; font-weight:700;">
-              ☁️ Supabase リアルタイム同期
-            </span>
-          </div>
-          <p style="font-size:0.83rem; color:var(--tm); margin:6px 0 0 0;">
-            登録した推しスターのニュースが毎朝優先配信されます。カードから関連ニュースや映画・ドラマ情報へ一発ジャンプできます。
-          </p>
-        </div>
-        <div style="display:flex; gap:8px;">
-          <button class="cat-btn" onclick="openFavModal()" style="padding:7px 16px; font-weight:700; border-color:var(--amber); color:var(--amber); background:rgba(245,158,11,0.12);">
-            ⚙️ 詳細管理モーダル
-          </button>
-        </div>
-      </div>
-
-      <!-- フィルター & 検索ツールバー -->
-      <div style="background:var(--s1); border:1px solid var(--bd); border-radius:14px; padding:14px 18px; display:flex; flex-direction:column; gap:12px;">
-        <!-- カテゴリタブ & 検索窓 -->
-        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between;">
-          <div style="display:flex; gap:8px; flex-wrap:wrap;" id="pv-category-tabs">
-            <button class="cat-btn active" id="pv-tab-favorites" onclick="switchPvTab('favorites')">
-              ⭐ 登録中 (<span id="pv-count-fav">36</span>)
-            </button>
-            <button class="cat-btn" id="pv-tab-all" onclick="switchPvTab('all')">
-              👥 全員 (<span id="pv-count-all">927</span>)
-            </button>
-            <button class="cat-btn" id="pv-tab-actor" onclick="switchPvTab('actor')">
-              🎭 俳優 (699)
-            </button>
-            <button class="cat-btn" id="pv-tab-director" onclick="switchPvTab('director')">
-              🎬 監督 (64)
-            </button>
-            <button class="cat-btn" id="pv-tab-singer" onclick="switchPvTab('singer')">
-              🎤 歌手・グループ (164)
-            </button>
-          </div>
-
-          <!-- 検索インプット -->
-          <div style="position:relative; min-width:260px; max-width:320px; flex:1;">
-            <input type="text" id="pv-search-input" placeholder="名前・ハングルで絞り込み..." class="card-lookup-inp" style="background:var(--s2); border:1px solid var(--bd); border-radius:20px; padding:7px 32px 7px 14px; font-size:0.82rem; color:#fff; width:100%; box-sizing:border-box;" oninput="onPvSearchInput()" />
-            <button id="pv-search-clear-btn" onclick="clearPvSearch()" style="display:none; position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--tm); cursor:pointer; font-size:14px;" title="クリア">✕</button>
-          </div>
-        </div>
-
-        <!-- 韓国の主要苗字クイックチップ -->
-        <div style="display:flex; align-items:center; gap:6px; overflow-x:auto; padding-bottom:4px; scrollbar-width:thin;" id="pv-surname-chips">
-          <span style="font-size:0.75rem; color:var(--tm); font-weight:700; white-space:nowrap;">苗字:</span>
-          <button class="cat-btn active" id="pv-sur-all" onclick="filterPvSurname('')" style="padding:2px 10px; font-size:0.75rem;">✨ 全姓</button>
-          <button class="cat-btn" id="pv-sur-キム" onclick="filterPvSurname('キム')" style="padding:2px 10px; font-size:0.75rem;">キム (111)</button>
-          <button class="cat-btn" id="pv-sur-イ" onclick="filterPvSurname('イ')" style="padding:2px 10px; font-size:0.75rem;">イ (82)</button>
-          <button class="cat-btn" id="pv-sur-パク" onclick="filterPvSurname('パク')" style="padding:2px 10px; font-size:0.75rem;">パク (54)</button>
-          <button class="cat-btn" id="pv-sur-チョン" onclick="filterPvSurname('チョン')" style="padding:2px 10px; font-size:0.75rem;">チョン (46)</button>
-          <button class="cat-btn" id="pv-sur-チェ" onclick="filterPvSurname('チェ')" style="padding:2px 10px; font-size:0.75rem;">チェ (24)</button>
-          <button class="cat-btn" id="pv-sur-チョ" onclick="filterPvSurname('チョ')" style="padding:2px 10px; font-size:0.75rem;">チョ (20)</button>
-          <button class="cat-btn" id="pv-sur-ユン" onclick="filterPvSurname('ユン')" style="padding:2px 10px; font-size:0.75rem;">ユン (17)</button>
-          <button class="cat-btn" id="pv-sur-ソン" onclick="filterPvSurname('ソン')" style="padding:2px 10px; font-size:0.75rem;">ソン (15)</button>
-          <button class="cat-btn" id="pv-sur-チャン" onclick="filterPvSurname('チャン')" style="padding:2px 10px; font-size:0.75rem;">チャン (13)</button>
-          <button class="cat-btn" id="pv-sur-ハン" onclick="filterPvSurname('ハン')" style="padding:2px 10px; font-size:0.75rem;">ハン (10)</button>
-        </div>
-      </div>
-
-      <!-- 人物カードグリッド (ウォッチリストスタイル) -->
-      <div id="pv-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap:18px;">
-        <!-- 動的描画エリア -->
-      </div>
-
-      <!-- さらに読み込むボタン -->
-      <div id="pv-load-more-wrap" style="text-align:center; padding:16px 0;"></div>
-
-      <!-- 0件の空状態カード -->
-      <div class="card" id="pv-empty-card" style="display:none; text-align:center; padding:60px 20px; border-style:dashed;">
-        <div style="font-size:3.5rem; margin-bottom:16px;">⭐</div>
-        <div style="font-size:1.2rem; font-weight:700; color:#fff; margin-bottom:8px;" id="pv-empty-title">推し人物がまだ登録されていません</div>
-        <div style="color:var(--tm); font-size:0.9rem; max-width:480px; margin:0 auto 20px;" id="pv-empty-desc">
-          「👥 全員」タブや上の苗字フィルターから好きなスターの「⭐ 推しに追加」を押すと、ここに一覧表示されます。
-        </div>
-        <button class="cat-btn active" style="padding:10px 24px;" onclick="switchPvTab('all')">👥 全員リストを見る</button>
       </div>
     </section>
 
@@ -3844,14 +3733,7 @@
         const favRange = favRes.headers.get('content-range');
         if (favRange) {
           const total = favRange.split('/')[1];
-          if (total) {
-            const b1 = document.getElementById('fav-count-badge');
-            if (b1) b1.textContent = total;
-            const b2 = document.getElementById('nav-fav-count');
-            if (b2) b2.textContent = total;
-            const b3 = document.getElementById('pv-count-fav');
-            if (b3) b3.textContent = total;
-          }
+          if (total) document.getElementById('fav-count-badge').textContent = total;
         }
 
         const allRes = await fetch(`${SUPABASE_URL}/rest/v1/Persons?select=count`, {
@@ -3864,12 +3746,7 @@
         const allRange = allRes.headers.get('content-range');
         if (allRange) {
           const total = allRange.split('/')[1];
-          if (total) {
-            const a1 = document.getElementById('total-persons-badge');
-            if (a1) a1.textContent = total;
-            const a2 = document.getElementById('pv-count-all');
-            if (a2) a2.textContent = total;
-          }
+          if (total) document.getElementById('total-persons-badge').textContent = total;
         }
       } catch(e) {
         console.warn('Count update error:', e);
@@ -4701,7 +4578,6 @@
       renderHubChips();
       loadArticle(currentArticle);
       updateWordbookCount();
-      updateFavCounts();
 
       // 初回起動時にSupabaseから歌詞データを優先取得
       syncSupabaseLyricsToApp();
@@ -4766,8 +4642,6 @@
 
       const ws = document.getElementById('workspace-view');
       const wb = document.getElementById('wordbook-view');
-      const pv = document.getElementById('persons-view');
-      const hubBar = document.getElementById('news-hub-bar');
       const catBar = document.getElementById('category-filter-bar');
       const customInp = document.getElementById('custom-search-input');
       const lyricsPanel = document.getElementById('lyrics-panel');
@@ -4778,25 +4652,10 @@
 
       const audioBar = document.getElementById('audio-toolbar');
 
-      if (pv) pv.style.display = 'none';
-
-      if (mode === 'persons') {
-        ws.style.display = 'none';
-        wb.style.display = 'none';
-        if (memoSection) memoSection.style.display = 'none';
-        if (hubBar) hubBar.style.display = 'none';
-        if (pv) pv.style.display = 'flex';
-        if (audioBar) audioBar.style.display = 'none';
-        document.body.style.paddingBottom = '24px';
-        renderPersonsWatchlistView();
-        return;
-      }
-
       if (mode === 'wordbook') {
         ws.style.display = 'none';
         wb.style.display = 'flex';
         if (memoSection) memoSection.style.display = 'none';
-        if (hubBar) hubBar.style.display = 'none';
         if (audioBar) audioBar.style.display = 'none';
         document.body.style.paddingBottom = '24px';
         renderWordbookGrid();
@@ -4807,14 +4666,12 @@
         ws.style.display = 'none';
         wb.style.display = 'none';
         if (memoSection) memoSection.style.display = 'flex';
-        if (hubBar) hubBar.style.display = 'none';
         if (audioBar) audioBar.style.display = 'none';
         document.body.style.paddingBottom = '24px';
         renderNotesList();
         return;
       }
 
-      if (hubBar) hubBar.style.display = 'block';
       if (memoSection) memoSection.style.display = 'none';
 
       ws.style.display = 'grid';
@@ -5721,354 +5578,6 @@
       loadArticle(newCustomItem);
       showToast(`「${q}」の画面を生成しました！ ✨`);
       document.getElementById('custom-search-input').value = '';
-    }
-
-    // ── ⭐ 推し人物ウォッチリスト (Watchlist Style Gallery) ──
-    let pvTab = 'favorites';
-    let pvSelectedSurname = '';
-    let pvOffset = 0;
-    const pvLimit = 36;
-    let pvTotalCount = 0;
-    let pvHasMore = true;
-    let pvIsLoading = false;
-    let pvDebounceTimer = null;
-
-    function renderPersonsWatchlistView() {
-      updateFavCounts();
-      updatePvTabButtons();
-      updatePvSurnameChips();
-      fetchAndRenderPersonsWatchlist(false);
-    }
-
-    function switchPvTab(tab) {
-      if (pvTab === tab) return;
-      pvTab = tab;
-      updatePvTabButtons();
-      pvOffset = 0;
-      pvHasMore = true;
-      fetchAndRenderPersonsWatchlist(false);
-    }
-
-    function updatePvTabButtons() {
-      ['favorites', 'all', 'actor', 'director', 'singer'].forEach(t => {
-        const btn = document.getElementById(`pv-tab-${t}`);
-        if (btn) btn.classList.toggle('active', t === pvTab);
-      });
-    }
-
-    function filterPvSurname(surname) {
-      pvSelectedSurname = surname;
-      updatePvSurnameChips();
-      if (pvTab === 'favorites' && surname) {
-        pvTab = 'all';
-        updatePvTabButtons();
-      }
-      pvOffset = 0;
-      pvHasMore = true;
-      fetchAndRenderPersonsWatchlist(false);
-    }
-
-    function updatePvSurnameChips() {
-      const surnames = ['', 'キム', 'イ', 'パク', 'チョン', 'チェ', 'チョ', 'ユン', 'ソン', 'チャン', 'ハン'];
-      surnames.forEach(s => {
-        const id = s ? `pv-sur-${s}` : 'pv-sur-all';
-        const btn = document.getElementById(id);
-        if (btn) btn.classList.toggle('active', s === pvSelectedSurname);
-      });
-    }
-
-    function onPvSearchInput() {
-      const val = (document.getElementById('pv-search-input')?.value || '').trim();
-      const clearBtn = document.getElementById('pv-search-clear-btn');
-      if (clearBtn) clearBtn.style.display = val ? 'inline-block' : 'none';
-      clearTimeout(pvDebounceTimer);
-      pvDebounceTimer = setTimeout(() => {
-        pvOffset = 0;
-        pvHasMore = true;
-        fetchAndRenderPersonsWatchlist(false);
-      }, 250);
-    }
-
-    function clearPvSearch() {
-      const inp = document.getElementById('pv-search-input');
-      if (inp) inp.value = '';
-      const clearBtn = document.getElementById('pv-search-clear-btn');
-      if (clearBtn) clearBtn.style.display = 'none';
-      pvSelectedSurname = '';
-      updatePvSurnameChips();
-      pvOffset = 0;
-      pvHasMore = true;
-      fetchAndRenderPersonsWatchlist(false);
-    }
-
-    async function fetchAndRenderPersonsWatchlist(isAppend = false) {
-      if (pvIsLoading) return;
-      pvIsLoading = true;
-      const grid = document.getElementById('pv-grid');
-      const emptyCard = document.getElementById('pv-empty-card');
-      const moreWrap = document.getElementById('pv-load-more-wrap');
-      const q = (document.getElementById('pv-search-input')?.value || '').trim();
-
-      if (!isAppend) {
-        pvOffset = 0;
-        if (grid) grid.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding:50px 20px; color:var(--tm);"><div style="font-size:2rem; margin-bottom:8px;">⏳</div>人物リストを読み込み中...</div>';
-        if (emptyCard) emptyCard.style.display = 'none';
-        if (moreWrap) moreWrap.innerHTML = '';
-      }
-
-      try {
-        let url = `${SUPABASE_URL}/rest/v1/Persons?select=id,name,name_en,profile_url,occupation,is_favorite&limit=${pvLimit}&offset=${pvOffset}`;
-
-        if (pvTab === 'favorites') {
-          url += '&is_favorite=eq.true';
-        } else if (pvTab === 'actor') {
-          url += '&occupation=eq.俳優';
-        } else if (pvTab === 'director') {
-          url += '&occupation=eq.監督';
-        } else if (pvTab === 'singer') {
-          url += '&or=(occupation.eq.歌手,occupation.eq.グループ)';
-        }
-
-        if (pvSelectedSurname) {
-          url += `&name=ilike.${encodeURIComponent(pvSelectedSurname)}*`;
-        }
-
-        if (q) {
-          url += `&or=(name.ilike.*${encodeURIComponent(q)}*,name_en.ilike.*${encodeURIComponent(q)}*)`;
-        }
-
-        url += '&order=is_favorite.desc,name.asc';
-
-        const res = await fetch(url, {
-          headers: {
-            'apikey': SUPABASE_KEY,
-            'Authorization': `Bearer ${SUPABASE_KEY}`,
-            'Prefer': 'count=exact'
-          }
-        });
-
-        if (!res.ok) throw new Error('Persons fetch failed: ' + res.status);
-
-        const range = res.headers.get('content-range');
-        if (range) {
-          const parts = range.split('/');
-          pvTotalCount = parseInt(parts[1], 10) || 0;
-        }
-
-        let persons = await res.json();
-
-        // 検索時の先頭一致優先ソート
-        const searchWord = q || pvSelectedSurname;
-        if (searchWord && persons && persons.length > 0) {
-          const sLower = searchWord.toLowerCase();
-          persons.sort((a, b) => {
-            if (a.is_favorite !== b.is_favorite) return a.is_favorite ? -1 : 1;
-            const aStarts = (a.name && (a.name.startsWith(searchWord) || a.name.startsWith(searchWord + '・'))) || 
-                            (a.name_en && a.name_en.toLowerCase().startsWith(sLower));
-            const bStarts = (b.name && (b.name.startsWith(searchWord) || b.name.startsWith(searchWord + '・'))) || 
-                            (b.name_en && b.name_en.toLowerCase().startsWith(sLower));
-            if (aStarts && !bStarts) return -1;
-            if (!aStarts && bStarts) return 1;
-            return (a.name || '').localeCompare(b.name || '', 'ja');
-          });
-        }
-
-        if (!isAppend && grid) {
-          grid.innerHTML = '';
-        }
-
-        if ((!persons || persons.length === 0) && !isAppend) {
-          if (grid) grid.style.display = 'none';
-          if (emptyCard) {
-            emptyCard.style.display = 'block';
-            const titleEl = document.getElementById('pv-empty-title');
-            const descEl = document.getElementById('pv-empty-desc');
-            if (pvTab === 'favorites') {
-              if (titleEl) titleEl.textContent = '推し人物がまだ登録されていません';
-              if (descEl) descEl.textContent = '「👥 全員」タブや上の苗字フィルターからお気に入りのスターの「⭐ 推しに追加」を押すと、ここに一覧表示されます。';
-            } else {
-              if (titleEl) titleEl.textContent = '該当する人物が見つかりませんでした';
-              if (descEl) descEl.textContent = '検索キーワードや苗字フィルターを変更してお試しください。';
-            }
-          }
-          pvHasMore = false;
-          return;
-        }
-
-        if (emptyCard) emptyCard.style.display = 'none';
-        if (grid) grid.style.display = 'grid';
-
-        persons.forEach(p => {
-          const card = createPersonWatchlistCard(p);
-          grid.appendChild(card);
-        });
-
-        pvOffset += persons.length;
-        pvHasMore = pvOffset < pvTotalCount;
-
-        if (moreWrap) {
-          if (pvHasMore) {
-            const remaining = pvTotalCount - pvOffset;
-            moreWrap.innerHTML = `
-              <button class="cat-btn active" onclick="loadMorePvPersons()" style="padding:10px 28px; font-weight:700; font-size:0.85rem; border-radius:20px; box-shadow:0 4px 15px rgba(0,212,170,0.2);">
-                👇 さらに読み込む (残り ${remaining}人)
-              </button>
-            `;
-          } else {
-            const totalRendered = grid.querySelectorAll('.person-watchlist-card').length;
-            moreWrap.innerHTML = `<span style="font-size:0.8rem; color:var(--tm);">全件表示中 (計 ${totalRendered} 名)</span>`;
-          }
-        }
-      } catch(err) {
-        console.error('fetchAndRenderPersonsWatchlist error:', err);
-        if (!isAppend && grid) {
-          grid.innerHTML = `<div style="grid-column: 1/-1; text-align:center; padding:30px; color:var(--red);">取得エラー: ${err.message}</div>`;
-        }
-      } finally {
-        pvIsLoading = false;
-      }
-    }
-
-    function loadMorePvPersons() {
-      if (pvHasMore && !pvIsLoading) {
-        fetchAndRenderPersonsWatchlist(true);
-      }
-    }
-
-    function createPersonWatchlistCard(p) {
-      const card = document.createElement('div');
-      card.className = 'person-watchlist-card';
-      card.id = `pv-card-${p.id}`;
-      const isFav = p.is_favorite === true;
-
-      const fallbackSvg = "data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 200 200%22%3E%3Crect fill=%22%231e293b%22 width=%22100%25%22 height=%22100%25%22/%3E%3Ctext fill=%22%2394a3b8%22 x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 font-size=%2260%22 dy=%22.35em%22%3E👤%3C/text%3E%3C/svg%3E";
-
-      const imgHtml = (p.profile_url && p.profile_url.trim().length > 10)
-        ? `<img src="${p.profile_url}" alt="${p.name}" class="pv-img" style="width:100%; height:100%; object-fit:cover; display:block; transition:transform 0.3s;" onerror="this.onerror=null; this.src='${fallbackSvg}';" />`
-        : `<div style="width:100%; height:100%; background:var(--s2); display:flex; align-items:center; justify-content:center; font-size:3.5rem;">👤</div>`;
-
-      const occColor = p.occupation === '俳優' ? '#38bdf8' : p.occupation === '監督' ? '#a855f7' : '#ec4899';
-      const safeName = (p.name || '').replace(/'/g, "\\'");
-
-      card.style.cssText = `
-        background: var(--s1);
-        border: 1px solid ${isFav ? 'rgba(245,158,11,0.5)' : 'var(--bd)'};
-        border-radius: 14px;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-        position: relative;
-        box-shadow: ${isFav ? '0 4px 18px rgba(245,158,11,0.08)' : '0 2px 8px rgba(0,0,0,0.2)'};
-      `;
-
-      card.innerHTML = `
-        <div style="position:relative; width:100%; aspect-ratio:1/1; overflow:hidden; cursor:pointer;" onclick="filterNewsByPerson('${safeName}')">
-          ${imgHtml}
-          <span class="pv-star-badge" style="position:absolute; top:8px; left:8px; font-size:0.72rem; ${isFav ? 'background:rgba(245,158,11,0.92); color:#000; font-weight:800;' : 'background:rgba(15,23,42,0.75); color:var(--tm); font-weight:600;'} padding:2px 8px; border-radius:10px; backdrop-blur:4px;">
-            ${isFav ? '⭐ 推し' : '☆ 未登録'}
-          </span>
-          <span style="position:absolute; top:8px; right:8px; font-size:0.7rem; background:rgba(15,23,42,0.82); color:${occColor}; border:1px solid ${occColor}; padding:2px 7px; border-radius:10px; font-weight:700; backdrop-blur:4px;">
-            ${p.occupation || '人物'}
-          </span>
-        </div>
-        <div style="padding:12px; display:flex; flex-direction:column; flex:1; justify-content:space-between; gap:10px;">
-          <div>
-            <div style="font-weight:700; font-size:1rem; color:#fff; cursor:pointer; line-height:1.3;" onclick="filterNewsByPerson('${safeName}')" title="ニュースを検索">
-              ${p.name}
-            </div>
-            ${p.name_en ? `<div style="font-size:0.78rem; color:#a5b4fc; font-weight:600; margin-top:2px;">${p.name_en}</div>` : ''}
-          </div>
-          <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--bd-light); pt:8px; margin-top:4px; gap:6px;">
-            <button class="cat-btn" style="padding:4px 10px; font-size:0.75rem; background:rgba(99,102,241,0.15); border-color:#6366f1; color:#a5b4fc; font-weight:700; border-radius:8px;" onclick="filterNewsByPerson('${safeName}')" title="${p.name}のニュースを検索">
-              📰 ニュース
-            </button>
-            <button class="cat-btn" id="pv-btn-${p.id}" onclick="togglePersonFavFromWatchlist(${p.id}, ${!isFav}, this)" style="border-color:${isFav ? 'var(--amber)' : 'var(--bd)'}; color:${isFav ? 'var(--amber)' : 'var(--tm)'}; background:${isFav ? 'rgba(245,158,11,0.2)' : 'var(--s2)'}; font-size:0.75rem; font-weight:700; padding:4px 12px; border-radius:8px; white-space:nowrap;">
-              ${isFav ? '★ 解除' : '⭐ 推しに追加'}
-            </button>
-          </div>
-        </div>
-      `;
-      return card;
-    }
-
-    async function togglePersonFavFromWatchlist(personId, newStatus, btn) {
-      if (btn) btn.disabled = true;
-      try {
-        const res = await fetch(`${SUPABASE_URL}/rest/v1/Persons?id=eq.${personId}`, {
-          method: 'PATCH',
-          headers: {
-            'apikey': SUPABASE_KEY,
-            'Authorization': `Bearer ${SUPABASE_KEY}`,
-            'Content-Type': 'application/json',
-            'Prefer': 'return=minimal'
-          },
-          body: JSON.stringify({ is_favorite: newStatus })
-        });
-        if (res.ok) {
-          showToast(newStatus ? '⭐ 推しに登録しました！' : '推しを解除しました');
-          await updateFavCounts();
-
-          const card = document.getElementById(`pv-card-${personId}`);
-          if (card) {
-            if (pvTab === 'favorites' && !newStatus) {
-              card.style.opacity = '0';
-              card.style.transform = 'scale(0.9)';
-              setTimeout(() => {
-                card.remove();
-                const grid = document.getElementById('pv-grid');
-                if (grid && grid.children.length === 0) {
-                  fetchAndRenderPersonsWatchlist(false);
-                }
-              }, 200);
-            } else {
-              const starBadge = card.querySelector('.pv-star-badge');
-              if (starBadge) {
-                starBadge.style.cssText = newStatus 
-                  ? 'position:absolute; top:8px; left:8px; font-size:0.72rem; background:rgba(245,158,11,0.92); color:#000; font-weight:800; padding:2px 8px; border-radius:10px; backdrop-blur:4px;' 
-                  : 'position:absolute; top:8px; left:8px; font-size:0.72rem; background:rgba(15,23,42,0.75); color:var(--tm); font-weight:600; padding:2px 8px; border-radius:10px; backdrop-blur:4px;';
-                starBadge.textContent = newStatus ? '⭐ 推し' : '☆ 未登録';
-              }
-              card.style.borderColor = newStatus ? 'rgba(245,158,11,0.5)' : 'var(--bd)';
-              card.style.boxShadow = newStatus ? '0 4px 18px rgba(245,158,11,0.08)' : '0 2px 8px rgba(0,0,0,0.2)';
-              if (btn) {
-                btn.textContent = newStatus ? '★ 解除' : '⭐ 推しに追加';
-                btn.style.borderColor = newStatus ? 'var(--amber)' : 'var(--bd)';
-                btn.style.color = newStatus ? 'var(--amber)' : 'var(--tm)';
-                btn.style.background = newStatus ? 'rgba(245,158,11,0.2)' : 'var(--s2)';
-                btn.onclick = () => togglePersonFavFromWatchlist(personId, !newStatus, btn);
-              }
-            }
-          }
-        }
-      } catch(e) {
-        console.error('togglePersonFavFromWatchlist error:', e);
-        showToast('更新に失敗しました');
-      } finally {
-        if (btn) btn.disabled = false;
-      }
-    }
-
-    function filterNewsByPerson(personName) {
-      if (!personName) return;
-      switchMainTab('news');
-      const input = document.getElementById('custom-search-input');
-      if (input) input.value = personName;
-
-      // ニュースリストから一致するニュースを探して自動ロード
-      const foundMatch = (SAMPLE_DATABASE.news || []).find(item => {
-        const full = `${item.title_ko} ${item.title_ja} ${item.artist || ''}`.toLowerCase();
-        return full.includes(personName.toLowerCase());
-      });
-
-      if (foundMatch) {
-        currentArticle = foundMatch;
-        renderHubChips();
-        loadArticle(foundMatch);
-        showToast(`『${personName}』のニュースを表示しました！ 📰`);
-      } else {
-        renderHubChips();
-        showToast(`『${personName}』を検索バーに設定しました。検索を押すとニュースを取得できます。`);
-      }
     }
   </script>
 </body>
