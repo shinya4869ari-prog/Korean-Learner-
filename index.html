@@ -2067,6 +2067,24 @@
 
     // ── KOREAN DICTIONARY & PARTICLE RESOLVER ──
     const BUILTIN_DICT = {
+      // 📰 ニュース・社会・法律 頻出重要語彙（漢字語対応）
+      '사례': { hanja: '事例', pos: '名詞', meaning: '事例・ケース・実例', level: '中級' },
+      '적발': { hanja: '摘發', pos: '名詞', meaning: '摘発・発覚', level: '中級' },
+      '종결': { hanja: '終結', pos: '名詞', meaning: '終結・完了・締めくくり', level: '中級' },
+      '수사관': { hanja: '搜査官', pos: '名詞', meaning: '捜査官', level: '中級' },
+      '부당하다': { hanja: '不當--', pos: '形容詞', meaning: '不当だ・理にかなわない', level: '中級' },
+      '부당': { hanja: '不當', pos: '名詞', meaning: '不当・不正', level: '中級' },
+      '전수조사': { hanja: '全數調査', pos: '名詞', meaning: '全数調査・総点検', level: '高級' },
+      '허위': { hanja: '虛僞', pos: '名詞', meaning: '虚偽・偽り・ウソ', level: '中級' },
+      '경찰': { hanja: '警察', pos: '名詞', meaning: '警察', level: '初級' },
+      '경찰청': { hanja: '警察廳', pos: '名詞', meaning: '警察庁', level: '中級' },
+      '검찰': { hanja: '檢察', pos: '名詞', meaning: '検察', level: '中級' },
+      '사건': { hanja: '事件', pos: '名詞', meaning: '事件・出来事', level: '初級' },
+      '사고': { hanja: '事故 / 思考', pos: '名詞', meaning: '事故・アクシデント（※思考・考え）', level: '初級' },
+      '과중': { hanja: '過重', pos: '名詞', meaning: '過重・重すぎること', level: '中級' },
+      '파장': { hanja: '波長', pos: '名詞', meaning: '波紋・影響・波及', level: '中級' },
+      
+      // 基礎・日常・歌詞語彙
       '사랑': { hanja: '―', pos: '名詞', meaning: '愛・恋・愛情', level: '初級' },
       '사랑이': { hanja: '―', pos: '名詞+助詞', meaning: '愛が・恋が (사랑 + 이)', level: '初級' },
       '고마움': { hanja: '―', pos: '名詞', meaning: '感謝・ありがたさ・お礼の気持ち (고맙다の名詞形)', level: '初級' },
@@ -2306,6 +2324,155 @@
         particle: '',
         needsAsync: !TRANSLATION_CACHE[q]
       };
+    }
+
+    // ── 🗺️ KOREA GEOGRAPHIC SPOTS (地名・重要施設自動検知マップ辞書) ──
+    const KOREA_GEO_SPOTS = [
+      { keywords: ['제주', '제주도', '서귀포', '제주경찰'], name: '済州特別自治道 (済州島・済州警察庁管轄)', lat: 33.4996, lng: 126.5312, desc: '韓国最南端の特別自治道。観光都市であるとともに、独自の自治警察制度や地方行政体制を持ちます。' },
+      { keywords: ['부산', '해운대', '자갈치'], name: '釜山広域市', lat: 35.1796, lng: 129.0756, desc: '韓国第2の都市にして最大の海洋・港湾都市。' },
+      { keywords: ['국회', '여의도'], name: 'ソウル特別市 永登浦区 汝矣島 (国会議事堂)', lat: 37.5318, lng: 126.9141, desc: '韓国の国会議事堂や金融街・放送局が集まる政治・経済の中心地・汝矣島。' },
+      { keywords: ['대통령실', '용산', '하이브', 'HYBE'], name: 'ソウル特別市 龍山区 (大統領室・龍山)', lat: 37.5284, lng: 126.9685, desc: '大統領室が位置する政治拠点であり、HYBE本社など世界的カルチャーの中心地。' },
+      { keywords: ['검찰', '법원', '대법원', '서초'], name: 'ソウル特別市 瑞草区 (大法院・検察庁・法曹タウン)', lat: 37.4923, lng: 127.0084, desc: '大法院（最高裁判所）や大検察庁、ソウル中央地検が集まる韓国司法の中心地。' },
+      { keywords: ['종로', '경복궁', '광화문', '청와대'], name: 'ソウル特別市 鐘路区 (光化門・鐘路)', lat: 37.5759, lng: 126.9768, desc: '歴史的な行政の中心地。光化門広場や政府ソウル庁舎が位置します。' },
+      { keywords: ['강남', '테헤란로'], name: 'ソウル特別市 江南区', lat: 37.4979, lng: 127.0276, desc: 'スタートアップや大手企業、ITが集積する韓国経済のトレンド発信地。' },
+      { keywords: ['판교', '성남', '분당'], name: '京畿道 城南市 (板橋テクノバレー)', lat: 37.4005, lng: 127.1122, desc: 'カカオやNAVERなど大手IT・テクノロジー企業が集結する韓国のシリコンバレー。' },
+      { keywords: ['인천', '송도'], name: '仁川広域市 (松島国際都市)', lat: 37.4563, lng: 126.7052, desc: '韓国の表玄関である仁川国際空港やバイオ産業が集まる国際都市。' },
+      { keywords: ['대구'], name: '大邱広域市', lat: 35.8714, lng: 128.6014, desc: '韓国南東部の主要都市。ファッションや先端医療産業が盛んです。' },
+      { keywords: ['광주'], name: '光州広域市', lat: 35.1595, lng: 126.8526, desc: '文化芸術と民主化の歴史を持つ全羅道の中心都市。' },
+      { keywords: ['대전'], name: '大田広域市 (大徳研究開発特区)', lat: 36.3504, lng: 127.3845, desc: 'KAISTや国立研究機関が集まる韓国の科学技術の中心都市。' },
+      { keywords: ['울산'], name: '蔚山広域市', lat: 35.5384, lng: 129.3114, desc: '自動車・造船・化学産業が集結する韓国最大の重化学工業都市。' },
+      { keywords: ['세종'], name: '世宗特別自治市 (政府世宗庁舎)', lat: 36.4800, lng: 127.2890, desc: '多くの政府省庁が移転した韓国の実質的な行政複合都市。' },
+      { keywords: ['수원', '경기'], name: '京畿道 水原市', lat: 37.2636, lng: 127.0286, desc: '京畿道庁が置かれ、サムスン電子本社を擁する重要産業拠点。' }
+    ];
+
+    // ── 🧠 ADVANCED HYBRID WORD RESOLVER (重要語彙 ➔ クラウド辞書 ➔ 内蔵辞書 ➔ 外部翻訳) ──
+    async function lookupWordAsync(rawQuery) {
+      if (!rawQuery) return null;
+      let q = rawQuery.trim().replace(/[.,!?'"()…]/g, '');
+      if (!q) return null;
+
+      // 1. フレーズ・連語
+      if (q.includes(' ')) {
+        const words = q.split(/\s+/);
+        const subItems = words.map(w => lookupKoreanWord(w)).filter(Boolean);
+        return {
+          base: q,
+          hanja: '',
+          pos: 'フレーズ・連語',
+          meaning: subItems.map(s => `【${s.base}】${s.meaning}`).join(' ➔ '),
+          level: '連語',
+          particle: ''
+        };
+      }
+
+      // 助詞や語尾の分解判定
+      let stem = q;
+      let detectedParticle = '';
+      for (const item of PARTICLES) {
+        if (q.endsWith(item.p) && q.length > item.p.length) {
+          stem = q.slice(0, -item.p.length);
+          detectedParticle = ` + 「${item.p}」(${item.desc})`;
+          break;
+        }
+      }
+      if (!detectedParticle) {
+        for (const item of GRAMMAR_ENDINGS) {
+          if (q.endsWith(item.e) && q.length > item.e.length) {
+            const baseStem = q.slice(0, -item.e.length);
+            stem = baseStem.endsWith('하') ? baseStem + '다' : (baseStem + '다');
+            detectedParticle = ` + 「~${item.e}」(${item.desc})`;
+            break;
+          }
+        }
+      }
+
+      // 2. ⭐ 記事の重要語彙（currentArticle.vocab）を最優先検索！（AI抽出の正確な漢字と意味）
+      if (currentArticle && Array.isArray(currentArticle.vocab)) {
+        const testCandidates = [
+          q,
+          stem,
+          stem.replace(/다$/, ''),
+          q.replace(/하다$/, ''),
+          q.replace(/하게$/, '하다'),
+          q.replace(/했다$/, '하다'),
+          q.replace(/했다고$/, '하다'),
+          q.replace(/한$/, '하다'),
+          q.replace(/하며$/, '하다')
+        ];
+        for (const c of testCandidates) {
+          const found = currentArticle.vocab.find(v => v.word === c || v.word === c + '하다' || (v.word.endsWith('하다') && c === v.word.slice(0, -2)));
+          if (found) {
+            const hanjaDisplay = (found.hanja && found.hanja !== '―' && found.hanja !== '-') ? found.hanja : '';
+            return {
+              base: found.word,
+              hanja: hanjaDisplay,
+              pos: found.pos || '重要語彙',
+              meaning: found.meaning,
+              level: found.level || '重要語彙',
+              particle: detectedParticle
+            };
+          }
+        }
+      }
+
+      // 3. ローカル内蔵辞書・メモリキャッシュを検索
+      const localMatch = lookupKoreanWord(q);
+      if (localMatch && !localMatch.needsAsync) {
+        return localMatch;
+      }
+      if (BUILTIN_DICT[stem]) {
+        return {
+          base: stem,
+          ...BUILTIN_DICT[stem],
+          particle: detectedParticle
+        };
+      }
+
+      // 4. ☁️ Supabase クラウド辞書テーブル（dictionary）から非同期検索
+      try {
+        const targets = stem !== q ? [stem, q] : [q];
+        for (const t of targets) {
+          const res = await fetch(`${SUPABASE_URL}/rest/v1/dictionary?word=eq.${encodeURIComponent(t)}&select=*&limit=1`, {
+            headers: {
+              'apikey': SUPABASE_KEY,
+              'Authorization': `Bearer ${SUPABASE_KEY}`
+            }
+          });
+          if (res.ok) {
+            const list = await res.json();
+            if (list && list.length > 0) {
+              const row = list[0];
+              const hanjaDisplay = (row.hanja && row.hanja !== '―' && row.hanja !== '-') ? row.hanja : '';
+              const entry = {
+                base: row.word,
+                hanja: hanjaDisplay,
+                pos: row.pos || '名詞',
+                meaning: row.meaning,
+                level: row.level || 'クラウド語彙',
+                particle: t === stem ? detectedParticle : ''
+              };
+              BUILTIN_DICT[row.word] = entry;
+              return entry;
+            }
+          }
+        }
+      } catch (err) {
+        // クラウド辞書未作成または取得失敗時は静かにフォールバック
+      }
+
+      // 5. 🌐 外部翻訳API（Google / MyMemory）で補完
+      const translated = await translateKoToJa(stem);
+      const cleanMeaning = (translated || q).replace(/^「|」$/g, '');
+      const entry = {
+        base: stem,
+        hanja: '',
+        pos: '単語・文節',
+        meaning: cleanMeaning,
+        level: '語彙',
+        particle: detectedParticle
+      };
+      BUILTIN_DICT[stem] = entry;
+      return entry;
     }
 
     // ── DATABASE ──
@@ -4124,57 +4291,39 @@
         return;
       }
 
-      const match = lookupKoreanWord(q);
-      if (!match) return;
-
       resBox.style.display = 'block';
-      const renderContent = (meaningText, extraParticle = '') => {
-        resBox.innerHTML = `
-          <div style="background:rgba(0,0,0,0.25); border:1px solid var(--bd); border-radius:10px; padding:10px 14px; margin-top:8px; display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
-            <div style="flex:1;">
-              <strong style="font-size:1.05rem; color:#fff;">${match.base}</strong>
-              ${match.hanja ? `<span style="font-size:0.75rem; color:var(--tm);">(${match.hanja})</span>` : ''}
-              <span style="font-size:0.72rem; color:var(--ac2); font-weight:700;">[${match.pos}]</span>
-              <span style="font-size:0.8rem; color:#60a5fa;">${extraParticle || match.particle || ''}</span>
-              <div style="font-size:0.92rem; color:var(--ac); font-weight:600; margin-top:4px; line-height:1.5;">${meaningText}</div>
-            </div>
-            <div style="display:flex; gap:6px; align-items:center; flex-shrink:0;">
-              <button class="mini-action-btn" onclick="triggerSpeechSingle('${match.base.replace(/'/g, "\\'")}')" title="発音">🔊 発音</button>
-              <button class="mini-action-btn" onclick="toggleSaveWord('${match.base.replace(/'/g, "\\'")}', '${meaningText.replace(/'/g, "\\'")}', '${match.level}', this)">⭐ 単語帳に保存</button>
-              <button class="result-close-x" onclick="document.getElementById('news-global-lookup-res').innerHTML='';" title="閉じる">✕</button>
-            </div>
-          </div>
-        `;
-      };
+      resBox.innerHTML = `
+        <div style="background:rgba(0,0,0,0.25); border:1px solid var(--bd); border-radius:10px; padding:10px 14px; margin-top:8px; color:var(--tm); font-size:0.85rem;">
+          ⏳ 辞書・重要語彙を検索中...
+        </div>
+      `;
 
-      if (match.needsAsync) {
-        renderContent('⏳ 意味をオンライン辞書・翻訳から取得中...');
-        let stem = q;
-        let detectedParticle = '';
-        for (const item of PARTICLES) {
-          if (q.endsWith(item.p) && q.length > item.p.length) {
-            stem = q.slice(0, -item.p.length);
-            detectedParticle = ` + 「${item.p}」(${item.desc})`;
-            break;
-          }
-        }
-        if (!detectedParticle) {
-          for (const item of GRAMMAR_ENDINGS) {
-            if (q.endsWith(item.e) && q.length > item.e.length) {
-              const baseStem = q.slice(0, -item.e.length);
-              stem = baseStem.endsWith('하') ? baseStem + '다' : (baseStem + '다');
-              detectedParticle = ` + 「~${item.e}」(${item.desc})`;
-              break;
-            }
-          }
-        }
-        const translated = await translateKoToJa(stem);
-        const finalMeaning = (translated || q).replace(/^「|」$/g, '');
-        BUILTIN_DICT[stem] = { hanja: '―', pos: '語彙', meaning: finalMeaning, level: '語彙' };
-        renderContent(finalMeaning, detectedParticle);
-      } else {
-        renderContent(match.meaning);
+      const match = await lookupWordAsync(q);
+      if (!match) {
+        resBox.innerHTML = '';
+        return;
       }
+
+      const hanjaBadge = match.hanja ? `<span style="font-size:0.88rem; color:#a78bfa; font-weight:700; margin-left:6px;">(${match.hanja})</span>` : '';
+
+      resBox.innerHTML = `
+        <div style="background:rgba(0,0,0,0.25); border:1px solid var(--bd); border-radius:10px; padding:10px 14px; margin-top:8px; display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+          <div style="flex:1;">
+            <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
+              <strong style="font-size:1.08rem; color:#fff;">${match.base}</strong>
+              ${hanjaBadge}
+              <span style="font-size:0.72rem; color:var(--ac2); font-weight:700; margin-left:4px;">[${match.pos}]</span>
+              <span style="font-size:0.8rem; color:#60a5fa;">${match.particle || ''}</span>
+            </div>
+            <div style="font-size:0.95rem; color:var(--ac); font-weight:600; margin-top:5px; line-height:1.5;">${match.meaning}</div>
+          </div>
+          <div style="display:flex; gap:6px; align-items:center; flex-shrink:0;">
+            <button class="mini-action-btn" onclick="triggerSpeechSingle('${match.base.replace(/'/g, "\\'")}')" title="発音">🔊 発音</button>
+            <button class="mini-action-btn" onclick="toggleSaveWord('${match.base.replace(/'/g, "\\'")}', '${match.meaning.replace(/'/g, "\\'")}', '${match.level}', this)">⭐ 単語帳に保存</button>
+            <button class="result-close-x" onclick="document.getElementById('news-global-lookup-res').innerHTML='';" title="閉じる">✕</button>
+          </div>
+        </div>
+      `;
     }
 
     
@@ -5026,9 +5175,24 @@
         });
       }
 
-      // 2. Render Map
-      if (item.location) {
-        updateMap(item.location);
+      // 2. Render Map (地名・重要施設自動検知連動)
+      let activeLoc = item.location;
+      if (!activeLoc) {
+        const fullSearchText = `${item.title_ko || ''} ${item.title_ja || ''} ${(item.paragraphs || []).map(p => p.ko).join(' ')} ${(item.sentences || []).map(s => s.ko).join(' ')}`;
+        for (const spot of KOREA_GEO_SPOTS) {
+          if (spot.keywords.some(kw => fullSearchText.includes(kw))) {
+            activeLoc = {
+              name: spot.name,
+              lat: spot.lat,
+              lng: spot.lng,
+              desc: spot.desc
+            };
+            break;
+          }
+        }
+      }
+      if (activeLoc) {
+        updateMap(activeLoc);
       }
 
       // 3. Render Legal Comparison
@@ -5136,60 +5300,36 @@
         return;
       }
 
-      const match = lookupKoreanWord(q);
+      resBox.style.display = 'block';
+      resBox.innerHTML = `
+        <div style="color:var(--tm); font-size:0.82rem; padding:4px 0;">
+          ⏳ 辞書・重要語彙を検索中...
+        </div>
+      `;
+
+      const match = await lookupWordAsync(q);
       if (!match) return;
 
-      resBox.style.display = 'block';
-      const renderContent = (meaningText, extraParticle = '') => {
-        resBox.innerHTML = `
-          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
-            <div style="flex:1;">
-              <strong style="font-size:0.95rem; color:#fff;">${match.base}</strong>
-              ${match.hanja ? `<span style="font-size:0.72rem; color:var(--tm);">(${match.hanja})</span>` : ''}
-              <span style="font-size:0.68rem; color:var(--ac2); font-weight:700;">[${match.pos}]</span>
-              <span style="font-size:0.75rem; color:#60a5fa;">${extraParticle || match.particle || ''}</span>
-              <div style="font-size:0.88rem; color:var(--ac); font-weight:600; margin-top:3px; line-height:1.5;">${meaningText}</div>
-            </div>
-            <div style="display:flex; gap:4px; align-items:center; flex-shrink:0;">
-              <button class="mini-action-btn" onclick="triggerSpeechSingle('${match.base.replace(/'/g, "\\'")}')" title="発音">🔊</button>
-              <button class="mini-action-btn" onclick="toggleSaveWord('${match.base.replace(/'/g, "\\'")}', '${meaningText.replace(/'/g, "\\'")}', '${match.level}', this)">⭐ 保存</button>
-              <button class="result-close-x" onclick="clearCardLookup('${sentenceIdx}')" title="この解説を閉じる">✕</button>
-            </div>
-          </div>
-        `;
-      };
+      const hanjaBadge = match.hanja ? `<span style="font-size:0.85rem; color:#a78bfa; font-weight:700; margin-left:5px;">(${match.hanja})</span>` : '';
 
-      if (match.needsAsync) {
-        renderContent('⏳ 意味をオンライン辞書・翻訳から取得中...');
-        
-        // 助詞や語尾の切り分けを試行
-        let stem = q;
-        let detectedParticle = '';
-        for (const item of PARTICLES) {
-          if (q.endsWith(item.p) && q.length > item.p.length) {
-            stem = q.slice(0, -item.p.length);
-            detectedParticle = ` + 「${item.p}」(${item.desc})`;
-            break;
-          }
-        }
-        if (!detectedParticle) {
-          for (const item of GRAMMAR_ENDINGS) {
-            if (q.endsWith(item.e) && q.length > item.e.length) {
-              const baseStem = q.slice(0, -item.e.length);
-              stem = baseStem.endsWith('하') ? baseStem + '다' : (baseStem + '다');
-              detectedParticle = ` + 「~${item.e}」(${item.desc})`;
-              break;
-            }
-          }
-        }
-        
-        const translated = await translateKoToJa(stem);
-        const finalMeaning = (translated || q).replace(/^「|」$/g, '');
-        BUILTIN_DICT[stem] = { hanja: '―', pos: '語彙', meaning: finalMeaning, level: '語彙' };
-        renderContent(finalMeaning, detectedParticle);
-      } else {
-        renderContent(match.meaning);
-      }
+      resBox.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+          <div style="flex:1;">
+            <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
+              <strong style="font-size:0.98rem; color:#fff;">${match.base}</strong>
+              ${hanjaBadge}
+              <span style="font-size:0.68rem; color:var(--ac2); font-weight:700;">[${match.pos}]</span>
+              <span style="font-size:0.75rem; color:#60a5fa;">${match.particle || ''}</span>
+            </div>
+            <div style="font-size:0.9rem; color:var(--ac); font-weight:600; margin-top:3px; line-height:1.5;">${match.meaning}</div>
+          </div>
+          <div style="display:flex; gap:4px; align-items:center; flex-shrink:0;">
+            <button class="mini-action-btn" onclick="triggerSpeechSingle('${match.base.replace(/'/g, "\\'")}')" title="発音">🔊</button>
+            <button class="mini-action-btn" onclick="toggleSaveWord('${match.base.replace(/'/g, "\\'")}', '${match.meaning.replace(/'/g, "\\'")}', '${match.level}', this)">⭐ 保存</button>
+            <button class="result-close-x" onclick="clearCardLookup('${sentenceIdx}')" title="この解説を閉じる">✕</button>
+          </div>
+        </div>
+      `;
     }
 
     function clearCardLookup(sentenceIdx) {
