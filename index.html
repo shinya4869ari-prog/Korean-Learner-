@@ -646,10 +646,24 @@
       position: relative;
     }
     .clickable-word:hover {
-      background: rgba(0, 212, 170, 0.2);
+      background: rgba(0, 212, 170, 0.25);
       color: var(--ac);
       text-decoration: underline;
       text-underline-offset: 4px;
+    }
+    .translation-highlight-pair {
+      background: linear-gradient(135deg, rgba(0, 212, 170, 0.45), rgba(16, 185, 129, 0.45)) !important;
+      color: #ffffff !important;
+      font-weight: 800 !important;
+      padding: 1px 6px;
+      border-radius: 4px;
+      border-bottom: 2.5px solid var(--ac);
+      box-shadow: 0 0 12px rgba(0, 212, 170, 0.65);
+      animation: pulseHighlight 1s infinite alternate;
+    }
+    @keyframes pulseHighlight {
+      from { box-shadow: 0 0 6px rgba(0, 212, 170, 0.4); }
+      to { box-shadow: 0 0 14px rgba(0, 212, 170, 0.85); }
     }
     .active-reading-word {
       background: linear-gradient(135deg, rgba(0, 212, 170, 0.45), rgba(14, 165, 233, 0.45)) !important;
@@ -4271,7 +4285,7 @@
           </div>
           ${rubiHtml}
           <p class="news-para-ko" id="news-ko-${pIdx}">${wrappedKo}</p>
-          <div class="news-para-ja ${isJaTranslationVisible ? '' : 'hidden-ja'}">${para.ja}</div>
+          <div class="news-para-ja ${isJaTranslationVisible ? '' : 'hidden-ja'}" id="news-ja-${pIdx}" data-raw-ja="${para.ja.replace(/"/g, '&quot;')}">${para.ja}</div>
         `;
         container.appendChild(card);
       });
@@ -5003,7 +5017,7 @@
       });
     }
 
-    // ── WORD SPAN GENERATOR ──
+    // ── WORD SPAN GENERATOR (ホバー対訳ハイライト連動) ──
     function wrapClickableWords(text, sentenceIdx) {
       const parts = text.split(/(\s+)/);
       let charOffset = 0;
@@ -5016,8 +5030,174 @@
         const end = charOffset + part.length;
         charOffset += part.length;
         const cleanWord = part.replace(/[.,!?'"()…]/g, '');
-        return `<span class="clickable-word" id="w-${sentenceIdx}-${start}" data-start="${start}" data-end="${end}" onclick="handleWordClick('${cleanWord.replace(/'/g, "\\'")}', '${sentenceIdx}')">${part}</span>`;
+        return `<span class="clickable-word" id="w-${sentenceIdx}-${start}" data-start="${start}" data-end="${end}" onclick="handleWordClick('${cleanWord.replace(/'/g, "\\'")}', '${sentenceIdx}')" onmouseenter="highlightTranslation('${cleanWord.replace(/'/g, "\\'")}', '${sentenceIdx}')" onmouseleave="clearTranslationHighlight('${sentenceIdx}')">${part}</span>`;
       }).join('');
+    }
+
+    // ── 🎯 INTERACTIVE WORD-TO-TRANSLATION HIGHLIGHT SYSTEM ──
+    let activeHoverWord = null;
+
+    async function highlightTranslation(word, sentenceIdx) {
+      activeHoverWord = word;
+      const jaEl = document.getElementById(`news-ja-${sentenceIdx}`) || document.getElementById(`sent-ja-${sentenceIdx}`);
+      if (!jaEl) return;
+
+      if (!jaEl.getAttribute('data-raw-ja')) {
+        jaEl.setAttribute('data-raw-ja', jaEl.textContent);
+      }
+      const rawJa = jaEl.getAttribute('data-raw-ja');
+      if (!rawJa) return;
+
+      const candidates = getJapaneseCandidates(word);
+      let bestMatch = findBestMatchInJa(candidates, rawJa);
+
+      if (!bestMatch) {
+        let stem = word;
+        for (const item of PARTICLES) {
+          if (word.endsWith(item.p) && word.length > item.p.length) {
+            stem = word.slice(0, -item.p.length);
+            break;
+          }
+        }
+        const trans = TRANSLATION_CACHE[stem] || TRANSLATION_CACHE[word];
+        if (trans) {
+          candidates.push(trans.replace(/[.,!?'"()…]/g, ''));
+          bestMatch = findBestMatchInJa(candidates, rawJa);
+        } else {
+          translateKoToJa(stem).then(res => {
+            if (activeHoverWord === word && res && res !== stem) {
+              candidates.push(res.replace(/[.,!?'"()…]/g, ''));
+              const asyncMatch = findBestMatchInJa(candidates, rawJa);
+              if (asyncMatch && jaEl) {
+                applyHighlightToJa(jaEl, rawJa, asyncMatch);
+              }
+            }
+          });
+        }
+      }
+
+      if (bestMatch) {
+        applyHighlightToJa(jaEl, rawJa, bestMatch);
+      }
+    }
+
+    function clearTranslationHighlight(sentenceIdx) {
+      activeHoverWord = null;
+      const jaEl = document.getElementById(`news-ja-${sentenceIdx}`) || document.getElementById(`sent-ja-${sentenceIdx}`);
+      if (jaEl && jaEl.hasAttribute('data-raw-ja')) {
+        jaEl.textContent = jaEl.getAttribute('data-raw-ja');
+      }
+    }
+
+    function getJapaneseCandidates(word) {
+      const list = [];
+      const clean = word.replace(/[.,!?'"()…]/g, '');
+
+      // 1. 記事の重要語彙（currentArticle.vocab）から抽出
+      if (currentArticle && Array.isArray(currentArticle.vocab)) {
+        for (const v of currentArticle.vocab) {
+          if (clean.includes(v.word) || v.word.includes(clean) || (v.word.endsWith('하다') && clean.startsWith(v.word.slice(0, -2)))) {
+            const parts = (v.meaning || '').split(/[,、/・()（）\s]+/).filter(p => p.length >= 2);
+            list.push(...parts);
+            if (v.hanja && v.hanja !== '―' && v.hanja !== '-') list.push(v.hanja);
+          }
+        }
+      }
+
+      // 2. 内蔵辞書から抽出
+      for (const k in BUILTIN_DICT) {
+        if (clean === k || clean.startsWith(k)) {
+          const m = BUILTIN_DICT[k];
+          const parts = (m.meaning || '').split(/[,、/・()（）\s]+/).filter(p => p.length >= 2);
+          list.push(...parts);
+          if (m.hanja && m.hanja !== '―') list.push(m.hanja);
+        }
+      }
+
+      // 3. 数字 + 単位（25건 ➔ 25件, 10명 ➔ 10名 など）
+      const numMatch = clean.match(/(\d+)(건|명|개|번|년|월|일|시|분|초|원|달러)?/);
+      if (numMatch) {
+        list.push(numMatch[1]);
+        const uMap = { '건': '件', '명': '名', '개': '個', '번': '回', '년': '年', '월': '月', '일': '日' };
+        if (numMatch[2] && uMap[numMatch[2]]) {
+          list.push(`${numMatch[1]}${uMap[numMatch[2]]}`);
+        }
+      }
+
+      // 4. 主要な固有名詞・組織名・地名
+      const geoOrEntityMap = {
+        '제주경찰청': '済州警察庁',
+        '제주경찰': '済州警察',
+        '경찰서': '警察署',
+        '경찰청': '警察庁',
+        '경찰': '警察',
+        '검찰청': '検察庁',
+        '검찰': '検察',
+        '수사관': '捜査官',
+        '전수조사': '全数調査',
+        '감찰': '監察',
+        '종결': '終結',
+        '사례': '事例',
+        '적発': '摘発',
+        '적발': '摘発',
+        '허위': '虚偽',
+        '부당': '不当',
+        '과중': '過重',
+        '파장': '波紋',
+        '국회': '国会',
+        '대통령실': '大統領室'
+      };
+      for (const k in geoOrEntityMap) {
+        if (clean.includes(k)) {
+          list.push(geoOrEntityMap[k]);
+        }
+      }
+
+      // 5. 助詞の組み合わせ（済州警察庁 + は ➔ 済州警察庁は）
+      if (clean.endsWith('은') || clean.endsWith('는')) {
+        const base = clean.slice(0, -1);
+        if (geoOrEntityMap[base]) list.push(geoOrEntityMap[base] + 'は');
+      }
+      if (clean.endsWith('이') || clean.endsWith('가')) {
+        const base = clean.slice(0, -1);
+        if (geoOrEntityMap[base]) list.push(geoOrEntityMap[base] + 'が');
+      }
+      if (clean.endsWith('을') || clean.endsWith('를')) {
+        const base = clean.slice(0, -1);
+        if (geoOrEntityMap[base]) list.push(geoOrEntityMap[base] + 'を');
+      }
+      if (clean.endsWith('의')) {
+        const base = clean.slice(0, -1);
+        if (geoOrEntityMap[base]) list.push(geoOrEntityMap[base] + 'の');
+      }
+      if (clean.endsWith('에')) {
+        const base = clean.slice(0, -1);
+        if (geoOrEntityMap[base]) list.push(geoOrEntityMap[base] + 'に');
+      }
+      if (clean.endsWith('에서')) {
+        const base = clean.slice(0, -2);
+        if (geoOrEntityMap[base]) list.push(geoOrEntityMap[base] + 'で');
+      }
+
+      return [...new Set(list)].filter(Boolean);
+    }
+
+    function findBestMatchInJa(candidates, rawJa) {
+      if (!candidates || candidates.length === 0 || !rawJa) return null;
+      const sorted = [...candidates].sort((a, b) => b.length - a.length);
+      for (const cand of sorted) {
+        if (cand.length >= 2 && rawJa.includes(cand)) {
+          return cand;
+        }
+      }
+      return null;
+    }
+
+    function applyHighlightToJa(jaEl, rawJa, matchText) {
+      if (!jaEl || !rawJa || !matchText) return;
+      const escaped = matchText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const reg = new RegExp(`(${escaped})`, 'g');
+      jaEl.innerHTML = rawJa.replace(reg, '<mark class="translation-highlight-pair">$1</mark>');
     }
 
     // ── LOAD ARTICLE INTO WORKSPACE ──
@@ -5140,7 +5320,7 @@
             </div>
             ${rubiHtml}
             <div class="sentence-ko" id="sent-ko-${idx}">${wrappedKo}</div>
-            <div class="sentence-ja">${s.ja}</div>
+            <div class="sentence-ja" id="sent-ja-${idx}" data-raw-ja="${s.ja.replace(/"/g, '&quot;')}">${s.ja}</div>
             
             <!-- 🔍 クイック単語調べ・コピペバー（✕クリアボタン付き） -->
             <div class="card-lookup-box" id="lookup-box-${idx}">
