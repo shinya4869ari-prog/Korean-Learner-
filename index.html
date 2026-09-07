@@ -652,7 +652,7 @@
       text-underline-offset: 4px;
     }
     .translation-highlight-pair {
-      background: linear-gradient(135deg, rgba(0, 212, 170, 0.45), rgba(16, 185, 129, 0.45)) !important;
+      background: linear-gradient(135deg, rgba(0, 212, 170, 0.5), rgba(16, 185, 129, 0.5)) !important;
       color: #ffffff !important;
       font-weight: 800 !important;
       padding: 1px 6px;
@@ -664,6 +664,17 @@
     @keyframes pulseHighlight {
       from { box-shadow: 0 0 6px rgba(0, 212, 170, 0.4); }
       to { box-shadow: 0 0 14px rgba(0, 212, 170, 0.85); }
+    }
+    .scan-btn {
+      font-size: 0.72rem !important;
+      padding: 3px 9px !important;
+      border-radius: 6px !important;
+      transition: all 0.2s ease !important;
+    }
+    .scan-btn.scanned {
+      border-color: rgba(0, 212, 170, 0.4) !important;
+      background: rgba(0, 212, 170, 0.12) !important;
+      color: var(--ac) !important;
     }
     .active-reading-word {
       background: linear-gradient(135deg, rgba(0, 212, 170, 0.45), rgba(14, 165, 233, 0.45)) !important;
@@ -4278,7 +4289,8 @@
         card.innerHTML = `
           <div class="news-para-header">
             <span class="news-para-badge">📰 段落 ${pIdx + 1}</span>
-            <div style="display:flex; gap:6px;">
+            <div style="display:flex; gap:6px; align-items:center;">
+              <button class="mini-action-btn scan-btn" id="scan-btn-${pIdx}" onclick="scanParagraphAlignment(${pIdx})" title="この段落の単語と日本語訳の対応を完全スキャン">🔍 対訳スキャン</button>
               <button class="mini-action-btn" onclick="triggerSpeechSingle('${para.ko.replace(/'/g, "\\'")}')" title="この段落だけ発音">🔊 聴く</button>
               <button class="mini-action-btn" onclick="copySentenceText('${para.ko.replace(/'/g, "\\'")}')" title="韓国語をコピー">📋 コピー</button>
             </div>
@@ -4289,6 +4301,11 @@
         `;
         container.appendChild(card);
       });
+
+      // バックグラウンドで全段落を自動スキャンして即時ホバー対応
+      setTimeout(() => {
+        paraList.forEach((_, pIdx) => scanParagraphAlignment(pIdx));
+      }, 150);
     }
 
     async function executeNewsGlobalLookup(queryOverride) {
@@ -5017,10 +5034,11 @@
       });
     }
 
-    // ── WORD SPAN GENERATOR (ホバー対訳ハイライト連動) ──
+    // ── WORD SPAN GENERATOR (語順インデックス付き＆スキャン対訳連動) ──
     function wrapClickableWords(text, sentenceIdx) {
       const parts = text.split(/(\s+)/);
       let charOffset = 0;
+      let wordTokenIdx = 0;
       return parts.map((part) => {
         if (/^\s+$/.test(part)) {
           charOffset += part.length;
@@ -5029,12 +5047,162 @@
         const start = charOffset;
         const end = charOffset + part.length;
         charOffset += part.length;
+        const currentIdx = wordTokenIdx++;
         const cleanWord = part.replace(/[.,!?'"()…]/g, '');
-        return `<span class="clickable-word" id="w-${sentenceIdx}-${start}" data-start="${start}" data-end="${end}" onclick="handleWordClick('${cleanWord.replace(/'/g, "\\'")}', '${sentenceIdx}')" onmouseenter="highlightTranslation('${cleanWord.replace(/'/g, "\\'")}', '${sentenceIdx}')" onmouseleave="clearTranslationHighlight('${sentenceIdx}')">${part}</span>`;
+        return `<span class="clickable-word" id="w-${sentenceIdx}-${currentIdx}" data-word-idx="${currentIdx}" data-word="${cleanWord.replace(/"/g, '&quot;')}" onclick="handleWordClick('${cleanWord.replace(/'/g, "\\'")}', '${sentenceIdx}')" onmouseenter="hoverWordAligned('${sentenceIdx}', ${currentIdx}, '${cleanWord.replace(/'/g, "\\'")}')" onmouseleave="unhoverWordAligned('${sentenceIdx}')">${part}</span>`;
       }).join('');
     }
 
-    // ── 🎯 INTERACTIVE WORD-TO-TRANSLATION HIGHLIGHT SYSTEM ──
+    // ── 🧠 段落ブロック事前スキャン ＆ シーケンシャル対訳アライメントシステム ──
+    const PARAGRAPH_ALIGNMENT_CACHE = {}; // [sentenceIdx]: [ { wordIdx, word, start, end, text } ]
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    async function scanParagraphAlignment(sentenceIdx) {
+      const btn = document.getElementById(`scan-btn-${sentenceIdx}`);
+      if (btn && !btn.classList.contains('scanned')) {
+        btn.innerHTML = '⏳ 解析中...';
+        btn.style.color = 'var(--amber)';
+      }
+
+      const koEl = document.getElementById(`news-ko-${sentenceIdx}`) || document.getElementById(`sent-ko-${sentenceIdx}`);
+      const jaEl = document.getElementById(`news-ja-${sentenceIdx}`) || document.getElementById(`sent-ja-${sentenceIdx}`);
+      if (!koEl || !jaEl) return;
+
+      if (!jaEl.getAttribute('data-raw-ja')) {
+        jaEl.setAttribute('data-raw-ja', jaEl.textContent.trim());
+      }
+      const rawJa = jaEl.getAttribute('data-raw-ja');
+
+      const wordSpans = koEl.querySelectorAll('.clickable-word');
+      const alignments = [];
+      let currentJaPos = 0;
+
+      for (const span of wordSpans) {
+        const wIdx = parseInt(span.getAttribute('data-word-idx') || '0', 10);
+        const w = span.getAttribute('data-word') || '';
+        if (!w) continue;
+
+        const candidates = getJapaneseCandidates(w);
+        
+        let stem = w;
+        for (const item of PARTICLES) {
+          if (w.endsWith(item.p) && w.length > item.p.length) {
+            stem = w.slice(0, -item.p.length);
+            break;
+          }
+        }
+        if (TRANSLATION_CACHE[stem]) candidates.push(TRANSLATION_CACHE[stem]);
+
+        let matchedStart = -1;
+        let matchedEnd = -1;
+        let matchedText = '';
+
+        const sorted = [...new Set(candidates)].sort((a, b) => b.length - a.length);
+
+        // 1. 語順ポインタ以降から順次探索（同語重複の完全防止）
+        for (const cand of sorted) {
+          if (!cand || cand.length < 2) continue;
+          const pos = rawJa.indexOf(cand, currentJaPos);
+          if (pos !== -1) {
+            matchedStart = pos;
+            matchedEnd = pos + cand.length;
+            matchedText = cand;
+            break;
+          }
+        }
+
+        // 2. 修飾語の前後倒置に対応（最大15文字前まで許容）
+        if (matchedStart === -1) {
+          const fallbackPos = Math.max(0, currentJaPos - 15);
+          for (const cand of sorted) {
+            if (!cand || cand.length < 2) continue;
+            const pos = rawJa.indexOf(cand, fallbackPos);
+            if (pos !== -1) {
+              matchedStart = pos;
+              matchedEnd = pos + cand.length;
+              matchedText = cand;
+              break;
+            }
+          }
+        }
+
+        // 3. 全体からフォールバック探索
+        if (matchedStart === -1) {
+          for (const cand of sorted) {
+            if (!cand || cand.length < 2) continue;
+            const pos = rawJa.indexOf(cand);
+            if (pos !== -1) {
+              matchedStart = pos;
+              matchedEnd = pos + cand.length;
+              matchedText = cand;
+              break;
+            }
+          }
+        }
+
+        if (matchedStart !== -1) {
+          alignments[wIdx] = {
+            start: matchedStart,
+            end: matchedEnd,
+            text: matchedText
+          };
+          if (matchedEnd > currentJaPos) {
+            currentJaPos = matchedEnd;
+          }
+        }
+      }
+
+      PARAGRAPH_ALIGNMENT_CACHE[sentenceIdx] = alignments;
+
+      if (btn) {
+        btn.innerHTML = '✨ スキャン済';
+        btn.classList.add('scanned');
+      }
+    }
+
+    function hoverWordAligned(sentenceIdx, wordIdx, word) {
+      const jaEl = document.getElementById(`news-ja-${sentenceIdx}`) || document.getElementById(`sent-ja-${sentenceIdx}`);
+      if (!jaEl) return;
+
+      const rawJa = jaEl.getAttribute('data-raw-ja') || jaEl.textContent.trim();
+      const alignments = PARAGRAPH_ALIGNMENT_CACHE[sentenceIdx];
+
+      if (alignments && alignments[wordIdx]) {
+        // スキャン済みのマップから「0ミリ秒」で正確な1箇所のみをハイライト！
+        const align = alignments[wordIdx];
+        const before = rawJa.slice(0, align.start);
+        const target = rawJa.slice(align.start, align.end);
+        const after = rawJa.slice(align.end);
+        jaEl.innerHTML = `${escapeHtml(before)}<mark class="translation-highlight-pair">${escapeHtml(target)}</mark>${escapeHtml(after)}`;
+      } else {
+        // 未スキャンの場合はバックグラウンドでスキャンしつつ従来フォールバック
+        scanParagraphAlignment(sentenceIdx).then(() => {
+          const updatedAlign = PARAGRAPH_ALIGNMENT_CACHE[sentenceIdx];
+          if (updatedAlign && updatedAlign[wordIdx]) {
+            const align = updatedAlign[wordIdx];
+            const before = rawJa.slice(0, align.start);
+            const target = rawJa.slice(align.start, align.end);
+            const after = rawJa.slice(align.end);
+            jaEl.innerHTML = `${escapeHtml(before)}<mark class="translation-highlight-pair">${escapeHtml(target)}</mark>${escapeHtml(after)}`;
+          } else {
+            highlightTranslation(word, sentenceIdx);
+          }
+        });
+      }
+    }
+
+    function unhoverWordAligned(sentenceIdx) {
+      const jaEl = document.getElementById(`news-ja-${sentenceIdx}`) || document.getElementById(`sent-ja-${sentenceIdx}`);
+      if (jaEl && jaEl.hasAttribute('data-raw-ja')) {
+        jaEl.textContent = jaEl.getAttribute('data-raw-ja');
+      }
+    }
+
+    // ── 🎯 従来の単語抽出・辞書照合ヘルパー ──
     let activeHoverWord = null;
 
     async function highlightTranslation(word, sentenceIdx) {
@@ -5043,7 +5211,7 @@
       if (!jaEl) return;
 
       if (!jaEl.getAttribute('data-raw-ja')) {
-        jaEl.setAttribute('data-raw-ja', jaEl.textContent);
+        jaEl.setAttribute('data-raw-ja', jaEl.textContent.trim());
       }
       const rawJa = jaEl.getAttribute('data-raw-ja');
       if (!rawJa) return;
@@ -5082,11 +5250,7 @@
     }
 
     function clearTranslationHighlight(sentenceIdx) {
-      activeHoverWord = null;
-      const jaEl = document.getElementById(`news-ja-${sentenceIdx}`) || document.getElementById(`sent-ja-${sentenceIdx}`);
-      if (jaEl && jaEl.hasAttribute('data-raw-ja')) {
-        jaEl.textContent = jaEl.getAttribute('data-raw-ja');
-      }
+      unhoverWordAligned(sentenceIdx);
     }
 
     function getJapaneseCandidates(word) {
@@ -5135,10 +5299,9 @@
         '검찰': '検察',
         '수사관': '捜査官',
         '전수조사': '全数調査',
-        '감찰': '監察',
+        '감찰': '監査',
         '종결': '終結',
         '사례': '事例',
-        '적発': '摘発',
         '적발': '摘発',
         '허위': '虚偽',
         '부당': '不当',
