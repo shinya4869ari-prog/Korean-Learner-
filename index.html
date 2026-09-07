@@ -2209,7 +2209,9 @@
       { e: '는데', desc: '〜だけど・〜するのに（前提・逆接）' },
       { e: '은데', desc: '〜だけど（形容詞前提）' },
       { e: 'ㄴ데', desc: '〜だけど（形容詞前提）' },
-      { e: '도록', desc: '〜するように・〜するほど' }
+      { e: '도록', desc: '〜するように・〜するほど' },
+      { e: '으면서', desc: '〜しながら（同時進行）' },
+      { e: '면서', desc: '〜しながら（同時進行）' }
     ];
 
     function lookupKoreanWord(rawQuery) {
@@ -4156,9 +4158,19 @@
             break;
           }
         }
+        if (!detectedParticle) {
+          for (const item of GRAMMAR_ENDINGS) {
+            if (q.endsWith(item.e) && q.length > item.e.length) {
+              const baseStem = q.slice(0, -item.e.length);
+              stem = baseStem.endsWith('하') ? baseStem + '다' : (baseStem + '다');
+              detectedParticle = ` + 「~${item.e}」(${item.desc})`;
+              break;
+            }
+          }
+        }
         const translated = await translateKoToJa(stem);
-        const finalMeaning = translated ? `「${translated}」の表現・意味` : `「${q}」の表現`;
-        BUILTIN_DICT[stem] = { hanja: '―', pos: '語彙', meaning: translated, level: '語彙' };
+        const finalMeaning = (translated || q).replace(/^「|」$/g, '');
+        BUILTIN_DICT[stem] = { hanja: '―', pos: '語彙', meaning: finalMeaning, level: '語彙' };
         renderContent(finalMeaning, detectedParticle);
       } else {
         renderContent(match.meaning);
@@ -5160,10 +5172,20 @@
             break;
           }
         }
+        if (!detectedParticle) {
+          for (const item of GRAMMAR_ENDINGS) {
+            if (q.endsWith(item.e) && q.length > item.e.length) {
+              const baseStem = q.slice(0, -item.e.length);
+              stem = baseStem.endsWith('하') ? baseStem + '다' : (baseStem + '다');
+              detectedParticle = ` + 「~${item.e}」(${item.desc})`;
+              break;
+            }
+          }
+        }
         
         const translated = await translateKoToJa(stem);
-        const finalMeaning = translated ? `「${translated}」の表現・意味` : `「${q}」の表現`;
-        BUILTIN_DICT[stem] = { hanja: '―', pos: '語彙', meaning: translated, level: '語彙' };
+        const finalMeaning = (translated || q).replace(/^「|」$/g, '');
+        BUILTIN_DICT[stem] = { hanja: '―', pos: '語彙', meaning: finalMeaning, level: '語彙' };
         renderContent(finalMeaning, detectedParticle);
       } else {
         renderContent(match.meaning);
