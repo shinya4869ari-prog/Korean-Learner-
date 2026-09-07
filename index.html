@@ -4104,11 +4104,61 @@
       });
     }
 
-    function executeNewsGlobalLookup() {
-      const q = (document.getElementById('news-global-lookup-inp')?.value || '').trim();
-      const resEl = document.getElementById('news-global-lookup-res');
-      if (!q || !resEl) return;
-      lookupDictionary(q, resEl);
+    async function executeNewsGlobalLookup(queryOverride) {
+      const inp = document.getElementById('news-global-lookup-inp');
+      const resBox = document.getElementById('news-global-lookup-res');
+      if (!resBox) return;
+
+      if (queryOverride !== undefined && inp) {
+        inp.value = queryOverride;
+      }
+      const q = (inp ? inp.value : (queryOverride || '')).trim();
+      if (!q) {
+        resBox.innerHTML = '';
+        return;
+      }
+
+      const match = lookupKoreanWord(q);
+      if (!match) return;
+
+      resBox.style.display = 'block';
+      const renderContent = (meaningText, extraParticle = '') => {
+        resBox.innerHTML = `
+          <div style="background:rgba(0,0,0,0.25); border:1px solid var(--bd); border-radius:10px; padding:10px 14px; margin-top:8px; display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+            <div style="flex:1;">
+              <strong style="font-size:1.05rem; color:#fff;">${match.base}</strong>
+              ${match.hanja ? `<span style="font-size:0.75rem; color:var(--tm);">(${match.hanja})</span>` : ''}
+              <span style="font-size:0.72rem; color:var(--ac2); font-weight:700;">[${match.pos}]</span>
+              <span style="font-size:0.8rem; color:#60a5fa;">${extraParticle || match.particle || ''}</span>
+              <div style="font-size:0.92rem; color:var(--ac); font-weight:600; margin-top:4px; line-height:1.5;">${meaningText}</div>
+            </div>
+            <div style="display:flex; gap:6px; align-items:center; flex-shrink:0;">
+              <button class="mini-action-btn" onclick="triggerSpeechSingle('${match.base.replace(/'/g, "\\'")}')" title="発音">🔊 発音</button>
+              <button class="mini-action-btn" onclick="toggleSaveWord('${match.base.replace(/'/g, "\\'")}', '${meaningText.replace(/'/g, "\\'")}', '${match.level}', this)">⭐ 単語帳に保存</button>
+              <button class="result-close-x" onclick="document.getElementById('news-global-lookup-res').innerHTML='';" title="閉じる">✕</button>
+            </div>
+          </div>
+        `;
+      };
+
+      if (match.needsAsync) {
+        renderContent('⏳ 意味をオンライン辞書・翻訳から取得中...');
+        let stem = q;
+        let detectedParticle = '';
+        for (const item of PARTICLES) {
+          if (q.endsWith(item.p) && q.length > item.p.length) {
+            stem = q.slice(0, -item.p.length);
+            detectedParticle = ` + 「${item.p}」(${item.desc})`;
+            break;
+          }
+        }
+        const translated = await translateKoToJa(stem);
+        const finalMeaning = translated ? `「${translated}」の表現・意味` : `「${q}」の表現`;
+        BUILTIN_DICT[stem] = { hanja: '―', pos: '語彙', meaning: translated, level: '語彙' };
+        renderContent(finalMeaning, detectedParticle);
+      } else {
+        renderContent(match.meaning);
+      }
     }
 
     
@@ -5037,6 +5087,21 @@
 
     // ── WORD CLICK / LOOKUP / CLEAR HANDLER ──
     function handleWordClick(word, sentenceIdx) {
+      // 1. ニュースモード（共通単語辞書バーが存在する場合）
+      const newsInp = document.getElementById('news-global-lookup-inp');
+      if (newsInp) {
+        executeNewsGlobalLookup(word);
+        const lookupBox = document.querySelector('.global-news-lookup');
+        if (lookupBox) {
+          const rect = lookupBox.getBoundingClientRect();
+          if (rect.top < 0 || rect.bottom > window.innerHeight) {
+            lookupBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        }
+        return;
+      }
+
+      // 2. 歌詞モード（行カードごとの辞書入力欄）
       const inp = document.getElementById(`lookup-inp-${sentenceIdx}`);
       if (inp) {
         inp.value = word;
