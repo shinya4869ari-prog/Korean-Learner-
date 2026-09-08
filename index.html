@@ -2115,6 +2115,26 @@
       '파장': { hanja: '波長', pos: '名詞', meaning: '波紋・影響・波及', level: '中級' },
       
       // 基礎・日常・歌詞語彙
+      '가다': { hanja: '―', pos: '動詞', meaning: '行く・向かう・進む・（時が）経つ', level: '初級' },
+      '간대요': { hanja: '―', pos: '動詞+語尾', meaning: '行くそうです・行くだけなんだって (가다 + ㄴ대요)', level: '初級' },
+      '쉬어 간대요': { hanja: '―', pos: '連語+語尾', meaning: '休んでいくそうです・一休みしていくだけなんだって (쉬어가다 + ㄴ대요)', level: '中級' },
+      '오다': { hanja: '―', pos: '動詞', meaning: '来る・訪れる・（雨や雪が）降る', level: '初級' },
+      '온대요': { hanja: '―', pos: '動詞+語尾', meaning: '来るそうです・来るんだって (오다 + ㄴ대요)', level: '初級' },
+      '보다': { hanja: '―', pos: '動詞', meaning: '見る・会う・眺める・試みる', level: '初級' },
+      '본대요': { hanja: '―', pos: '動詞+語尾', meaning: '見るそうです・会うんだって (보다 + ㄴ대요)', level: '初級' },
+      '하다': { hanja: '―', pos: '動詞', meaning: 'する・行う・言う', level: '初級' },
+      '한대요': { hanja: '―', pos: '動詞+語尾', meaning: 'するそうです・言うんだって (하다 + ㄴ대요)', level: '初級' },
+      '먹다': { hanja: '―', pos: '動詞', meaning: '食べる・いただく', level: '初級' },
+      '마시다': { hanja: '―', pos: '動詞', meaning: '飲む・吸い込む', level: '初級' },
+      '자다': { hanja: '―', pos: '動詞', meaning: '寝る・眠る', level: '初級' },
+      '알다': { hanja: '―', pos: '動詞', meaning: '知る・分かる・気づく', level: '初級' },
+      '모르다': { hanja: '―', pos: '動詞', meaning: '知らない・分からない', level: '初級' },
+      '떠나다': { hanja: '―', pos: '動詞', meaning: '去る・旅立つ・離れる', level: '初級' },
+      '울다': { hanja: '―', pos: '動詞', meaning: '泣く・涙を流す', level: '初級' },
+      '웃다': { hanja: '―', pos: '動詞', meaning: '笑う・微笑む', level: '初級' },
+      '살다': { hanja: '―', pos: '動詞', meaning: '生きる・住む・暮らす', level: '初級' },
+      '놓다': { hanja: '―', pos: '動詞', meaning: '手放す・置く・解き放つ', level: '初級' },
+      '잡다': { hanja: '―', pos: '動詞', meaning: 'つかむ・握る・捕まえる', level: '初級' },
       '사랑': { hanja: '―', pos: '名詞', meaning: '愛・恋・愛情', level: '初級' },
       '사랑이': { hanja: '―', pos: '名詞+助詞', meaning: '愛が・恋が (사랑 + 이)', level: '初級' },
       '고마움': { hanja: '―', pos: '名詞', meaning: '感謝・ありがたさ・お礼の気持ち (고맙다の名詞形)', level: '初級' },
@@ -2262,6 +2282,33 @@
       { e: '면서', desc: '〜しながら（同時進行）' }
     ];
 
+    // ── 🔤 HANGUL BATCHIM STRIPPERS (活用語尾の原形復元エンジン) ──
+    function stripBatchimNieun(char) {
+      if (!char) return null;
+      const code = char.charCodeAt(0);
+      if (code >= 0xAC00 && code <= 0xD7A3) {
+        const offset = code - 0xAC00;
+        const jong = offset % 28;
+        if (jong === 4) { // 4 = 'ㄴ'
+          return String.fromCharCode(code - 4);
+        }
+      }
+      return null;
+    }
+
+    function stripBatchimRieul(char) {
+      if (!char) return null;
+      const code = char.charCodeAt(0);
+      if (code >= 0xAC00 && code <= 0xD7A3) {
+        const offset = code - 0xAC00;
+        const jong = offset % 28;
+        if (jong === 8) { // 8 = 'ㄹ'
+          return String.fromCharCode(code - 8);
+        }
+      }
+      return null;
+    }
+
     function lookupKoreanWord(rawQuery) {
       if (!rawQuery) return null;
       let q = rawQuery.trim().replace(/[.,!?'"()…]/g, '');
@@ -2298,11 +2345,69 @@
         }
       }
 
-      // 2. 文法語尾分解
+      // 2. パッチム活用伝聞・語尾分解 (~ㄴ대요, ~ㄴ대, ~ㄴ데, ~ㄴ데요)
+      if (q.endsWith('대요') && q.length >= 2) {
+        const prevChar = q[q.length - 3];
+        const stripped = stripBatchimNieun(prevChar);
+        if (stripped) {
+          const rootForm = q.slice(0, -3) + stripped + '다';
+          if (BUILTIN_DICT[rootForm]) {
+            return {
+              base: rootForm,
+              ...BUILTIN_DICT[rootForm],
+              particle: ' + 「~ㄴ대요」(〜だそうです・〜なんだって【伝聞】)'
+            };
+          }
+        }
+      }
+      if (q.endsWith('대') && q.length >= 2) {
+        const prevChar = q[q.length - 2];
+        const stripped = stripBatchimNieun(prevChar);
+        if (stripped) {
+          const rootForm = q.slice(0, -2) + stripped + '다';
+          if (BUILTIN_DICT[rootForm]) {
+            return {
+              base: rootForm,
+              ...BUILTIN_DICT[rootForm],
+              particle: ' + 「~ㄴ대」(〜なんだって・〜だそうだ【伝聞口語】)'
+            };
+          }
+        }
+      }
+      if (q.endsWith('데요') && q.length >= 2) {
+        const prevChar = q[q.length - 3];
+        const stripped = stripBatchimNieun(prevChar);
+        if (stripped) {
+          const rootForm = q.slice(0, -3) + stripped + '다';
+          if (BUILTIN_DICT[rootForm]) {
+            return {
+              base: rootForm,
+              ...BUILTIN_DICT[rootForm],
+              particle: ' + 「~ㄴ데요」(〜なんですけど・〜ですよ)'
+            };
+          }
+        }
+      }
+      if (q.endsWith('데') && q.length >= 2) {
+        const prevChar = q[q.length - 2];
+        const stripped = stripBatchimNieun(prevChar);
+        if (stripped) {
+          const rootForm = q.slice(0, -2) + stripped + '다';
+          if (BUILTIN_DICT[rootForm]) {
+            return {
+              base: rootForm,
+              ...BUILTIN_DICT[rootForm],
+              particle: ' + 「~ㄴ데」(〜だけど・〜するのに)'
+            };
+          }
+        }
+      }
+
+      // 3. 文法語尾分解
       for (const g of GRAMMAR_ENDINGS) {
         if (q.endsWith(g.e) && q.length > g.e.length) {
           const stem = q.slice(0, -g.e.length);
-          const rootForm = stem + '다';
+          const rootForm = stem.endsWith('하') ? stem + '다' : (stem + '다');
           if (BUILTIN_DICT[rootForm]) {
             return {
               base: rootForm,
@@ -2320,7 +2425,7 @@
         }
       }
 
-      // 3. 連体形 (~ㄴ, ~은, ~는)
+      // 4. 連体形 (~ㄴ, ~은, ~는)
       if (q.endsWith('한')) {
         const root = q.slice(0, -1) + '하다';
         if (BUILTIN_DICT[root]) {
@@ -2331,8 +2436,18 @@
           };
         }
       }
+      if (q.endsWith('는')) {
+        const root = q.slice(0, -1) + '다';
+        if (BUILTIN_DICT[root]) {
+          return {
+            base: root,
+            ...BUILTIN_DICT[root],
+            particle: ' + 「~는」（現在連体形: 〜している・〜する）'
+          };
+        }
+      }
 
-      // 4. 名詞化 (~움, ~ㅁ)
+      // 5. 名詞化 (~움, ~ㅁ)
       if (q.endsWith('움') && q.length >= 2) {
         const candidate = q.slice(0, -1) + 'ㅂ다';
         if (BUILTIN_DICT[candidate]) {
@@ -2344,15 +2459,17 @@
         }
       }
 
-      // 5. 辞書に直接ない場合は仮のオブジェクトを返し、非同期翻訳で即時補完
+      // 6. 辞書に直接ない場合は仮のオブジェクトを返し、非同期翻訳で即時補完
+      const cached = TRANSLATION_CACHE[q];
+      const isBadKatakana = cached && /^[ァ-ヶー・\s]+$/.test(cached) && !['コーヒー', 'バス', 'タクシー', 'ホテル', 'ラジオ', 'テレビ'].includes(cached);
       return {
         base: q,
         hanja: '',
         pos: '単語・文節',
-        meaning: TRANSLATION_CACHE[q] || '調べ中...',
+        meaning: (!isBadKatakana && cached) ? cached : '調べ中...',
         level: '語彙',
         particle: '',
-        needsAsync: !TRANSLATION_CACHE[q]
+        needsAsync: !cached || isBadKatakana
       };
     }
 
@@ -2405,6 +2522,40 @@
           break;
         }
       }
+
+      // パッチム活用伝聞・語尾分解 (~ㄴ대요, ~ㄴ대, ~ㄴ데, ~ㄴ데요)
+      if (!detectedParticle) {
+        if (q.endsWith('대요') && q.length >= 2) {
+          const prevChar = q[q.length - 3];
+          const stripped = stripBatchimNieun(prevChar);
+          if (stripped) {
+            stem = q.slice(0, -3) + stripped + '다';
+            detectedParticle = ' + 「~ㄴ대요」(〜だそうです・〜なんだって【伝聞】)';
+          }
+        } else if (q.endsWith('대') && q.length >= 2) {
+          const prevChar = q[q.length - 2];
+          const stripped = stripBatchimNieun(prevChar);
+          if (stripped) {
+            stem = q.slice(0, -2) + stripped + '다';
+            detectedParticle = ' + 「~ㄴ대」(〜なんだって・〜だそうだ【伝聞口語】)';
+          }
+        } else if (q.endsWith('데요') && q.length >= 2) {
+          const prevChar = q[q.length - 3];
+          const stripped = stripBatchimNieun(prevChar);
+          if (stripped) {
+            stem = q.slice(0, -3) + stripped + '다';
+            detectedParticle = ' + 「~ㄴ데요」(〜なんですけど・〜ですよ)';
+          }
+        } else if (q.endsWith('데') && q.length >= 2) {
+          const prevChar = q[q.length - 2];
+          const stripped = stripBatchimNieun(prevChar);
+          if (stripped) {
+            stem = q.slice(0, -2) + stripped + '다';
+            detectedParticle = ' + 「~ㄴ데」(〜だけど・〜するのに)';
+          }
+        }
+      }
+
       if (!detectedParticle) {
         for (const item of GRAMMAR_ENDINGS) {
           if (q.endsWith(item.e) && q.length > item.e.length) {
@@ -2491,17 +2642,35 @@
       }
 
       // 5. 🌐 外部翻訳API（Google / MyMemory）で補完
-      const translated = await translateKoToJa(stem);
-      const cleanMeaning = (translated || q).replace(/^「|」$/g, '');
+      let translated = await translateKoToJa(stem);
+      let cleanMeaning = (translated || q).replace(/^「|」$/g, '');
+
+      // カタカナ音訳ガード（Google翻訳が「ガンダヨ」等の発音だけを返してきた場合）
+      const isKatakanaTransliteration = /^[ァ-ヶー・\s]+$/.test(cleanMeaning) && !['コーヒー', 'バス', 'タクシー', 'ホテル', 'ラジオ', 'テレビ'].includes(cleanMeaning);
+      if (isKatakanaTransliteration) {
+        if (BUILTIN_DICT[stem]) {
+          cleanMeaning = BUILTIN_DICT[stem].meaning;
+        } else if (stem !== q) {
+          const stemTrans = await translateKoToJa(stem);
+          if (stemTrans && !/^[ァ-ヶー・\s]+$/.test(stemTrans)) {
+            cleanMeaning = stemTrans.replace(/^「|」$/g, '');
+          } else {
+            cleanMeaning = detectedParticle ? `${detectedParticle.replace(/^[ +]+/, '')}の表現` : '（活用形・表現）';
+          }
+        } else {
+          cleanMeaning = '（活用形・表現）';
+        }
+      }
+
       const entry = {
         base: stem,
         hanja: '',
-        pos: '単語・文節',
+        pos: detectedParticle ? '動詞/形容詞活用' : '単語・文節',
         meaning: cleanMeaning,
         level: '語彙',
         particle: detectedParticle
       };
-      BUILTIN_DICT[stem] = entry;
+      BUILTIN_DICT[q] = entry;
       return entry;
     }
 
