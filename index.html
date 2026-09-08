@@ -1964,6 +1964,11 @@
     const SUPABASE_URL = 'https://uvjpiuinsgklddzhzpio.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_iW0cu7wjxn_rKjAd1O5Prg_tmecdAkX';
 
+    function escJs(str) {
+      if (!str) return '';
+      return String(str).replace(/'/g, '’').replace(/"/g, '&quot;');
+    }
+
     // ── 🔤 HANGUL TO KATAKANA CONVERTER ENGINE ──
     function hangulToKatakana(text) {
       if (!text) return '';
@@ -4349,8 +4354,8 @@
             <div style="font-size:0.95rem; color:var(--ac); font-weight:600; margin-top:5px; line-height:1.5;">${match.meaning}</div>
           </div>
           <div style="display:flex; gap:6px; align-items:center; flex-shrink:0;">
-            <button class="mini-action-btn" onclick="triggerSpeechSingle('${match.base.replace(/'/g, "\\'")}')" title="発音">🔊 発音</button>
-            <button class="mini-action-btn" onclick="toggleSaveWord('${match.base.replace(/'/g, "\\'")}', '${match.meaning.replace(/'/g, "\\'")}', '${match.level}', this)">⭐ 単語帳に保存</button>
+            <button class="mini-action-btn" onclick="triggerSpeechSingle('${escJs(match.base)}')" title="発音">🔊 発音</button>
+            <button class="mini-action-btn" onclick="toggleSaveWord('${escJs(match.base)}', '${escJs(match.meaning)}', '${escJs(match.level)}', this, '${escJs(match.hanja)}')">⭐ 単語帳に保存</button>
             <button class="result-close-x" onclick="document.getElementById('news-global-lookup-res').innerHTML='';" title="閉じる">✕</button>
           </div>
         </div>
@@ -4829,6 +4834,7 @@
       syncSupabaseLyricsToApp();
       syncSupabaseNewsToApp();
       initUserNotes();
+      initWordbookCloudSync();
 
       document.addEventListener('keydown', (e) => {
         if (e.code === 'Space' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
@@ -5103,9 +5109,11 @@
 
         const sorted = [...new Set(candidates)].sort((a, b) => b.length - a.length);
 
+        const isGoodCand = (c) => c && (c.length >= 2 || ['等', '及', '名', '件', '回', '年', '月', '日', '位', '倍', '円', '％', '%'].includes(c) || /\d/.test(c));
+
         // 1. 語順ポインタ以降から順次探索（同語重複の完全防止）
         for (const cand of sorted) {
-          if (!cand || cand.length < 2) continue;
+          if (!isGoodCand(cand)) continue;
           const pos = rawJa.indexOf(cand, currentJaPos);
           if (pos !== -1) {
             matchedStart = pos;
@@ -5119,7 +5127,7 @@
         if (matchedStart === -1) {
           const fallbackPos = Math.max(0, currentJaPos - 15);
           for (const cand of sorted) {
-            if (!cand || cand.length < 2) continue;
+            if (!isGoodCand(cand)) continue;
             const pos = rawJa.indexOf(cand, fallbackPos);
             if (pos !== -1) {
               matchedStart = pos;
@@ -5133,7 +5141,7 @@
         // 3. 全体からフォールバック探索
         if (matchedStart === -1) {
           for (const cand of sorted) {
-            if (!cand || cand.length < 2) continue;
+            if (!isGoodCand(cand)) continue;
             const pos = rawJa.indexOf(cand);
             if (pos !== -1) {
               matchedStart = pos;
@@ -5257,11 +5265,21 @@
       const list = [];
       const clean = word.replace(/[.,!?'"()…]/g, '');
 
+      // 0. ユーザーの単語帳（保存済み語彙）から優先抽出
+      const savedWb = getWordbook();
+      for (const sw of savedWb) {
+        if (clean === sw.word || clean.startsWith(sw.word)) {
+          const parts = (sw.meaning || '').split(/[,、/・()（）\s]+/).filter(p => p.length >= 1);
+          list.push(...parts);
+          if (sw.hanja && sw.hanja !== '―' && sw.hanja !== '-') list.push(sw.hanja);
+        }
+      }
+
       // 1. 記事の重要語彙（currentArticle.vocab）から抽出
       if (currentArticle && Array.isArray(currentArticle.vocab)) {
         for (const v of currentArticle.vocab) {
           if (clean.includes(v.word) || v.word.includes(clean) || (v.word.endsWith('하다') && clean.startsWith(v.word.slice(0, -2)))) {
-            const parts = (v.meaning || '').split(/[,、/・()（）\s]+/).filter(p => p.length >= 2);
+            const parts = (v.meaning || '').split(/[,、/・()（）\s]+/).filter(p => p.length >= 1);
             list.push(...parts);
             if (v.hanja && v.hanja !== '―' && v.hanja !== '-') list.push(v.hanja);
           }
@@ -5272,7 +5290,7 @@
       for (const k in BUILTIN_DICT) {
         if (clean === k || clean.startsWith(k)) {
           const m = BUILTIN_DICT[k];
-          const parts = (m.meaning || '').split(/[,、/・()（）\s]+/).filter(p => p.length >= 2);
+          const parts = (m.meaning || '').split(/[,、/・()（）\s]+/).filter(p => p.length >= 1);
           list.push(...parts);
           if (m.hanja && m.hanja !== '―') list.push(m.hanja);
         }
@@ -5288,8 +5306,49 @@
         }
       }
 
-      // 4. 主要な固有名詞・組織名・地名
-      const geoOrEntityMap = {
+      // 4. ニュース超頻出語・重要語彙・固有名詞・組織名・地名
+      const NEWS_FUNCTION_WORDS = {
+        '최근': '最近',
+        '이번': '今回',
+        '지난달': '先月',
+        '지난해': '昨年',
+        '올해': '今年',
+        '오늘': '今日',
+        '어제': '昨日',
+        '내일': '明日',
+        '통해': '通じて',
+        '통한': '通じた',
+        '위해': 'ために',
+        '위한': 'ための',
+        '실시': '実施',
+        '결과': '結果',
+        '발표': '発表',
+        '확인': '確認',
+        '관계자': '関係者',
+        '보고': '報告',
+        '진행': '進行',
+        '조사': '調査',
+        '업무': '業務',
+        '부담': '負担',
+        '사건': '事件',
+        '원인': '原因',
+        '문제': '問題',
+        '관련': '関連',
+        '상황': '状況',
+        '내용': '内容',
+        '방침': '方針',
+        '계획': '計画',
+        '예정': '予定',
+        '요구': '要求',
+        '강조': '強調',
+        '지적': '指摘',
+        '주장': '主張',
+        '설명': '説明',
+        '비판': '批判',
+        '우려': '懸念',
+        '갈등': '葛藤',
+        '등': '等',
+        '및': 'および',
         '제주경찰청': '済州警察庁',
         '제주경찰': '済州警察',
         '경찰서': '警察署',
@@ -5310,36 +5369,27 @@
         '국회': '国会',
         '대통령실': '大統領室'
       };
-      for (const k in geoOrEntityMap) {
-        if (clean.includes(k)) {
-          list.push(geoOrEntityMap[k]);
+
+      for (const k in NEWS_FUNCTION_WORDS) {
+        if (clean === k || clean.startsWith(k)) {
+          list.push(NEWS_FUNCTION_WORDS[k]);
         }
       }
 
-      // 5. 助詞の組み合わせ（済州警察庁 + は ➔ 済州警察庁は）
-      if (clean.endsWith('은') || clean.endsWith('는')) {
-        const base = clean.slice(0, -1);
-        if (geoOrEntityMap[base]) list.push(geoOrEntityMap[base] + 'は');
-      }
-      if (clean.endsWith('이') || clean.endsWith('가')) {
-        const base = clean.slice(0, -1);
-        if (geoOrEntityMap[base]) list.push(geoOrEntityMap[base] + 'が');
-      }
-      if (clean.endsWith('을') || clean.endsWith('를')) {
-        const base = clean.slice(0, -1);
-        if (geoOrEntityMap[base]) list.push(geoOrEntityMap[base] + 'を');
-      }
-      if (clean.endsWith('의')) {
-        const base = clean.slice(0, -1);
-        if (geoOrEntityMap[base]) list.push(geoOrEntityMap[base] + 'の');
-      }
-      if (clean.endsWith('에')) {
-        const base = clean.slice(0, -1);
-        if (geoOrEntityMap[base]) list.push(geoOrEntityMap[base] + 'に');
-      }
-      if (clean.endsWith('에서')) {
-        const base = clean.slice(0, -2);
-        if (geoOrEntityMap[base]) list.push(geoOrEntityMap[base] + 'で');
+      // 5. 助詞の組み合わせ（最近は ➔ 最近は, 済州警察庁 + は ➔ 済州警察庁は）
+      for (const k in NEWS_FUNCTION_WORDS) {
+        const val = NEWS_FUNCTION_WORDS[k];
+        if (clean === k + '은' || clean === k + '는' || clean === k + '는요' || clean === k + '은요') list.push(val + 'は');
+        if (clean === k + '이' || clean === k + '가') list.push(val + 'が');
+        if (clean === k + '을' || clean === k + '를') list.push(val + 'を');
+        if (clean === k + '의') list.push(val + 'の');
+        if (clean === k + '에') list.push(val + 'に');
+        if (clean === k + '에는') list.push(val + 'には', val + 'では');
+        if (clean === k + '에서') list.push(val + 'で', val + 'から');
+        if (clean === k + '에서는') list.push(val + 'では');
+        if (clean === k + '으로' || clean === k + '로') list.push(val + 'へ', val + 'で');
+        if (clean === k + '도') list.push(val + 'も');
+        if (clean === k + '과' || clean === k + '와') list.push(val + 'と');
       }
 
       return [...new Set(list)].filter(Boolean);
@@ -5349,7 +5399,7 @@
       if (!candidates || candidates.length === 0 || !rawJa) return null;
       const sorted = [...candidates].sort((a, b) => b.length - a.length);
       for (const cand of sorted) {
-        if (cand.length >= 2 && rawJa.includes(cand)) {
+        if ((cand.length >= 2 || ['等', '及', '名', '件', '回', '年', '月', '日', '位', '倍', '円', '％', '%'].includes(cand)) && rawJa.includes(cand)) {
           return cand;
         }
       }
@@ -5585,8 +5635,8 @@
             <div class="vocab-meaning">${v.meaning}</div>
           </div>
           <div style="display:flex; gap:6px;">
-            <button class="mini-action-btn" onclick="triggerSpeechSingle('${v.word}')">🔊</button>
-            <button class="vocab-save-btn ${isSaved ? 'saved' : ''}" onclick="toggleSaveWord('${v.word}', '${v.meaning}', '${v.level}', this)">${isSaved ? '★ 保存済' : '☆ 単語帳'}</button>
+            <button class="mini-action-btn" onclick="triggerSpeechSingle('${escJs(v.word)}')">🔊</button>
+            <button class="vocab-save-btn ${isSaved ? 'saved' : ''}" onclick="toggleSaveWord('${escJs(v.word)}', '${escJs(v.meaning)}', '${escJs(v.level)}', this, '${escJs(v.hanja)}')">${isSaved ? '★ 保存済' : '☆ 単語帳'}</button>
           </div>
         `;
         vContainer.appendChild(row);
@@ -5667,8 +5717,8 @@
             <div style="font-size:0.9rem; color:var(--ac); font-weight:600; margin-top:3px; line-height:1.5;">${match.meaning}</div>
           </div>
           <div style="display:flex; gap:4px; align-items:center; flex-shrink:0;">
-            <button class="mini-action-btn" onclick="triggerSpeechSingle('${match.base.replace(/'/g, "\\'")}')" title="発音">🔊</button>
-            <button class="mini-action-btn" onclick="toggleSaveWord('${match.base.replace(/'/g, "\\'")}', '${match.meaning.replace(/'/g, "\\'")}', '${match.level}', this)">⭐ 保存</button>
+            <button class="mini-action-btn" onclick="triggerSpeechSingle('${escJs(match.base)}')" title="発音">🔊</button>
+            <button class="mini-action-btn" onclick="toggleSaveWord('${escJs(match.base)}', '${escJs(match.meaning)}', '${escJs(match.level)}', this, '${escJs(match.hanja)}')">⭐ 保存</button>
             <button class="result-close-x" onclick="clearCardLookup('${sentenceIdx}')" title="この解説を閉じる">✕</button>
           </div>
         </div>
@@ -5892,7 +5942,103 @@
       document.getElementById('wb-count').textContent = count;
     }
 
-    function toggleSaveWord(word, meaning, level, btn) {
+    // ── ☁️ SUPABASE CLOUD WORDBOOK SYNC (dictionary テーブル連携) ──
+    async function syncWordToSupabase(word, meaning, level, hanja = '') {
+      if (!word || !meaning) return;
+      try {
+        const payload = {
+          word: word,
+          hanja: (hanja && hanja !== '―' && hanja !== '-') ? hanja : null,
+          meaning: meaning,
+          pos: '語彙',
+          level: level || '中級'
+        };
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/dictionary`, {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'resolution=merge-duplicates'
+          },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          console.log(`☁️ Supabase dictionary synced: ${word}`);
+        }
+      } catch (err) {
+        console.warn('Failed to sync word to Supabase:', err);
+      }
+    }
+
+    async function deleteWordFromSupabase(word) {
+      if (!word) return;
+      try {
+        await fetch(`${SUPABASE_URL}/rest/v1/dictionary?word=eq.${encodeURIComponent(word)}`, {
+          method: 'DELETE',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`
+          }
+        });
+        console.log(`🗑️ Supabase dictionary deleted: ${word}`);
+      } catch (err) {
+        console.warn('Failed to delete word from Supabase:', err);
+      }
+    }
+
+    async function initWordbookCloudSync() {
+      try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/dictionary?select=*&order=created_at.desc`, {
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`
+          }
+        });
+        if (res.ok) {
+          const cloudWords = await res.json();
+          if (Array.isArray(cloudWords) && cloudWords.length > 0) {
+            // 1. 内蔵辞書(BUILTIN_DICT)へ即座にマージ
+            cloudWords.forEach(cw => {
+              BUILTIN_DICT[cw.word] = {
+                hanja: (cw.hanja && cw.hanja !== '―') ? cw.hanja : '',
+                meaning: cw.meaning,
+                pos: cw.pos || '語彙',
+                level: cw.level || 'クラウド語彙'
+              };
+            });
+
+            // 2. ローカル単語帳(klearner_wordbook)へクラウド側をマージ
+            let localList = getWordbook();
+            let updated = false;
+            cloudWords.forEach(cw => {
+              const exists = localList.some(lw => lw.word === cw.word);
+              if (!exists) {
+                localList.push({
+                  word: cw.word,
+                  hanja: (cw.hanja && cw.hanja !== '―') ? cw.hanja : '',
+                  meaning: cw.meaning,
+                  level: cw.level || '中級',
+                  addedAt: cw.created_at ? new Date(cw.created_at).toLocaleDateString('ja-JP') : new Date().toLocaleDateString('ja-JP')
+                });
+                updated = true;
+              }
+            });
+            if (updated) {
+              saveWordbook(localList);
+              if (currentMode === 'wordbook') {
+                renderWordbookGrid();
+              }
+            }
+            console.log(`☁️ Supabase dictionary loaded: ${cloudWords.length} entries`);
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to initialize Supabase dictionary:', err);
+      }
+    }
+
+    function toggleSaveWord(word, meaning, level, btn, hanja = '') {
       let list = getWordbook();
       const exists = list.some(w => w.word === word);
       if (exists) {
@@ -5902,13 +6048,17 @@
           btn.textContent = '☆ 単語帳';
         }
         showToast(`「${word}」を単語帳から削除しました`);
+        deleteWordFromSupabase(word);
       } else {
-        list.unshift({ word, meaning, level, addedAt: new Date().toLocaleDateString('ja-JP') });
+        const item = { word, meaning, level, hanja: hanja || '', addedAt: new Date().toLocaleDateString('ja-JP') };
+        list.unshift(item);
         if (btn) {
           btn.classList.add('saved');
           btn.textContent = '★ 保存済';
         }
-        showToast(`「${word}」を単語帳に保存しました！ ⭐`);
+        showToast(`「${word}」を単語帳に保存しました！ ☁️`);
+        syncWordToSupabase(word, meaning, level, hanja);
+        BUILTIN_DICT[word] = { hanja: hanja || '', meaning: meaning, level: level, pos: '語彙' };
       }
       saveWordbook(list);
     }
@@ -5917,6 +6067,7 @@
       let list = getWordbook();
       list.unshift({ word: ko, meaning: ja, level: 'フレーズ', addedAt: new Date().toLocaleDateString('ja-JP') });
       saveWordbook(list);
+      syncWordToSupabase(ko, ja, 'フレーズ');
       showToast('フレーズをマイ単語帳に保存しました！ 💖');
     }
 
@@ -5931,11 +6082,12 @@
       list.forEach(w => {
         const card = document.createElement('div');
         card.className = 'flashcard';
+        const hanjaBadge = (w.hanja && w.hanja !== '―' && w.hanja !== '-') ? `<span style="font-size:0.85rem; color:#a78bfa; margin-left:6px; font-weight:700;">(${w.hanja})</span>` : '';
         card.innerHTML = `
           <div>
             <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-              <div class="flashcard-word">${w.word}</div>
-              <button class="mini-action-btn" onclick="event.stopPropagation(); triggerSpeechSingle('${w.word.replace(/'/g, "\\'")}')">🔊</button>
+              <div class="flashcard-word">${w.word}${hanjaBadge}</div>
+              <button class="mini-action-btn" onclick="event.stopPropagation(); triggerSpeechSingle('${escJs(w.word)}')">🔊</button>
             </div>
             <div class="flashcard-meaning">${w.meaning}</div>
           </div>
