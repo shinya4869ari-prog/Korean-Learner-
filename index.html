@@ -2116,8 +2116,10 @@
       
       // 基礎・日常・歌詞語彙
       '가다': { hanja: '―', pos: '動詞', meaning: '行く・向かう・進む・（時が）経つ', level: '初級' },
-      '간대요': { hanja: '―', pos: '動詞+語尾', meaning: '行くそうです・行くだけなんだって (가다 + ㄴ대요)', level: '初級' },
-      '쉬어 간대요': { hanja: '―', pos: '連語+語尾', meaning: '休んでいくそうです・一休みしていくだけなんだって (쉬어가다 + ㄴ대요)', level: '中級' },
+      '간대요': { hanja: '―', pos: '動詞+語尾', meaning: '行くそうです・いくそうです・行くだけなんだって・いくだけなんだって (가다 + ㄴ대요)', level: '初級' },
+      '쉬어': { hanja: '―', pos: '動詞活用', meaning: '休んで・一休みして・休む (쉬다)', level: '初級' },
+      '쉬어가': { hanja: '―', pos: '動詞活用', meaning: '休んでいき・休んでいって・休んでいく (쉬어가다)', level: '中級' },
+      '쉬어 간대요': { hanja: '―', pos: '連語+語尾', meaning: '休んでいくそうです・いくそうです・休んでいくだけなんだって・いくだけなんだって・一休みしていくだけなんだって (쉬어가다 + ㄴ대요)', level: '中級' },
       '오다': { hanja: '―', pos: '動詞', meaning: '来る・訪れる・（雨や雪が）降る', level: '初級' },
       '온대요': { hanja: '―', pos: '動詞+語尾', meaning: '来るそうです・来るんだって (오다 + ㄴ대요)', level: '初級' },
       '보다': { hanja: '―', pos: '動詞', meaning: '見る・会う・眺める・試みる', level: '初級' },
@@ -2139,8 +2141,8 @@
       '사랑이': { hanja: '―', pos: '名詞+助詞', meaning: '愛が・恋が (사랑 + 이)', level: '初級' },
       '고마움': { hanja: '―', pos: '名詞', meaning: '感謝・ありがたさ・お礼の気持ち (고맙다の名詞形)', level: '初級' },
       '고맙다': { hanja: '―', pos: '形容詞', meaning: 'ありがたい・感謝する', level: '初級' },
-      '쉬어가다': { hanja: '―', pos: '動詞', meaning: '休んでいく・一休みする (쉬다 + 가다)', level: '中級' },
-      '쉬어간대요': { hanja: '―', pos: '動詞+語尾', meaning: '休んでいくそうです・一休みするそうです (쉬어가다 + ㄴ대요)', level: '中級' },
+      '쉬어가다': { hanja: '―', pos: '動詞', meaning: '休んでいく・一休みする・休んでいく (쉬다 + 가다)', level: '中級' },
+      '쉬어간대요': { hanja: '―', pos: '動詞+語尾', meaning: '休んでいくそうです・いくそうです・休んでいくだけなんだって・いくだけなんだって・一休みするそうです (쉬어가다 + ㄴ대요)', level: '中級' },
       '쉬다': { hanja: '―', pos: '動詞', meaning: '休む・息をする', level: '初級' },
       '허락': { hanja: '許諾', pos: '名詞', meaning: '許し・許諾・受け入れ', level: '中級' },
       '허락한': { hanja: '許諾―', pos: '動詞(連体形)', meaning: '許してくれた・受け入れてくれた (허락하다 + ㄴ)', level: '中級' },
@@ -5465,6 +5467,16 @@
         }
       }
 
+      // 2.5 動詞・活用形・語尾分解エンジン (lookupKoreanWord) からの意味抽出
+      if (typeof lookupKoreanWord === 'function') {
+        const dictRes = lookupKoreanWord(clean);
+        if (dictRes && dictRes.meaning && dictRes.meaning !== '調べ中...') {
+          const parts = dictRes.meaning.split(/[,、/・()（）\s]+/).filter(p => p.length >= 1);
+          list.push(...parts);
+          if (dictRes.hanja && dictRes.hanja !== '―' && dictRes.hanja !== '-') list.push(dictRes.hanja);
+        }
+      }
+
       // 3. 数字 + 単位（25건 ➔ 25件, 10명 ➔ 10名 など）
       const numMatch = clean.match(/(\d+)(건|명|개|번|년|월|일|시|분|초|원|달러)?/);
       if (numMatch) {
@@ -5559,6 +5571,42 @@
         if (clean === k + '으로' || clean === k + '로') list.push(val + 'へ', val + 'で');
         if (clean === k + '도') list.push(val + 'も');
         if (clean === k + '과' || clean === k + '와') list.push(val + 'と');
+      }
+
+      // 6. 漢字 ⇄ ひらがな（補助動詞・活用形・伝聞文末表現）の自動相互展開
+      const expansions = [];
+      const AUX_MAP = [
+        [/行く/g, 'いく'], [/いく/g, '行く'],
+        [/来る/g, 'くる'], [/くる/g, '来る'],
+        [/見る/g, 'みる'], [/みる/g, '見る'],
+        [/んだって/g, 'そうです'], [/そうです/g, 'んだって']
+      ];
+      for (const c of list) {
+        for (const [re, rep] of AUX_MAP) {
+          if (re.test(c)) {
+            expansions.push(c.replace(re, rep));
+          }
+        }
+      }
+      list.push(...expansions);
+
+      // 7. 動詞・形容詞の日常会話・歌詞用テ形（連用形・〜て/〜で）
+      const VERB_TE_FORMS = {
+        '쉬어': ['休んで', '一休みして'],
+        '가': ['行って', 'いって', '行き', 'いき'],
+        '와': ['来て', 'きて'],
+        '봐': ['見て', 'みて'],
+        '해': ['して', 'やり'],
+        '먹어': ['食べて', 'たべて'],
+        '울어': ['泣いて', 'ないて'],
+        '웃어': ['笑って', 'わらって'],
+        '떠나': ['去って', '旅立って'],
+        '살아': ['生きて', '暮らして'],
+        '잡아': ['つかんで', '握って'],
+        '놓아': ['手放して', '置いて']
+      };
+      if (VERB_TE_FORMS[clean]) {
+        list.push(...VERB_TE_FORMS[clean]);
       }
 
       return [...new Set(list)].filter(Boolean);
@@ -5735,6 +5783,13 @@
         `;
         sContainer.appendChild(card);
         });
+
+        // 🎵 歌詞モード・文カードの対訳アライメントをバックグラウンド自動スキャン (0msホバーハイライト対応)
+        setTimeout(() => {
+          (item.sentences || []).forEach((_, sIdx) => {
+            scanParagraphAlignment(sIdx);
+          });
+        }, 150);
       }
 
       // 2. Render Map (地名・重要施設自動検知連動)
