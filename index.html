@@ -1408,11 +1408,28 @@
       display: none !important;
     }
     .global-news-lookup {
-      background: var(--s2);
-      border: 1px solid var(--bd);
+      position: sticky;
+      top: 72px;
+      z-index: 100;
+      background: rgba(19, 24, 39, 0.94);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(0, 212, 170, 0.35);
       border-radius: var(--r);
-      padding: 14px 18px;
+      padding: 12px 18px;
       margin-bottom: 16px;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55), 0 0 15px rgba(0, 212, 170, 0.08);
+      transition: all 0.25s ease;
+    }
+    .global-news-lookup.has-result {
+      border-color: rgba(0, 212, 170, 0.6);
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.7), 0 0 20px rgba(0, 212, 170, 0.18);
+    }
+    @media (max-width: 768px) {
+      .global-news-lookup {
+        top: 60px;
+        padding: 10px 14px;
+      }
     }
 
 
@@ -4425,11 +4442,11 @@
       const lookupBox = document.createElement('div');
       lookupBox.className = 'global-news-lookup';
       lookupBox.innerHTML = `
-        <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+        <div style="display:flex; align-items:center; gap:8px;">
           <span style="font-size:0.8rem; color:var(--ac); font-weight:700;">🔍 単語辞書（本文のハングル単語をタップまたは入力）:</span>
           <div class="input-wrapper-clear" style="flex:1;">
             <input type="text" class="card-lookup-inp" id="news-global-lookup-inp" placeholder="単語をクリック または 入力..." onkeydown="if(event.key==='Enter') executeNewsGlobalLookup()" />
-            <button class="input-clear-x" onclick="document.getElementById('news-global-lookup-inp').value=''; document.getElementById('news-global-lookup-res').innerHTML='';" title="クリア">✕</button>
+            <button class="input-clear-x" onclick="clearNewsGlobalLookup()" title="クリア">✕</button>
           </div>
           <button class="mini-action-btn" onclick="executeNewsGlobalLookup()">調べ</button>
         </div>
@@ -4484,9 +4501,19 @@
       }, 150);
     }
 
+    function clearNewsGlobalLookup() {
+      const inp = document.getElementById('news-global-lookup-inp');
+      const resBox = document.getElementById('news-global-lookup-res');
+      if (inp) inp.value = '';
+      if (resBox) resBox.innerHTML = '';
+      const box = document.querySelector('.global-news-lookup');
+      if (box) box.classList.remove('has-result');
+    }
+
     async function executeNewsGlobalLookup(queryOverride) {
       const inp = document.getElementById('news-global-lookup-inp');
       const resBox = document.getElementById('news-global-lookup-res');
+      const box = document.querySelector('.global-news-lookup');
       if (!resBox) return;
 
       if (queryOverride !== undefined && inp) {
@@ -4494,10 +4521,11 @@
       }
       const q = (inp ? inp.value : (queryOverride || '')).trim();
       if (!q) {
-        resBox.innerHTML = '';
+        clearNewsGlobalLookup();
         return;
       }
 
+      if (box) box.classList.add('has-result');
       resBox.style.display = 'block';
       resBox.innerHTML = `
         <div style="background:rgba(0,0,0,0.25); border:1px solid var(--bd); border-radius:10px; padding:10px 14px; margin-top:8px; color:var(--tm); font-size:0.85rem;">
@@ -4507,7 +4535,7 @@
 
       const match = await lookupWordAsync(q);
       if (!match) {
-        resBox.innerHTML = '';
+        clearNewsGlobalLookup();
         return;
       }
 
@@ -4527,7 +4555,7 @@
           <div style="display:flex; gap:6px; align-items:center; flex-shrink:0;">
             <button class="mini-action-btn" onclick="triggerSpeechSingle('${escJs(match.base)}')" title="発音">🔊 発音</button>
             <button class="mini-action-btn" onclick="toggleSaveWord('${escJs(match.base)}', '${escJs(match.meaning)}', '${escJs(match.level)}', this, '${escJs(match.hanja)}')">⭐ 単語帳に保存</button>
-            <button class="result-close-x" onclick="document.getElementById('news-global-lookup-res').innerHTML='';" title="閉じる">✕</button>
+            <button class="result-close-x" onclick="clearNewsGlobalLookup()" title="閉じる">✕</button>
           </div>
         </div>
       `;
@@ -5884,17 +5912,10 @@
 
     // ── WORD CLICK / LOOKUP / CLEAR HANDLER ──
     function handleWordClick(word, sentenceIdx) {
-      // 1. ニュースモード（共通単語辞書バーが存在する場合）
+      // 1. ニュースモード（共通単語辞書バーが存在する場合：画面上部にスティッキー固定されたバーで即時表示）
       const newsInp = document.getElementById('news-global-lookup-inp');
       if (newsInp) {
         executeNewsGlobalLookup(word);
-        const lookupBox = document.querySelector('.global-news-lookup');
-        if (lookupBox) {
-          const rect = lookupBox.getBoundingClientRect();
-          if (rect.top < 0 || rect.bottom > window.innerHeight) {
-            lookupBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-          }
-        }
         return;
       }
 
