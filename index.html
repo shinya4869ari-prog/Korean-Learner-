@@ -628,6 +628,44 @@
       gap: 10px;
     }
 
+    /* ── 🎵 歌詞行用 スリムコンパクトスタイル ── */
+    .lyrics-line-card {
+      background: rgba(26, 29, 45, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      padding: 8px 14px;
+      margin-bottom: 6px;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+    .lyrics-line-card:hover {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(236, 72, 153, 0.3);
+    }
+    .lyrics-line-card.active {
+      border-color: #ec4899 !important;
+      background: rgba(236, 72, 153, 0.08) !important;
+      box-shadow: 0 0 20px rgba(236, 72, 153, 0.2) !important;
+    }
+    .lyrics-line-card .sentence-content {
+      padding-left: 0 !important;
+      gap: 2px !important;
+    }
+    .lyrics-line-card .sentence-ko {
+      font-size: 1.1rem;
+      font-weight: 700;
+      line-height: 1.5;
+    }
+    .lyrics-line-card .sentence-ja {
+      font-size: 0.88rem;
+      color: var(--tm);
+      line-height: 1.4;
+    }
+    .lyrics-line-card .sentence-rubi {
+      font-size: 0.72rem;
+      line-height: 1.2;
+    }
+
     .sentence-ko {
       font-family: var(--font-kr);
       font-size: 1.18rem;
@@ -5910,14 +5948,13 @@
 
         (item.sentences || []).forEach((s, idx) => {
           const card = document.createElement('div');
-          card.className = 'sentence-card';
+          card.className = 'sentence-card lyrics-line-card';
           card.id = `sent-card-${idx}`;
           
           const rubiHtml = showRubi && s.rubi ? `<div class="sentence-rubi">${s.rubi}</div>` : '';
           const wrappedKo = wrapClickableWords(s.ko, idx);
 
           card.innerHTML = `
-            <div class="sentence-num">${idx + 1}</div>
             <div class="sentence-content">
               <div class="reading-live-indicator">
                 <span class="eq-bar b1"></span>
@@ -5928,20 +5965,6 @@
               ${rubiHtml}
               <div class="sentence-ko" id="sent-ko-${idx}">${wrappedKo}</div>
               <div class="sentence-ja" id="sent-ja-${idx}" data-raw-ja="${s.ja.replace(/"/g, '&quot;')}">${s.ja}</div>
-
-              <!-- 🎛️ 各文の操作バー -->
-              <div class="sentence-actions">
-                <div class="action-left">
-                  <button class="mini-action-btn play-btn-card" id="card-play-btn-${idx}" onclick="playSpecificSentence(${idx})">▶ 再生</button>
-                  <button class="mini-action-btn pause-btn-card" onclick="togglePlayPause()" title="一時停止 / 再開">⏸ 一時停止</button>
-                  <button class="mini-action-btn stop-btn-card" onclick="stopSpeech()" title="停止">⏹ 停止</button>
-                  <button class="mini-action-btn" onclick="triggerSpeechSingle('${s.ko.replace(/'/g, "\\'")}')" title="この文だけ1回発音">🔊 1回だけ</button>
-                </div>
-                <div class="action-right">
-                  <button class="mini-action-btn" onclick="copySentenceText('${s.ko.replace(/'/g, "\\'")}')">📋 コピー</button>
-                  <button class="mini-action-btn" onclick="savePhraseToWordbook('${s.ko.replace(/'/g, "\\'")}', '${s.ja.replace(/'/g, "\\'")}')">⭐ フレーズ保存</button>
-                </div>
-              </div>
             </div>
           `;
           sContainer.appendChild(card);
