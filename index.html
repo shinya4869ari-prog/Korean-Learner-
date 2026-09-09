@@ -2258,6 +2258,19 @@
       '쉬어가다': { hanja: '―', pos: '動詞', meaning: '休んでいく・一休みする・休んでいく (쉬다 + 가다)', level: '中級' },
       '쉬어간대요': { hanja: '―', pos: '動詞+語尾', meaning: '休んでいくそうです・いくそうです・休んでいくだけなんだって・いくだけなんだって・一休みするそうです (쉬어가다 + ㄴ대요)', level: '中級' },
       '쉬다': { hanja: '―', pos: '動詞', meaning: '休む・息をする', level: '初級' },
+      '스쳐': { hanja: '―', pos: '動詞活用', meaning: 'かすめて・すれ違って (스치다の活用)', level: '初級' },
+      '스치다': { hanja: '―', pos: '動詞', meaning: 'かすめる・すれ違う・（頭を）よぎる', level: '初級' },
+      '지나가다': { hanja: '―', pos: '動詞', meaning: '通り過ぎる・通り抜ける・過ぎ去る・経つ', level: '初級' },
+      '지나가는': { hanja: '―', pos: '動詞(連体形)', meaning: '通り過ぎる・通り抜ける (지나가다 + 는)', level: '初級' },
+      '지나가': { hanja: '―', pos: '動詞活用', meaning: '通り過ぎ・通り抜けて (지나가다の活用)', level: '初級' },
+      '스쳐가다': { hanja: '―', pos: '動詞', meaning: 'かすめて過ぎる・すれ違う', level: '中級' },
+      '스쳐가는': { hanja: '―', pos: '動詞(連体形)', meaning: 'かすめ通り過ぎる・すれ違う (스쳐가다 + 는)', level: '中級' },
+      '만나도': { hanja: '―', pos: '動詞+語尾', meaning: '会っても・出会っても (만나다 + 아/어도)', level: '初級' },
+      '사랑했던': { hanja: '―', pos: '動詞(過去連体)', meaning: '愛していた・愛した (사랑하다 + 았던/었던)', level: '初級' },
+      '없도록': { hanja: '―', pos: '形容詞+語尾', meaning: 'ないように・なくなるほど (없다 + 도록)', level: '初級' },
+      '있도록': { hanja: '―', pos: '存在詞+語尾', meaning: 'あるように・いられるように (있다 + 도록)', level: '初級' },
+      '알고': { hanja: '―', pos: '動詞+語尾', meaning: '知って・分かって (알다 + 고)', level: '初級' },
+      '있어': { hanja: '―', pos: '動詞/形容詞活用', meaning: 'いる・ある (있다)', level: '初級' },
       '허락': { hanja: '許諾', pos: '名詞', meaning: '許し・許諾・受け入れ', level: '中級' },
       '허락한': { hanja: '許諾―', pos: '動詞(連体形)', meaning: '許してくれた・受け入れてくれた (허락하다 + ㄴ)', level: '中級' },
       '허락하다': { hanja: '許諾―', pos: '動詞', meaning: '許す・許可する・受け入れる', level: '中級' },
@@ -2422,6 +2435,139 @@
           return String.fromCharCode(code - 8);
         }
       }
+      return null;
+    }
+
+    // ── 🧠 動詞・形容詞の原形推定エンジン (Conjugation & Stem Normalizer) ──
+    function deriveKoreanBaseCandidates(q) {
+      if (!q) return [];
+      const list = [];
+      
+      // 1. 連体形 (~는, ~은, ~ㄴ, ~던, ~았던, ~었던, ~ㄹ, ~을)
+      if (q.endsWith('는') && q.length >= 2) {
+        list.push(q.slice(0, -1) + '다'); // 지나가는 -> 지나가다
+      }
+      if (q.endsWith('던') && q.length >= 2) {
+        if (q.endsWith('었던') || q.endsWith('았던')) {
+          list.push(q.slice(0, -2) + '다');
+        }
+        list.push(q.slice(0, -1) + '다');
+        if (q.endsWith('했던')) list.push(q.slice(0, -2) + '하다');
+      }
+      if (q.endsWith('은') && q.length >= 2) {
+        list.push(q.slice(0, -1) + '다');
+      }
+      const lastChar = q[q.length - 1];
+      const strippedNieun = stripBatchimNieun(lastChar);
+      if (strippedNieun && q.length >= 1) {
+        list.push(q.slice(0, -1) + strippedNieun + '다');
+        if (strippedNieun === '하') list.push(q.slice(0, -1) + '하다');
+      }
+      const strippedRieul = stripBatchimRieul(lastChar);
+      if (strippedRieul && q.length >= 1) {
+        list.push(q.slice(0, -1) + strippedRieul + '다');
+      }
+
+      // 2. ヘヨ体・ア/オ縮約活用 (~쳐, ~려, ~켜, ~겨, ~혀, ~봐, ~와, ~줘, ~둬, ~해, ~돼)
+      if (q.endsWith('쳐')) list.push(q.slice(0, -1) + '치다'); // 스쳐 -> 스치다
+      if (q.endsWith('려')) list.push(q.slice(0, -1) + '리다'); // 흘려 -> 흘리다
+      if (q.endsWith('켜')) list.push(q.slice(0, -1) + '키다');
+      if (q.endsWith('겨')) list.push(q.slice(0, -1) + '기다');
+      if (q.endsWith('혀')) list.push(q.slice(0, -1) + '히다');
+      if (q.endsWith('봐')) list.push(q.slice(0, -1) + '보다');
+      if (q.endsWith('와')) list.push(q.slice(0, -1) + '오다');
+      if (q.endsWith('줘')) list.push(q.slice(0, -1) + '주다');
+      if (q.endsWith('둬')) list.push(q.slice(0, -1) + '두다');
+      if (q.endsWith('해')) list.push(q.slice(0, -1) + '하다');
+      if (q.endsWith('돼')) list.push(q.slice(0, -1) + '되다');
+
+      // 3. 語尾・接続詞 (~서, ~도, ~면, ~지, ~고, ~게, ~록)
+      if (q.endsWith('아서') || q.endsWith('어서') || q.endsWith('여서')) {
+        list.push(q.slice(0, -2) + '다');
+      }
+      if (q.endsWith('어도') || q.endsWith('아도')) {
+        list.push(q.slice(0, -2) + '다');
+      } else if (q.endsWith('도') && q.length >= 2) {
+        list.push(q.slice(0, -1) + '다');
+      }
+      if (q.endsWith('으면') && q.length >= 3) {
+        list.push(q.slice(0, -2) + '다');
+      } else if (q.endsWith('면') && q.length >= 2) {
+        list.push(q.slice(0, -1) + '다');
+      }
+      if (q.endsWith('도록') && q.length >= 3) {
+        list.push(q.slice(0, -2) + '다');
+      }
+      if (q.endsWith('지') && q.length >= 2) {
+        list.push(q.slice(0, -1) + '다');
+      }
+      if (q.endsWith('고') && q.length >= 2) {
+        list.push(q.slice(0, -1) + '다');
+      }
+      if (q.endsWith('게') && q.length >= 2) {
+        list.push(q.slice(0, -1) + '다');
+      }
+
+      list.push(q + '다');
+      list.push(q);
+
+      return [...new Set(list.filter(w => w && w.length >= 2))];
+    }
+
+    // ── 🌐 WIKTIONARY PUBLIC DICTIONARY RESOLVER (無料・高精度 辞書検索) ──
+    const WIKTIONARY_CACHE = {};
+    async function lookupWiktionaryAsync(word) {
+      if (!word) return null;
+      if (WIKTIONARY_CACHE[word] !== undefined) return WIKTIONARY_CACHE[word];
+
+      try {
+        const url = `https://ja.wiktionary.org/w/api.php?action=parse&origin=*&page=${encodeURIComponent(word)}&format=json&prop=wikitext`;
+        const res = await fetch(url);
+        if (!res.ok) {
+          WIKTIONARY_CACHE[word] = null;
+          return null;
+        }
+        const data = await res.json();
+        if (data.parse && data.parse.wikitext && data.parse.wikitext['*']) {
+          const wikitext = data.parse.wikitext['*'];
+          const lines = wikitext.split('\n');
+          const defs = [];
+          let pos = '動詞';
+
+          for (const line of lines) {
+            if (line.includes('{{head|ko|')) {
+              const m = line.match(/\{\{head\|ko\|([^|}]+)/);
+              if (m) pos = m[1];
+            }
+            if (/^#[^#*:]/.test(line)) {
+              let t = line.replace(/^#+\s*/, '');
+              t = t.replace(/\{\{おくりがな\d?\|([^}]+)\}\}/g, (match, args) => {
+                const parts = args.split('|');
+                return parts[parts.length - 1];
+              });
+              t = t.replace(/\[\[(?:[^|\]]*\|)?([^\]]+)\]\]/g, '$1');
+              t = t.replace(/\{\{[^}]+\}\}/g, '');
+              t = t.replace(/[。、\s]+$/, '').trim();
+              if (t && !t.startsWith('同義語') && !t.startsWith('対義語') && !t.startsWith('関連語')) {
+                defs.push(t);
+              }
+            }
+          }
+
+          if (defs.length > 0) {
+            const entry = {
+              base: word,
+              pos: pos,
+              meaning: defs.slice(0, 3).join('・')
+            };
+            WIKTIONARY_CACHE[word] = entry;
+            return entry;
+          }
+        }
+      } catch (e) {
+        // 静かにフォールバック
+      }
+      WIKTIONARY_CACHE[word] = null;
       return null;
     }
 
@@ -2757,7 +2903,50 @@
         // クラウド辞書未作成または取得失敗時は静かにフォールバック
       }
 
-      // 5. 🌐 外部翻訳API（Google / MyMemory）で補完
+      // 5. 🧠 活用形の原形候補探索 ＆ Wiktionary / 外部翻訳による精密補完
+      const candidates = deriveKoreanBaseCandidates(q);
+      for (const cand of candidates) {
+        if (BUILTIN_DICT[cand] && BUILTIN_DICT[cand].meaning && !BUILTIN_DICT[cand].meaning.includes('表現')) {
+          const entry = {
+            base: cand,
+            hanja: BUILTIN_DICT[cand].hanja || '',
+            pos: BUILTIN_DICT[cand].pos || '動詞',
+            meaning: BUILTIN_DICT[cand].meaning,
+            level: BUILTIN_DICT[cand].level || '初級',
+            particle: cand !== q ? `（活用: ${q}）` : ''
+          };
+          BUILTIN_DICT[q] = entry;
+          return entry;
+        }
+        const wikti = await lookupWiktionaryAsync(cand);
+        if (wikti && wikti.meaning) {
+          const entry = {
+            base: cand,
+            hanja: '',
+            pos: wikti.pos || '動詞',
+            meaning: wikti.meaning,
+            level: '重要語彙',
+            particle: cand !== q ? `（活用: ${q}）` : ''
+          };
+          BUILTIN_DICT[q] = entry;
+          return entry;
+        }
+        const candTrans = await translateKoToJa(cand);
+        if (candTrans && !/^[ァ-ヶー・\s]+$/.test(candTrans)) {
+          const entry = {
+            base: cand,
+            hanja: '',
+            pos: '動詞/形容詞',
+            meaning: candTrans.replace(/^「|」$/g, ''),
+            level: '語彙',
+            particle: cand !== q ? `（活用: ${q}）` : ''
+          };
+          BUILTIN_DICT[q] = entry;
+          return entry;
+        }
+      }
+
+      // 6. 🌐 外部翻訳API（Google / MyMemory）フォールバック
       let translated = await translateKoToJa(stem);
       let cleanMeaning = (translated || q).replace(/^「|」$/g, '');
 
@@ -2771,10 +2960,10 @@
           if (stemTrans && !/^[ァ-ヶー・\s]+$/.test(stemTrans)) {
             cleanMeaning = stemTrans.replace(/^「|」$/g, '');
           } else {
-            cleanMeaning = detectedParticle ? `${detectedParticle.replace(/^[ +]+/, '')}の表現` : '（活用形・表現）';
+            cleanMeaning = detectedParticle ? `${detectedParticle.replace(/^[ +]+/, '')}の表現` : '（単語・表現）';
           }
         } else {
-          cleanMeaning = '（活用形・表現）';
+          cleanMeaning = '（単語・表現）';
         }
       }
 
@@ -6064,7 +6253,13 @@
     }
 
     // ── WORD CLICK / LOOKUP / CLEAR HANDLER ──
+    let currentActiveLookupWord = '';
+    let currentActiveSentenceIdx = null;
+
     function handleWordClick(word, sentenceIdx) {
+      currentActiveLookupWord = word;
+      currentActiveSentenceIdx = sentenceIdx !== undefined ? parseInt(sentenceIdx, 10) : null;
+
       // ハイライトを切り替え
       document.querySelectorAll('.clickable-word.active-lookup-word').forEach(el => el.classList.remove('active-lookup-word'));
       if (window.event && window.event.target && window.event.target.classList.contains('clickable-word')) {
@@ -6104,6 +6299,8 @@
       }
       if (box) box.classList.remove('has-result');
       document.querySelectorAll('.clickable-word.active-lookup-word').forEach(el => el.classList.remove('active-lookup-word'));
+      currentActiveLookupWord = '';
+      currentActiveSentenceIdx = null;
     }
 
     async function executeLyricsGlobalLookup(queryOverride) {
@@ -6120,6 +6317,8 @@
         clearLyricsGlobalLookup();
         return;
       }
+
+      currentActiveLookupWord = q;
 
       if (box) box.classList.add('has-result');
       resBox.style.display = 'block';
@@ -6149,12 +6348,115 @@
             <div style="font-size:0.96rem; color:#34d399; font-weight:600; margin-top:6px; line-height:1.5;">${match.meaning}</div>
           </div>
           <div style="display:flex; gap:6px; align-items:center; flex-shrink:0;">
+            <button class="mini-action-btn" onclick="aiReResolveLyricsWord()" title="前後の歌詞文脈からAIが正しい原形と意味を再判定" style="background:linear-gradient(135deg, #8b5cf6, #ec4899); color:#fff; border:none; font-weight:700; display:inline-flex; align-items:center; gap:4px; box-shadow:0 2px 8px rgba(236,72,153,0.35);">🤖 AI再判定</button>
             <button class="mini-action-btn" onclick="triggerSpeechSingle('${escJs(match.base)}')" title="発音を聞く">🔊 発音</button>
-            <button class="mini-action-btn" onclick="toggleSaveWord('${escJs(match.base)}', '${escJs(match.meaning)}', '${escJs(match.level)}', this, '${escJs(match.hanja)}')">⭐ 単語帳に保存</button>
+            <button class="mini-action-btn" onclick="toggleSaveWord('${escJs(match.base)}', '${escJs(match.meaning)}', '${escJs(match.level)}', this, '${escJs(match.hanja)}')">⭐ 保存</button>
             <button class="result-close-x" onclick="clearLyricsGlobalLookup()" title="閉じる">✕</button>
           </div>
         </div>
       `;
+    }
+
+    async function aiReResolveLyricsWord() {
+      const q = currentActiveLookupWord || document.getElementById('lyrics-global-lookup-inp')?.value?.trim();
+      if (!q) return;
+
+      const resBox = document.getElementById('lyrics-global-lookup-res');
+      if (!resBox) return;
+
+      // 歌詞前後の文脈行を取得
+      let sentenceContext = '';
+      if (currentArticle && currentArticle.sentences && currentActiveSentenceIdx !== null && currentArticle.sentences[currentActiveSentenceIdx]) {
+        sentenceContext = currentArticle.sentences[currentActiveSentenceIdx].ko;
+      }
+
+      resBox.innerHTML = `
+        <div style="background:rgba(0,0,0,0.3); border:1px solid rgba(139,92,246,0.5); border-radius:10px; padding:12px 14px; margin-top:8px; color:#c084fc; font-size:0.85rem; display:flex; align-items:center; gap:8px;">
+          <span style="font-size:1.1rem;">⏳</span>
+          <span>AIが歌詞文脈「<strong>${escapeHtml(sentenceContext || q)}</strong>」から原形と真意を再解析中...</span>
+        </div>
+      `;
+
+      // 1. 活用形の原形候補を推定
+      const candidates = deriveKoreanBaseCandidates(q);
+      let bestMatch = null;
+
+      // 2. 原形候補から内蔵辞書 / Wiktionary / 外部翻訳で精密探索
+      for (const cand of candidates) {
+        if (BUILTIN_DICT[cand] && BUILTIN_DICT[cand].meaning && !BUILTIN_DICT[cand].meaning.includes('表現')) {
+          bestMatch = { base: cand, ...BUILTIN_DICT[cand] };
+          break;
+        }
+        const wikti = await lookupWiktionaryAsync(cand);
+        if (wikti && wikti.meaning) {
+          bestMatch = {
+            base: cand,
+            hanja: wikti.hanja || '',
+            pos: wikti.pos || '動詞',
+            meaning: wikti.meaning,
+            level: 'AI解析',
+            particle: cand !== q ? `（活用: ${q}）` : ''
+          };
+          break;
+        }
+        const trans = await translateKoToJa(cand);
+        if (trans && !/^[ァ-ヶー・\s]+$/.test(trans)) {
+          bestMatch = {
+            base: cand,
+            hanja: '',
+            pos: '動詞/語彙',
+            meaning: trans.replace(/^「|」$/g, ''),
+            level: 'AI解析',
+            particle: cand !== q ? `（活用: ${q}）` : ''
+          };
+          break;
+        }
+      }
+
+      // 3. 原形が見つからなかった場合、文脈全体からフレーズ翻訳
+      if (!bestMatch && sentenceContext) {
+        const trans = await translateKoToJa(q);
+        bestMatch = {
+          base: q,
+          hanja: '',
+          pos: '文脈語彙',
+          meaning: trans || '（文脈中の表現）',
+          level: 'AI解析',
+          particle: ''
+        };
+      }
+
+      if (!bestMatch) {
+        showToast('AI再判定で結果が見つかりませんでした');
+        executeLyricsGlobalLookup(q);
+        return;
+      }
+
+      // キャッシュに保存して以降も反映
+      BUILTIN_DICT[q] = bestMatch;
+
+      // 結果を再描画（AIバッジ付き）
+      const hanjaBadge = bestMatch.hanja ? `<span style="font-size:0.88rem; color:#a78bfa; font-weight:700; margin-left:6px;">(${bestMatch.hanja})</span>` : '';
+      resBox.innerHTML = `
+        <div style="background:rgba(0,0,0,0.35); border:1px solid rgba(139,92,246,0.6); border-radius:10px; padding:12px 14px; margin-top:8px; display:flex; justify-content:space-between; align-items:flex-start; gap:10px; box-shadow:0 4px 18px rgba(139,92,246,0.25);">
+          <div style="flex:1;">
+            <div style="display:flex; align-items:center; flex-wrap:wrap; gap:6px;">
+              <strong style="font-size:1.1rem; color:#fff; letter-spacing:0.02em;">${bestMatch.base}</strong>
+              ${hanjaBadge}
+              <span style="font-size:0.72rem; color:#c084fc; background:rgba(139,92,246,0.2); border:1px solid rgba(139,92,246,0.4); border-radius:4px; padding:1px 6px; font-weight:700;">🤖 AI文脈判定済</span>
+              <span style="font-size:0.72rem; color:#f472b6; background:rgba(236,72,153,0.15); border:1px solid rgba(236,72,153,0.3); border-radius:4px; padding:1px 6px; font-weight:700;">[${bestMatch.pos}]</span>
+              <span style="font-size:0.8rem; color:#60a5fa;">${bestMatch.particle || ''}</span>
+            </div>
+            <div style="font-size:0.96rem; color:#34d399; font-weight:600; margin-top:6px; line-height:1.5;">${bestMatch.meaning}</div>
+          </div>
+          <div style="display:flex; gap:6px; align-items:center; flex-shrink:0;">
+            <button class="mini-action-btn" onclick="triggerSpeechSingle('${escJs(bestMatch.base)}')" title="発音を聞く">🔊 発音</button>
+            <button class="mini-action-btn" onclick="toggleSaveWord('${escJs(bestMatch.base)}', '${escJs(bestMatch.meaning)}', 'AI解析', this, '${escJs(bestMatch.hanja)}')">⭐ 保存</button>
+            <button class="result-close-x" onclick="clearLyricsGlobalLookup()" title="閉じる">✕</button>
+          </div>
+        </div>
+      `;
+      showToast(`✨ AIが文脈に合わせて「${q}」の原形と意味を再判定しました！`);
     }
 
     async function pasteClipboardToLyrics() {
