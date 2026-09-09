@@ -2184,6 +2184,16 @@
       return clean;
     }
 
+    function cleanTranslatedMeaning(text, originalKo) {
+      if (!text) return '';
+      let clean = text.trim().replace(/^「|」$/g, '');
+      // 韓国語の原文に '그' / '이' / '저' がないのに翻訳が勝手に補った「それが」「それは」「これが」「これは」等を除去
+      if (!/^[그이저]/.test(originalKo || '')) {
+        clean = clean.replace(/^(それが|それは|これが|これは|あれが|あれは)\s*/, '');
+      }
+      return clean;
+    }
+
     // ── KOREAN DICTIONARY & PARTICLE RESOLVER ──
     const BUILTIN_DICT = {
       // 📰 ニュース・社会・法律 頻出重要語彙（漢字語対応）
@@ -2327,6 +2337,8 @@
       '괴롭던': { hanja: '―', pos: '形容詞', meaning: '苦しかった・辛かった (괴롭다)', level: '中級' },
       '선율': { hanja: '旋律', pos: '名詞', meaning: '旋律・メロディ', level: '中級' },
       '전부': { hanja: '全部', pos: '名詞', meaning: '全部・すべて', level: '初級' },
+      '전부이다': { hanja: '全部--', pos: '名詞+指定詞', meaning: 'すべてだ・全部である', level: '初級' },
+      '전부인': { hanja: '全部--', pos: '名詞+指定詞連体', meaning: 'すべてである・全部である', level: '初級' },
       '고마워': { hanja: '―', pos: '形容詞', meaning: 'ありがとう・感謝している', level: '初級' },
       '잔인한': { hanja: '殘忍―', pos: '形容詞', meaning: '残酷な・無情な', level: '中級' },
       '그리움': { hanja: '―', pos: '名詞', meaning: '恋しさ・憧れ・懐かしさ', level: 'TOPIK 3級' },
@@ -2373,7 +2385,12 @@
       { p: '도', desc: '〜も' },
       { p: '만', desc: '〜だけ' },
       { p: '처럼', desc: '〜のように' },
-      { p: '마저', desc: '〜までも・〜さえも' }
+      { p: '마저', desc: '〜までも・〜さえも' },
+      { p: '인', desc: '〜である・〜の（指定詞이다の連体形）' },
+      { p: '이다', desc: '〜だ・〜である（指定詞）' },
+      { p: '이라', desc: '〜であって・〜なので（指定詞）' },
+      { p: '이며', desc: '〜であって・〜であり（指定詞）' },
+      { p: '이고', desc: '〜であって・〜で（指定詞）' }
     ];
 
     const GRAMMAR_ENDINGS = [
@@ -2462,10 +2479,17 @@
       if (strippedNieun && q.length >= 1) {
         list.push(q.slice(0, -1) + strippedNieun + '다');
         if (strippedNieun === '하') list.push(q.slice(0, -1) + '하다');
+        if (strippedNieun === '이') {
+          list.push(q.slice(0, -1)); // 전부인 -> 전부
+          list.push(q.slice(0, -1) + '이다'); // 전부인 -> 전부이다
+        }
       }
       const strippedRieul = stripBatchimRieul(lastChar);
       if (strippedRieul && q.length >= 1) {
         list.push(q.slice(0, -1) + strippedRieul + '다');
+        if (strippedRieul === '이') {
+          list.push(q.slice(0, -1)); // 전부일 -> 전부
+        }
       }
 
       // 2. ヘヨ体・ア/オ縮約活用 (~쳐, ~려, ~켜, ~겨, ~혀, ~봐, ~와, ~줘, ~둬, ~해, ~돼)
@@ -2937,7 +2961,7 @@
             base: cand,
             hanja: '',
             pos: '動詞/形容詞',
-            meaning: candTrans.replace(/^「|」$/g, ''),
+            meaning: cleanTranslatedMeaning(candTrans, cand),
             level: '語彙',
             particle: cand !== q ? `（活用: ${q}）` : ''
           };
@@ -2948,7 +2972,7 @@
 
       // 6. 🌐 外部翻訳API（Google / MyMemory）フォールバック
       let translated = await translateKoToJa(stem);
-      let cleanMeaning = (translated || q).replace(/^「|」$/g, '');
+      let cleanMeaning = cleanTranslatedMeaning(translated || q, stem);
 
       // カタカナ音訳ガード（Google翻訳が「ガンダヨ」等の発音だけを返してきた場合）
       const isKatakanaTransliteration = /^[ァ-ヶー・\s]+$/.test(cleanMeaning) && !['コーヒー', 'バス', 'タクシー', 'ホテル', 'ラジオ', 'テレビ'].includes(cleanMeaning);
@@ -2958,7 +2982,7 @@
         } else if (stem !== q) {
           const stemTrans = await translateKoToJa(stem);
           if (stemTrans && !/^[ァ-ヶー・\s]+$/.test(stemTrans)) {
-            cleanMeaning = stemTrans.replace(/^「|」$/g, '');
+            cleanMeaning = cleanTranslatedMeaning(stemTrans, stem);
           } else {
             cleanMeaning = detectedParticle ? `${detectedParticle.replace(/^[ +]+/, '')}の表現` : '（単語・表現）';
           }
@@ -6405,7 +6429,7 @@
             base: cand,
             hanja: '',
             pos: '動詞/語彙',
-            meaning: trans.replace(/^「|」$/g, ''),
+            meaning: cleanTranslatedMeaning(trans, cand),
             level: 'AI解析',
             particle: cand !== q ? `（活用: ${q}）` : ''
           };
@@ -6420,7 +6444,7 @@
           base: q,
           hanja: '',
           pos: '文脈語彙',
-          meaning: trans || '（文脈中の表現）',
+          meaning: cleanTranslatedMeaning(trans || '', q) || '（文脈中の表現）',
           level: 'AI解析',
           particle: ''
         };
