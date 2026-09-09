@@ -661,6 +661,13 @@
       box-shadow: 0 0 12px rgba(0, 212, 170, 0.65);
       animation: pulseHighlight 1s infinite alternate;
     }
+    .clickable-word.active-lookup-word {
+      background: linear-gradient(135deg, rgba(236, 72, 153, 0.45), rgba(168, 85, 247, 0.45)) !important;
+      color: #ffffff !important;
+      border-radius: 5px;
+      border-bottom: 2.5px solid #ec4899;
+      box-shadow: 0 0 12px rgba(236, 72, 153, 0.55);
+    }
     @keyframes pulseHighlight {
       from { box-shadow: 0 0 6px rgba(0, 212, 170, 0.4); }
       to { box-shadow: 0 0 14px rgba(0, 212, 170, 0.85); }
@@ -1427,6 +1434,32 @@
     }
     @media (max-width: 768px) {
       .global-news-lookup {
+        top: 60px;
+        padding: 10px 14px;
+      }
+    }
+
+    /* ── 🎵 歌詞モード用 追従型スマート単語バー ── */
+    .global-lyrics-lookup {
+      position: sticky;
+      top: 72px;
+      z-index: 100;
+      background: rgba(19, 24, 39, 0.95);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(236, 72, 153, 0.45);
+      border-radius: var(--r);
+      padding: 12px 18px;
+      margin-bottom: 16px;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55), 0 0 18px rgba(236, 72, 153, 0.12);
+      transition: all 0.25s ease;
+    }
+    .global-lyrics-lookup.has-result {
+      border-color: rgba(236, 72, 153, 0.75);
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.7), 0 0 22px rgba(236, 72, 153, 0.25);
+    }
+    @media (max-width: 768px) {
+      .global-lyrics-lookup {
         top: 60px;
         padding: 10px 14px;
       }
@@ -5855,57 +5888,63 @@
       if (currentMode === 'news') {
         renderNewsParagraphs(item, sContainer);
       } else {
-        (item.sentences || []).forEach((s, idx) => {
-        const card = document.createElement('div');
-        card.className = 'sentence-card';
-        card.id = `sent-card-${idx}`;
-        
-        const rubiHtml = showRubi && s.rubi ? `<div class="sentence-rubi">${s.rubi}</div>` : '';
-        const wrappedKo = wrapClickableWords(s.ko, idx);
-
-        card.innerHTML = `
-          <div class="sentence-num">${idx + 1}</div>
-          <div class="sentence-content">
-            <div class="reading-live-indicator">
-              <span class="eq-bar b1"></span>
-              <span class="eq-bar b2"></span>
-              <span class="eq-bar b3"></span>
-              読上げ中 🔊
+        // 🎵 歌詞モード用 追従型スマート単語バー（ヘッダー直下に固定追従）
+        const lyricsLookup = document.createElement('div');
+        lyricsLookup.className = 'global-lyrics-lookup';
+        lyricsLookup.id = 'lyrics-global-lookup-container';
+        lyricsLookup.innerHTML = `
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <span style="font-size:0.82rem; color:#ec4899; font-weight:700; display:inline-flex; align-items:center; gap:4px;">
+              <span>🎵</span> 追従スマート単語調べ:
+            </span>
+            <div class="input-wrapper-clear" style="flex:1; min-width:180px;">
+              <input type="text" class="card-lookup-inp" id="lyrics-global-lookup-inp" placeholder="歌詞の単語をクリック または 入力..." onkeydown="if(event.key==='Enter') executeLyricsGlobalLookup()" />
+              <button class="input-clear-x" onclick="clearLyricsGlobalLookup()" title="クリア">✕</button>
             </div>
-            ${rubiHtml}
-            <div class="sentence-ko" id="sent-ko-${idx}">${wrappedKo}</div>
-            <div class="sentence-ja" id="sent-ja-${idx}" data-raw-ja="${s.ja.replace(/"/g, '&quot;')}">${s.ja}</div>
-            
-            <!-- 🔍 クイック単語調べ・コピペバー（✕クリアボタン付き） -->
-            <div class="card-lookup-box" id="lookup-box-${idx}">
-              <div class="card-lookup-input-row">
-                <span style="font-size:0.75rem; color:var(--ac); font-weight:700;">🔍 単語調べ:</span>
-                <div class="input-wrapper-clear">
-                  <input type="text" class="card-lookup-inp" id="lookup-inp-${idx}" placeholder="単語をクリック または コピペ..." onkeydown="if(event.key==='Enter') executeCardLookup(${idx})" />
-                  <button class="input-clear-x" onclick="clearCardLookup(${idx})" title="入力欄をクリア">✕</button>
-                </div>
-                <button class="mini-action-btn" onclick="executeCardLookup(${idx})">調べ</button>
-                <button class="mini-action-btn" onclick="pasteClipboardToCard(${idx})" title="クリップボードから貼付">📋 貼付</button>
-              </div>
-              <div class="card-lookup-result" id="lookup-res-${idx}"></div>
-            </div>
-
-            <!-- 🎛️ 各文の操作バー -->
-            <div class="sentence-actions">
-              <div class="action-left">
-                <button class="mini-action-btn play-btn-card" id="card-play-btn-${idx}" onclick="playSpecificSentence(${idx})">▶ 再生</button>
-                <button class="mini-action-btn pause-btn-card" onclick="togglePlayPause()" title="一時停止 / 再開">⏸ 一時停止</button>
-                <button class="mini-action-btn stop-btn-card" onclick="stopSpeech()" title="停止">⏹ 停止</button>
-                <button class="mini-action-btn" onclick="triggerSpeechSingle('${s.ko.replace(/'/g, "\\'")}')" title="この文だけ1回発音">🔊 1回だけ</button>
-              </div>
-              <div class="action-right">
-                <button class="mini-action-btn" onclick="copySentenceText('${s.ko.replace(/'/g, "\\'")}')">📋 コピー</button>
-                <button class="mini-action-btn" onclick="savePhraseToWordbook('${s.ko.replace(/'/g, "\\'")}', '${s.ja.replace(/'/g, "\\'")}')">⭐ フレーズ保存</button>
-              </div>
-            </div>
+            <button class="mini-action-btn" onclick="executeLyricsGlobalLookup()">🔍 調べ</button>
+            <button class="mini-action-btn" onclick="pasteClipboardToLyrics()" title="クリップボードから貼付">📋 貼付</button>
           </div>
+          <div id="lyrics-global-lookup-res" style="font-size:0.85rem; display:none;"></div>
         `;
-        sContainer.appendChild(card);
+        sContainer.appendChild(lyricsLookup);
+
+        (item.sentences || []).forEach((s, idx) => {
+          const card = document.createElement('div');
+          card.className = 'sentence-card';
+          card.id = `sent-card-${idx}`;
+          
+          const rubiHtml = showRubi && s.rubi ? `<div class="sentence-rubi">${s.rubi}</div>` : '';
+          const wrappedKo = wrapClickableWords(s.ko, idx);
+
+          card.innerHTML = `
+            <div class="sentence-num">${idx + 1}</div>
+            <div class="sentence-content">
+              <div class="reading-live-indicator">
+                <span class="eq-bar b1"></span>
+                <span class="eq-bar b2"></span>
+                <span class="eq-bar b3"></span>
+                読上げ中 🔊
+              </div>
+              ${rubiHtml}
+              <div class="sentence-ko" id="sent-ko-${idx}">${wrappedKo}</div>
+              <div class="sentence-ja" id="sent-ja-${idx}" data-raw-ja="${s.ja.replace(/"/g, '&quot;')}">${s.ja}</div>
+
+              <!-- 🎛️ 各文の操作バー -->
+              <div class="sentence-actions">
+                <div class="action-left">
+                  <button class="mini-action-btn play-btn-card" id="card-play-btn-${idx}" onclick="playSpecificSentence(${idx})">▶ 再生</button>
+                  <button class="mini-action-btn pause-btn-card" onclick="togglePlayPause()" title="一時停止 / 再開">⏸ 一時停止</button>
+                  <button class="mini-action-btn stop-btn-card" onclick="stopSpeech()" title="停止">⏹ 停止</button>
+                  <button class="mini-action-btn" onclick="triggerSpeechSingle('${s.ko.replace(/'/g, "\\'")}')" title="この文だけ1回発音">🔊 1回だけ</button>
+                </div>
+                <div class="action-right">
+                  <button class="mini-action-btn" onclick="copySentenceText('${s.ko.replace(/'/g, "\\'")}')">📋 コピー</button>
+                  <button class="mini-action-btn" onclick="savePhraseToWordbook('${s.ko.replace(/'/g, "\\'")}', '${s.ja.replace(/'/g, "\\'")}')">⭐ フレーズ保存</button>
+                </div>
+              </div>
+            </div>
+          `;
+          sContainer.appendChild(card);
         });
 
         // 🎵 歌詞モードは対訳アライメント不要のためスキャンをスキップ
@@ -6003,6 +6042,12 @@
 
     // ── WORD CLICK / LOOKUP / CLEAR HANDLER ──
     function handleWordClick(word, sentenceIdx) {
+      // ハイライトを切り替え
+      document.querySelectorAll('.clickable-word.active-lookup-word').forEach(el => el.classList.remove('active-lookup-word'));
+      if (window.event && window.event.target && window.event.target.classList.contains('clickable-word')) {
+        window.event.target.classList.add('active-lookup-word');
+      }
+
       // 1. ニュースモード（共通単語辞書バーが存在する場合：画面上部にスティッキー固定されたバーで即時表示）
       const newsInp = document.getElementById('news-global-lookup-inp');
       if (newsInp) {
@@ -6010,11 +6055,96 @@
         return;
       }
 
-      // 2. 歌詞モード（行カードごとの辞書入力欄）
+      // 2. 歌詞モード（追従型スマート単語バーで即時表示）
+      const lyricsInp = document.getElementById('lyrics-global-lookup-inp');
+      if (lyricsInp) {
+        executeLyricsGlobalLookup(word);
+        return;
+      }
+
+      // 3. フォールバック（行カードごとの辞書入力欄）
       const inp = document.getElementById(`lookup-inp-${sentenceIdx}`);
       if (inp) {
         inp.value = word;
         executeCardLookup(sentenceIdx);
+      }
+    }
+
+    function clearLyricsGlobalLookup() {
+      const inp = document.getElementById('lyrics-global-lookup-inp');
+      const resBox = document.getElementById('lyrics-global-lookup-res');
+      const box = document.getElementById('lyrics-global-lookup-container') || document.querySelector('.global-lyrics-lookup');
+      if (inp) inp.value = '';
+      if (resBox) {
+        resBox.style.display = 'none';
+        resBox.innerHTML = '';
+      }
+      if (box) box.classList.remove('has-result');
+      document.querySelectorAll('.clickable-word.active-lookup-word').forEach(el => el.classList.remove('active-lookup-word'));
+    }
+
+    async function executeLyricsGlobalLookup(queryOverride) {
+      const inp = document.getElementById('lyrics-global-lookup-inp');
+      const resBox = document.getElementById('lyrics-global-lookup-res');
+      const box = document.getElementById('lyrics-global-lookup-container') || document.querySelector('.global-lyrics-lookup');
+      if (!resBox) return;
+
+      if (queryOverride !== undefined && inp) {
+        inp.value = queryOverride;
+      }
+      const q = (inp ? inp.value : (queryOverride || '')).trim();
+      if (!q) {
+        clearLyricsGlobalLookup();
+        return;
+      }
+
+      if (box) box.classList.add('has-result');
+      resBox.style.display = 'block';
+      resBox.innerHTML = `
+        <div style="background:rgba(0,0,0,0.3); border:1px solid rgba(236,72,153,0.3); border-radius:10px; padding:10px 14px; margin-top:8px; color:var(--tm); font-size:0.85rem;">
+          ⏳ 歌詞の単語・表現を検索中...
+        </div>
+      `;
+
+      const match = await lookupWordAsync(q);
+      if (!match) {
+        clearLyricsGlobalLookup();
+        return;
+      }
+
+      const hanjaBadge = match.hanja ? `<span style="font-size:0.88rem; color:#a78bfa; font-weight:700; margin-left:6px;">(${match.hanja})</span>` : '';
+
+      resBox.innerHTML = `
+        <div style="background:rgba(0,0,0,0.3); border:1px solid rgba(236,72,153,0.4); border-radius:10px; padding:12px 14px; margin-top:8px; display:flex; justify-content:space-between; align-items:flex-start; gap:10px; box-shadow:0 4px 14px rgba(0,0,0,0.3);">
+          <div style="flex:1;">
+            <div style="display:flex; align-items:center; flex-wrap:wrap; gap:6px;">
+              <strong style="font-size:1.1rem; color:#fff; letter-spacing:0.02em;">${match.base}</strong>
+              ${hanjaBadge}
+              <span style="font-size:0.72rem; color:#f472b6; background:rgba(236,72,153,0.15); border:1px solid rgba(236,72,153,0.3); border-radius:4px; padding:1px 6px; font-weight:700;">[${match.pos}]</span>
+              <span style="font-size:0.8rem; color:#60a5fa;">${match.particle || ''}</span>
+            </div>
+            <div style="font-size:0.96rem; color:#34d399; font-weight:600; margin-top:6px; line-height:1.5;">${match.meaning}</div>
+          </div>
+          <div style="display:flex; gap:6px; align-items:center; flex-shrink:0;">
+            <button class="mini-action-btn" onclick="triggerSpeechSingle('${escJs(match.base)}')" title="発音を聞く">🔊 発音</button>
+            <button class="mini-action-btn" onclick="toggleSaveWord('${escJs(match.base)}', '${escJs(match.meaning)}', '${escJs(match.level)}', this, '${escJs(match.hanja)}')">⭐ 単語帳に保存</button>
+            <button class="result-close-x" onclick="clearLyricsGlobalLookup()" title="閉じる">✕</button>
+          </div>
+        </div>
+      `;
+    }
+
+    async function pasteClipboardToLyrics() {
+      try {
+        const text = await navigator.clipboard.readText();
+        const inp = document.getElementById('lyrics-global-lookup-inp');
+        if (inp && text) {
+          inp.value = text.trim();
+          executeLyricsGlobalLookup();
+          showToast(`「${text.trim()}」を貼り付けて検索しました！`);
+        }
+      } catch (err) {
+        alert('クリップボードの読み取り権限を許可するか、入力欄に直接Ctrl+Vで貼り付けてください。');
       }
     }
 
