@@ -1959,7 +1959,7 @@
       <button class="player-btn" id="repeat-btn" onclick="toggleRepeatSingle()" title="1文リピート切り替え" style="font-size:0.8rem;">🔁</button>
     </div>
 
-    <div class="player-right">
+    <div class="player-right" style="display:flex; align-items:center; gap:8px;">
       <span style="font-size:0.75rem; color:var(--tm);">再生速度:</span>
       <select id="speech-speed" class="speed-select" onchange="updateSpeed()">
         <option value="0.8">0.8x (ゆっくり)</option>
@@ -1967,6 +1967,7 @@
         <option value="1.2">1.2x (速め)</option>
         <option value="1.5">1.5x (倍速)</option>
       </select>
+      <button class="mini-action-btn" onclick="document.getElementById('audio-toolbar').style.display='none'; document.body.style.paddingBottom='24px';" style="color:#f87171; border-color:rgba(239,68,68,0.3); background:rgba(239,68,68,0.1); padding:4px 10px; font-weight:700;" title="プレイヤーバーを完全に非表示にする">✕ 閉じる</button>
     </div>
   </div>
 
@@ -2132,6 +2133,31 @@
       '파장': { hanja: '波長', pos: '名詞', meaning: '波紋・影響・波及', level: '中級' },
       
       // 基礎・日常・歌詞語彙
+      '걸': { hanja: '―', pos: '代名詞+助詞', meaning: 'こと・ものを（것을の短縮形）／〜すればよかった・〜だろうに（-(으)ㄹ걸）', level: '初級' },
+      '건': { hanja: '―', pos: '代名詞+助詞', meaning: 'こと・ものは（것은の短縮形）', level: '初級' },
+      '게': { hanja: '―', pos: '代名詞+助詞 / 語尾', meaning: 'こと・ものが（것이の短縮形）／〜するように', level: '初級' },
+      '날': { hanja: '―', pos: '代名詞+助詞', meaning: '私を・僕を（나를の短縮形）／日・日々', level: '初級' },
+      '널': { hanja: '―', pos: '代名詞+助詞', meaning: '君を・あなたを（너를の短縮形）', level: '初級' },
+      '난': { hanja: '―', pos: '代名詞+助詞', meaning: '私は・僕は（나는の短縮形）', level: '初級' },
+      '넌': { hanja: '―', pos: '代名詞+助詞', meaning: '君は・あなたは（너는の短縮形）', level: '初級' },
+      '내': { hanja: '―', pos: '代名詞', meaning: '私の・僕の（나의）／私が・僕が（내가）', level: '初級' },
+      '네': { hanja: '―', pos: '代名詞', meaning: '君の・お前の（너의）／君が・お前が（네가）', level: '初級' },
+      '뭘': { hanja: '―', pos: '疑問詞+助詞', meaning: '何を（무엇을の短縮形）', level: '初級' },
+      '뭔': { hanja: '―', pos: '冠形詞', meaning: '何の・何という（무슨・무엇인の短縮形）', level: '初級' },
+      '모든': { hanja: '―', pos: '冠形詞', meaning: 'すべての・あらゆる・全部の', level: '初級' },
+      '잃어도': { hanja: '―', pos: '動詞活用', meaning: '失っても・なくしたとしても (잃다 + 어도)', level: '初級' },
+      '잃다': { hanja: '―', pos: '動詞', meaning: '失う・なくす・奪われる', level: '初級' },
+      '괜찮아': { hanja: '―', pos: '形容詞', meaning: '大丈夫だ・平気だ・構わない (괜찮다)', level: '初級' },
+      '괜찮다': { hanja: '―', pos: '形容詞', meaning: '大丈夫だ・構わない・悪くない', level: '初級' },
+      '만나서': { hanja: '―', pos: '動詞活用', meaning: '出会って・会えて (만나다 + 아/어서)', level: '初級' },
+      '만나지': { hanja: '―', pos: '動詞活用', meaning: '出会わ・会わ (만나다 + 지)', level: '初級' },
+      '않았더라면': { hanja: '―', pos: '補助動詞+語尾', meaning: '〜していなかったら・しなかったならば (않다 + 았/었더라면)', level: '中級' },
+      '있을까': { hanja: '―', pos: '存在詞+語尾', meaning: 'いるだろうか・あるだろうか (있다 + (으)ㄹ까)', level: '初級' },
+      '견딜': { hanja: '―', pos: '動詞(連体形)', meaning: '耐えられる・耐える (견디다 + ㄹ)', level: '中級' },
+      '견디다': { hanja: '―', pos: '動詞', meaning: '耐える・我慢する・持ちこたえる', level: '中級' },
+      '놓아야만': { hanja: '―', pos: '動詞+助詞', meaning: '手放してこそ・置かなければ (놓다 + 아야만)', level: '中級' },
+      '한대도': { hanja: '―', pos: '動詞+語尾', meaning: 'するとしても・だとしても (하다 + ㄴ대도)', level: '中級' },
+      '전부였던': { hanja: '全部--', pos: '名詞+過去連体', meaning: 'すべてだった・全部だった (전부 + 이었던)', level: '初級' },
       '가다': { hanja: '―', pos: '動詞', meaning: '行く・向かう・進む・（時が）経つ', level: '初級' },
       '간대요': { hanja: '―', pos: '動詞+語尾', meaning: '行くそうです・いくそうです・行くだけなんだって・いくだけなんだって (가다 + ㄴ대요)', level: '初級' },
       '쉬어': { hanja: '―', pos: '動詞活用', meaning: '休んで・一休みして・休む (쉬다)', level: '初級' },
@@ -3756,6 +3782,72 @@
       showToast('ニュースを削除しました 🗑️');
     }
 
+    async function deleteSongItem(itemId, event) {
+      if (event) event.stopPropagation();
+      
+      const item = (SAMPLE_DATABASE.lyrics || []).find(l => l.id === itemId) || currentArticle;
+      if (!item) return;
+
+      const songTitle = item.title_ko || item.title_ja || 'この楽曲';
+      if (!confirm(`楽曲「${songTitle}」を削除しますか？\n※Supabaseからも完全に削除されます。`)) {
+        return;
+      }
+
+      showToast(`「${songTitle.slice(0, 16)}…」を削除中... 🗑️`);
+
+      // 1. Supabase tracksテーブルからの削除実行
+      try {
+        const rawTrackId = (item.id || '').replace(/^supabase-|^lyrics-/, '');
+        if (rawTrackId) {
+          const res = await fetch(`${SUPABASE_URL}/rest/v1/tracks?track_id=eq.${encodeURIComponent(rawTrackId)}`, {
+            method: 'DELETE',
+            headers: {
+              'apikey': SUPABASE_KEY,
+              'Authorization': `Bearer ${SUPABASE_KEY}`
+            }
+          });
+          if (!res.ok) {
+            console.warn('Supabase delete track failed:', res.status);
+          }
+        }
+      } catch (err) {
+        console.warn('Supabase track delete error:', err);
+      }
+
+      // 2. ローカルリストからの削除
+      SAMPLE_DATABASE.lyrics = (SAMPLE_DATABASE.lyrics || []).filter(l => l.id !== item.id && l.title_ko !== item.title_ko);
+
+      // 3. localStorageの削除済みリストに記録
+      try {
+        const delList = JSON.parse(localStorage.getItem('kr_learner_deleted_song_ids') || '[]');
+        if (!delList.includes(item.id)) {
+          delList.push(item.id);
+          const rawId = (item.id || '').replace(/^supabase-|^lyrics-/, '');
+          if (rawId && !delList.includes(rawId)) delList.push(rawId);
+          localStorage.setItem('kr_learner_deleted_song_ids', JSON.stringify(delList));
+        }
+      } catch (e) {}
+
+      // 4. 空になった場合のフォールバック
+      if (SAMPLE_DATABASE.lyrics.length === 0) {
+        SAMPLE_DATABASE.lyrics.push({
+          id: 'lyrics-empty',
+          title_ko: '登録曲なし',
+          title_ja: '右上の「➕ 歌詞をコピペ登録」またはn8nワークフローから楽曲を追加できます',
+          category: '🎵 K-POP',
+          level: '入門',
+          sentences: []
+        });
+      }
+
+      if (currentArticle && (currentArticle.id === item.id || currentArticle.title_ko === item.title_ko)) {
+        currentArticle = SAMPLE_DATABASE.lyrics[0];
+        loadArticle(currentArticle);
+      }
+      renderHubChips();
+      showToast('楽曲を削除しました 🗑️');
+    }
+
     async function deleteCurrentSong() {
       if (!currentArticle || currentMode !== 'lyrics') return;
       
@@ -3842,8 +3934,11 @@
         if (!res.ok) return [];
         const rawTracks = await res.json();
         
+        const deletedIds = JSON.parse(localStorage.getItem('kr_learner_deleted_song_ids') || '[]');
         const parsedList = [];
         (rawTracks || []).forEach(t => {
+          const trackIdStr = String(t.track_id || t.id || '');
+          if (deletedIds.includes(trackIdStr) || deletedIds.includes(`supabase-${trackIdStr}`)) return;
           try {
             const data = JSON.parse(t.lyrics);
             if (data && data.sentences) {
@@ -5133,9 +5228,9 @@
         customInp.placeholder = '登録済みの曲名（例: AKMU, 김나영, G-DRAGON）を入力...';
         openPasteBtn.style.display = 'inline-flex';
         lyricsPanel.style.display = 'block';
-        legalPanel.style.display = 'none';
-        if (audioBar) audioBar.style.display = 'flex';
-        document.body.style.paddingBottom = '95px';
+        // 🎵 下部プレイヤーバーは邪魔にならないようデフォルト非表示
+        if (audioBar) audioBar.style.display = 'none';
+        document.body.style.paddingBottom = '24px';
         currentArticle = SAMPLE_DATABASE.lyrics[0];
         syncSupabaseLyricsToApp();
       } else {
@@ -5221,7 +5316,7 @@
             <div style="display:flex; align-items:center; gap:6px;">
               ${cloudIcon}
               ${currentMode === 'news' ? statusBadge : ''}
-              <button class="chip-delete-btn" onclick="deleteNewsItem('${item.id}', event)" title="このニュースを削除">🗑️</button>
+              <button class="chip-delete-btn" onclick="${currentMode === 'lyrics' ? `deleteSongItem('${item.id}', event)` : `deleteNewsItem('${item.id}', event)`}" title="${currentMode === 'lyrics' ? 'この楽曲を削除' : 'このニュースを削除'}">🗑️</button>
             </div>
           </div>
           <div class="chip-title-ja">${mainTitle}</div>
@@ -5372,6 +5467,7 @@
     }
 
     function hoverWordAligned(sentenceIdx, wordIdx, word) {
+      if (currentMode === 'lyrics') return; // 歌詞モードでは日本語アライメント連動を無効化
       const jaEl = document.getElementById(`news-ja-${sentenceIdx}`) || document.getElementById(`sent-ja-${sentenceIdx}`);
       if (!jaEl) return;
 
@@ -5812,12 +5908,7 @@
         sContainer.appendChild(card);
         });
 
-        // 🎵 歌詞モード・文カードの対訳アライメントをバックグラウンド自動スキャン (0msホバーハイライト対応)
-        setTimeout(() => {
-          (item.sentences || []).forEach((_, sIdx) => {
-            scanParagraphAlignment(sIdx);
-          });
-        }, 150);
+        // 🎵 歌詞モードは対訳アライメント不要のためスキャンをスキップ
       }
 
       // 2. Render Map (地名・重要施設自動検知連動)
