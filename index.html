@@ -9578,6 +9578,21 @@
           }
         }
 
+        // 地図パネルと歌詞パネルの表示切り替え
+        const mapPanel = document.getElementById("map-panel");
+        const legalPanel = document.getElementById("legal-panel");
+        const lyricsPanel = document.getElementById("lyrics-panel");
+
+        if (currentMode === "news") {
+          if (mapPanel) mapPanel.style.display = "block";
+          if (legalPanel) legalPanel.style.display = "block";
+          if (lyricsPanel) lyricsPanel.style.display = "none";
+        } else {
+          if (mapPanel) mapPanel.style.display = "none";
+          if (legalPanel) legalPanel.style.display = "none";
+          if (lyricsPanel) lyricsPanel.style.display = "block";
+        }
+
         // 1. Render Content (News: Paragraph Block View / Lyrics: Sentence Cards)
         const sContainer = document.getElementById("sentence-container");
         sContainer.innerHTML = "";
@@ -9610,10 +9625,6 @@
             card.className = "sentence-card lyrics-line-card";
             card.id = `sent-card-${idx}`;
 
-            const rubiHtml =
-              showRubi && s.rubi
-                ? `<div class="sentence-rubi">${s.rubi}</div>`
-                : "";
             const wrappedKo = wrapClickableWords(s.ko, idx);
 
             card.innerHTML = `
@@ -9624,7 +9635,6 @@
                 <span class="eq-bar b3"></span>
                 読上げ中 🔊
               </div>
-              ${rubiHtml}
               <div class="sentence-ko" id="sent-ko-${idx}">${wrappedKo}</div>
               <div class="sentence-ja" id="sent-ja-${idx}" data-raw-ja="${s.ja.replace(/"/g, "&quot;")}">${s.ja}</div>
             </div>
