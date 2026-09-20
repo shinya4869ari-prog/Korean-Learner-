@@ -9587,6 +9587,12 @@
           if (mapPanel) mapPanel.style.display = "block";
           if (legalPanel) legalPanel.style.display = "block";
           if (lyricsPanel) lyricsPanel.style.display = "none";
+
+          // 地図が表示された後に初期化・サイズ再計算
+          setTimeout(() => {
+            if (!mapInstance) initMap();
+            if (mapInstance) mapInstance.invalidateSize();
+          }, 300);
         } else {
           if (mapPanel) mapPanel.style.display = "none";
           if (legalPanel) legalPanel.style.display = "none";
