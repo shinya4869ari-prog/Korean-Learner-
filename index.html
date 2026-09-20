@@ -7981,10 +7981,6 @@
           card.className = "news-para-card";
           card.id = `news-para-${pIdx}`;
 
-          const rubiHtml =
-            showRubi && para.rubi
-              ? `<div class="news-para-rubi">${para.rubi}</div>`
-              : "";
           const wrappedKo = wrapClickableWords(para.ko, pIdx);
 
           card.innerHTML = `
@@ -7996,7 +7992,6 @@
               <button class="mini-action-btn" onclick="copySentenceText('${para.ko.replace(/'/g, "\\'")}')" title="韓国語をコピー">📋 コピー</button>
             </div>
           </div>
-          ${rubiHtml}
           <p class="news-para-ko" id="news-ko-${pIdx}">${wrappedKo}</p>
           <div class="news-para-ja ${isJaTranslationVisible ? "" : "hidden-ja"}" id="news-ja-${pIdx}" data-raw-ja="${para.ja.replace(/"/g, "&quot;")}">${para.ja}</div>
         `;
