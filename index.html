@@ -1898,14 +1898,6 @@
         >
           ⭐ 推し人物管理
         </button>
-        <div
-          class="control-pill"
-          id="rubi-toggle"
-          onclick="toggleRubi()"
-          title="カタカナ発音ルビの表示切り替え"
-        >
-          🔤 ルビ: <span id="rubi-status">OFF</span>
-        </div>
       </div>
     </header>
 
@@ -6996,7 +6988,6 @@
       let isJaTranslationVisible = true; // ニュース日本語訳の表示トグル
       let currentCategoryFilter = "all";
       let currentArticle = SAMPLE_DATABASE.news[0];
-      let showRubi = false;
       let mapInstance = null;
       let mapMarker = null;
 
@@ -8653,22 +8644,35 @@
       function initMap() {
         const el = document.getElementById("leaflet-map");
         if (!el) return;
-        mapInstance = L.map("leaflet-map", { zoomControl: true }).setView(
-          [37.6917, 129.0328],
-          13,
-        );
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-          attribution: "&copy; OpenStreetMap contributors",
-        }).addTo(mapInstance);
 
-        const customIcon = L.divIcon({
-          html: `<div style="background:linear-gradient(135deg, #00d4aa, #3b82f6); width:28px; height:28px; border-radius:50% 50% 50% 0; transform:rotate(-45deg); border:3px solid #fff; box-shadow:0 3px 12px rgba(0,212,170,0.6); display:flex; align-items:center; justify-content:center;"><span style="transform:rotate(45deg); font-size:12px;">📍</span></div>`,
-          iconSize: [28, 28],
-          iconAnchor: [14, 28],
-        });
-        mapMarker = L.marker([37.6917, 129.0328], { icon: customIcon }).addTo(
-          mapInstance,
-        );
+        // 既に初期化されている場合はスキップ
+        if (mapInstance) return;
+
+        try {
+          mapInstance = L.map("leaflet-map", {
+            zoomControl: true,
+            scrollWheelZoom: false,
+          }).setView([37.6917, 129.0328], 13);
+          L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            attribution: "&copy; OpenStreetMap contributors",
+          }).addTo(mapInstance);
+
+          const customIcon = L.divIcon({
+            html: `<div style="background:linear-gradient(135deg, #00d4aa, #3b82f6); width:28px; height:28px; border-radius:50% 50% 50% 0; transform:rotate(-45deg); border:3px solid #fff; box-shadow:0 3px 12px rgba(0,212,170,0.6); display:flex; align-items:center; justify-content:center;"><span style="transform:rotate(45deg); font-size:12px;">📍</span></div>`,
+            iconSize: [28, 28],
+            iconAnchor: [14, 28],
+          });
+          mapMarker = L.marker([37.6917, 129.0328], { icon: customIcon }).addTo(
+            mapInstance,
+          );
+
+          // 地図が正しく表示されるようにサイズを再計算
+          setTimeout(() => {
+            if (mapInstance) mapInstance.invalidateSize();
+          }, 500);
+        } catch (err) {
+          console.error("Map initialization error:", err);
+        }
       }
 
       function updateMap(loc) {
@@ -10250,17 +10254,6 @@
         if (isPlaying) {
           playSentenceSequence(currentSentenceIndex);
         }
-      }
-
-      function toggleRubi() {
-        showRubi = !showRubi;
-        document.getElementById("rubi-status").textContent = showRubi
-          ? "ON"
-          : "OFF";
-        document
-          .getElementById("rubi-toggle")
-          .classList.toggle("active", showRubi);
-        loadArticle(currentArticle);
       }
 
       // ── WORDBOOK LOCALSTORAGE ──
