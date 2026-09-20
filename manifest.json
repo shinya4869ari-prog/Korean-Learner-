@@ -1,0 +1,26 @@
+{
+  "name": "K-Learner｜韓国語ニュース読解・歌詞対訳ナビ",
+  "short_name": "K-Learner",
+  "description": "韓国の最新ニュースや好きな曲の歌詞で学ぶ、実践的ハングル学習アプリ。SupabaseクラウドDB優先・単語タップ辞書連携。",
+  "start_url": "/",
+  "id": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0b0c14",
+  "theme_color": "#00d4aa",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

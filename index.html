@@ -2,10 +2,20 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>K-Learner｜韓国語ニュース読解・歌詞対訳ナビ (Supabase連動版)</title>
   <meta name="description" content="韓国の最新ニュースや好きな曲の歌詞で学ぶ、実践的ハングル学習アプリ。SupabaseクラウドDBから歌詞を優先取得・保存可能。" />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🇰🇷</text></svg>">
+  
+  <!-- PWA & Mobile Meta Tags -->
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#00d4aa" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="K-Learner" />
+  <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+  <link rel="shortcut icon" type="image/svg+xml" href="/icon.svg" />
+  <link rel="apple-touch-icon" href="/icon.svg" />
   
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1672,6 +1682,9 @@
 
     <!-- Controls -->
     <div class="header-controls">
+      <button class="cat-btn" id="pwa-install-btn" onclick="triggerPWAInstall()" style="display:none; background:rgba(0, 212, 170, 0.15); border-color:var(--ac); color:var(--ac); font-weight:700;" title="K-Learnerをアプリとしてインストール / ホーム画面に追加">
+        📲 アプリ化
+      </button>
       <button class="cat-btn" onclick="openFavModal()" style="background:rgba(245, 158, 11, 0.15); border-color:var(--amber); color:var(--amber); font-weight:700;" title="Supabaseのお気に入り人物（俳優・監督・歌手）を管理">
         ⭐ 推し人物管理
       </button>
@@ -7119,6 +7132,57 @@
       loadArticle(newCustomItem);
       showToast(`「${q}」の画面を生成しました！ ✨`);
       document.getElementById('custom-search-input').value = '';
+    }
+
+    // ──────────────────────────────────────────
+    // PWA (Progressive Web App) & Service Worker
+    // ──────────────────────────────────────────
+    let deferredPWAInstallPrompt = null;
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      // ブラウザ標準の自動バナーを抑止し、ヘッダーの「📲 アプリ化」ボタンを表示
+      e.preventDefault();
+      deferredPWAInstallPrompt = e;
+      const installBtn = document.getElementById('pwa-install-btn');
+      if (installBtn) {
+        installBtn.style.display = 'inline-flex';
+      }
+    });
+
+    window.addEventListener('appinstalled', () => {
+      deferredPWAInstallPrompt = null;
+      const installBtn = document.getElementById('pwa-install-btn');
+      if (installBtn) {
+        installBtn.style.display = 'none';
+      }
+      showToast('K-Learner がアプリとして正常にインストールされました！ 🎉');
+    });
+
+    function triggerPWAInstall() {
+      if (deferredPWAInstallPrompt) {
+        deferredPWAInstallPrompt.prompt();
+        deferredPWAInstallPrompt.userChoice.then((choiceResult) => {
+          if (choiceResult.outcome === 'accepted') {
+            console.log('User accepted PWA installation');
+          }
+          deferredPWAInstallPrompt = null;
+        });
+      } else {
+        // iOS Safari等の場合への案内
+        showToast('💡 ブラウザの「共有」またはメニューから「ホーム画面に追加」を選択してアプリ化できます。');
+      }
+    }
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then((reg) => {
+            console.log('K-Learner Service Worker registered:', reg.scope);
+          })
+          .catch((err) => {
+            console.warn('Service Worker registration failed:', err);
+          });
+      });
     }
   </script>
 </body>

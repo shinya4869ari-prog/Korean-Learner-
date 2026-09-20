@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Background Gradient -->
+    <radialGradient id="bgGrad" cx="50%" cy="30%" r="75%">
+      <stop offset="0%" stop-color="#1b1e36" />
+      <stop offset="60%" stop-color="#101222" />
+      <stop offset="100%" stop-color="#07080e" />
+    </radialGradient>
+
+    <!-- Neon Emerald to Cyan Gradient -->
+    <linearGradient id="neonEmerald" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00f5c4" />
+      <stop offset="50%" stop-color="#00d4aa" />
+      <stop offset="100%" stop-color="#0284c7" />
+    </linearGradient>
+
+    <!-- Cyber Purple to Pink Gradient -->
+    <linearGradient id="cyberPurple" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#c084fc" />
+      <stop offset="50%" stop-color="#8b5cf6" />
+      <stop offset="100%" stop-color="#ec4899" />
+    </linearGradient>
+
+    <!-- Outer Glow Filter -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="12" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <filter id="softShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="#000000" flood-opacity="0.6" />
+    </filter>
+  </defs>
+
+  <!-- Background Squircle / Rounded Rect -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" />
+  
+  <!-- Subtle Outer Border -->
+  <rect width="508" height="508" x="2" y="2" rx="110" fill="none" stroke="url(#neonEmerald)" stroke-width="3" stroke-opacity="0.35" />
+
+  <!-- Inner Ambient Aura -->
+  <circle cx="256" cy="230" r="150" fill="url(#neonEmerald)" opacity="0.08" filter="url(#glow)" />
+  <circle cx="330" cy="310" r="120" fill="url(#cyberPurple)" opacity="0.08" filter="url(#glow)" />
+
+  <!-- Modern Music / Audio Wave Waves at Bottom of Safe Zone -->
+  <g opacity="0.45" transform="translate(106, 360)">
+    <rect x="0" y="20" width="8" height="24" rx="4" fill="#00d4aa" />
+    <rect x="18" y="10" width="8" height="34" rx="4" fill="#00d4aa" />
+    <rect x="36" y="0" width="8" height="44" rx="4" fill="#00f5c4" />
+    <rect x="54" y="15" width="8" height="29" rx="4" fill="#38bdf8" />
+    <rect x="72" y="5" width="8" height="39" rx="4" fill="#818cf8" />
+    <rect x="90" y="22" width="8" height="22" rx="4" fill="#8b5cf6" />
+    <rect x="108" y="12" width="8" height="32" rx="4" fill="#a855f7" />
+    <rect x="126" y="2" width="8" height="42" rx="4" fill="#c084fc" />
+    <rect x="144" y="14" width="8" height="30" rx="4" fill="#ec4899" />
+    <rect x="162" y="24" width="8" height="20" rx="4" fill="#f43f5e" />
+    <rect x="180" y="8" width="8" height="36" rx="4" fill="#ec4899" />
+    <rect x="198" y="18" width="8" height="26" rx="4" fill="#a855f7" />
+    <rect x="216" y="6" width="8" height="38" rx="4" fill="#8b5cf6" />
+    <rect x="234" y="16" width="8" height="28" rx="4" fill="#00d4aa" />
+    <rect x="252" y="22" width="8" height="22" rx="4" fill="#00f5c4" />
+    <rect x="270" y="12" width="8" height="32" rx="4" fill="#00d4aa" />
+    <rect x="288" y="25" width="8" height="19" rx="4" fill="#00d4aa" />
+  </g>
+
+  <!-- Central Symbol: Elegant Stylized Hangul "한" & Modern "K" Harmony -->
+  <g filter="url(#softShadow)">
+    <!-- Top Horizontal Dot/Crown of ㅎ (Modern Floating Pill) -->
+    <rect x="206" y="96" width="100" height="18" rx="9" fill="url(#neonEmerald)" filter="url(#glow)" />
+    
+    <!-- Main Crossbar of ㅎ -->
+    <rect x="156" y="132" width="200" height="22" rx="11" fill="url(#neonEmerald)" />
+
+    <!-- Circle (ㅇ) of ㅎ with Cyber Neon Stroke -->
+    <circle cx="256" cy="205" r="42" fill="none" stroke="url(#neonEmerald)" stroke-width="18" stroke-linecap="round" />
+
+    <!-- Vowel ㅏ: Vertical Pillar (Powerful Cyber Gradient) -->
+    <rect x="336" y="112" width="22" height="166" rx="11" fill="url(#cyberPurple)" />
+    <!-- Vowel ㅏ: Horizontal Branch -->
+    <rect x="354" y="180" width="38" height="18" rx="9" fill="url(#cyberPurple)" />
+
+    <!-- Final Consonant ㄴ: Bottom Foundation Anchor -->
+    <path d="M 172 268 L 172 324 Q 172 342 190 342 L 324 342" 
+          fill="none" 
+          stroke="url(#neonEmerald)" 
+          stroke-width="22" 
+          stroke-linecap="round" 
+          stroke-linejoin="round" />
+  </g>
+
+  <!-- Dynamic Star/Sparkle Accent representing AI & Learning -->
+  <g transform="translate(390, 88) scale(0.9)">
+    <path d="M0,20 Q20,20 20,0 Q20,20 40,20 Q20,20 20,40 Q20,20 0,20 Z" fill="#00f5c4" opacity="0.9" filter="url(#glow)" />
+  </g>
+</svg>
