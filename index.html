@@ -4496,6 +4496,18 @@
           meaning: "体験・実体験",
           level: "初級",
         },
+        오토바이: {
+          hanja: "―",
+          pos: "名詞",
+          meaning: "オートバイ",
+          level: "初級",
+        },
+        가방: {
+          hanja: "鞄",
+          pos: "名詞",
+          meaning: "カバン・バッグ",
+          level: "初級",
+        },
       };
 
       const PARTICLES = [
@@ -4596,6 +4608,18 @@
       function deriveKoreanBaseCandidates(q) {
         if (!q) return [];
         const list = [];
+
+        // 助詞チェック：助詞が含まれる場合は活用形推定を行わない
+        for (const particle of PARTICLES) {
+          if (q.endsWith(particle.p) && q.length > particle.p.length) {
+            // 助詞を除いた形のみを候補に追加（動詞推定は行わない）
+            const base = q.slice(0, -particle.p.length);
+            if (base.length > 0) {
+              list.push(base);
+            }
+            return list; // 助詞が含まれる場合はここで終了
+          }
+        }
 
         // 1. 連体形 (~는, ~은, ~ㄴ, ~던, ~았던, ~었던, ~ㄹ, ~을)
         if (q.endsWith("는") && q.length >= 2) {
