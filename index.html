@@ -8645,9 +8645,15 @@
             zoomControl: true,
             scrollWheelZoom: false,
           }).setView([37.6917, 129.0328], 13);
-          L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-            attribution: "&copy; OpenStreetMap contributors",
-          }).addTo(mapInstance);
+          L.tileLayer(
+            "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+            {
+              attribution:
+                '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+              subdomains: "abcd",
+              maxZoom: 20,
+            },
+          ).addTo(mapInstance);
 
           const customIcon = L.divIcon({
             html: `<div style="background:linear-gradient(135deg, #00d4aa, #3b82f6); width:28px; height:28px; border-radius:50% 50% 50% 0; transform:rotate(-45deg); border:3px solid #fff; box-shadow:0 3px 12px rgba(0,212,170,0.6); display:flex; align-items:center; justify-content:center;"><span style="transform:rotate(45deg); font-size:12px;">📍</span></div>`,
