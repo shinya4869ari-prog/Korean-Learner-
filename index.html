@@ -1857,6 +1857,19 @@
 
       <!-- Controls -->
       <div class="header-controls">
+        <span
+          id="app-version"
+          style="
+            font-size: 0.75rem;
+            color: var(--tm);
+            margin-right: 12px;
+            padding: 4px 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+          "
+        >
+          v1.2.0
+        </span>
         <button
           class="cat-btn"
           id="pwa-install-btn"
@@ -2823,6 +2836,9 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
+      // ── APP VERSION ──
+      const APP_VERSION = "1.2.0";
+
       // ── SUPABASE CONFIGURATION (PlaceInfo 連携) ──
       const SUPABASE_URL = "https://uvjpiuinsgklddzhzpio.supabase.co";
       const SUPABASE_KEY = "sb_publishable_iW0cu7wjxn_rKjAd1O5Prg_tmecdAkX";
@@ -3564,6 +3580,12 @@
           pos: "名詞",
           meaning: "警察庁",
           level: "中級",
+        },
+        점원: {
+          hanja: "店員",
+          pos: "名詞",
+          meaning: "店員・店のスタッフ",
+          level: "初級",
         },
         검찰: { hanja: "檢察", pos: "名詞", meaning: "検察", level: "中級" },
         사건: {
@@ -8532,6 +8554,12 @@
 
       // ── INITIALIZATION ──
       document.addEventListener("DOMContentLoaded", () => {
+        // バージョン表示を更新
+        const versionEl = document.getElementById("app-version");
+        if (versionEl) {
+          versionEl.textContent = `v${APP_VERSION}`;
+        }
+
         initMap();
         renderHubChips();
         loadArticle(currentArticle);
