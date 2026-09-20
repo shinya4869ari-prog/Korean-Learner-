@@ -8640,13 +8640,20 @@
         // 既に初期化されている場合はスキップ
         if (mapInstance) return;
 
+        // 地図コンテナが表示されていることを確認
+        const mapPanel = document.getElementById("map-panel");
+        if (mapPanel && mapPanel.style.display === "none") {
+          console.log("Map panel is hidden, skipping initialization");
+          return;
+        }
+
         try {
           mapInstance = L.map("leaflet-map", {
             zoomControl: true,
             scrollWheelZoom: false,
           }).setView([37.6917, 129.0328], 13);
           L.tileLayer(
-            "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+            "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
             {
               attribution:
                 '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
