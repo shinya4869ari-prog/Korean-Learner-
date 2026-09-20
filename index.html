@@ -1913,26 +1913,54 @@
       <!-- ── 1. CATEGORY & NEWS/LYRICS SELECTION HUB ── -->
       <section class="hub-bar" id="news-hub-bar">
         <div class="category-filter-row" id="category-filter-bar">
-          <button class="cat-btn active" onclick="filterCategory('all', this)">
-            🌐 今週のTop 10 (すべて)
+          <button
+            class="cat-btn active"
+            onclick="filterCategory('all', this)"
+            id="cat-all"
+          >
+            🌐 すべての記事 <span id="count-all">(0)</span>
           </button>
-          <button class="cat-btn" onclick="filterCategory('crime', this)">
-            🚨 犯罪・治安
+          <button
+            class="cat-btn"
+            onclick="filterCategory('crime', this)"
+            id="cat-crime"
+          >
+            🚨 犯罪・治安 <span id="count-crime">(0)</span>
           </button>
-          <button class="cat-btn" onclick="filterCategory('life', this)">
-            🏡 暮らし・社会
+          <button
+            class="cat-btn"
+            onclick="filterCategory('life', this)"
+            id="cat-life"
+          >
+            🏡 暮らし・社会 <span id="count-life">(0)</span>
           </button>
-          <button class="cat-btn" onclick="filterCategory('politics', this)">
-            🏛️ 政治
+          <button
+            class="cat-btn"
+            onclick="filterCategory('politics', this)"
+            id="cat-politics"
+          >
+            🏛️ 政治 <span id="count-politics">(0)</span>
           </button>
-          <button class="cat-btn" onclick="filterCategory('economy', this)">
-            📈 経済
+          <button
+            class="cat-btn"
+            onclick="filterCategory('economy', this)"
+            id="cat-economy"
+          >
+            📈 経済 <span id="count-economy">(0)</span>
           </button>
-          <button class="cat-btn" onclick="filterCategory('diplomacy', this)">
-            🌐 外交・国際
+          <button
+            class="cat-btn"
+            onclick="filterCategory('diplomacy', this)"
+            id="cat-diplomacy"
+          >
+            🌐 外交・国際 <span id="count-diplomacy">(0)</span>
           </button>
-          <button class="cat-btn" onclick="filterCategory('celeb', this)">
-            ⭐ 推し・エンタメ
+          <button
+            class="cat-btn"
+            onclick="filterCategory('celeb', this)"
+            id="cat-celeb"
+          >
+            ⭐ 推し・エンタメ <span id="count-celeb">(0)</span>
           </button>
         </div>
 
@@ -8776,6 +8804,70 @@
         const container = document.getElementById("hub-chip-container");
         container.innerHTML = "";
         let list = SAMPLE_DATABASE[currentMode] || [];
+
+        // ニュース数をカウントして表示
+        if (currentMode === "news") {
+          const readArticles = getReadArticles();
+          const allNews = SAMPLE_DATABASE.news || [];
+
+          // カテゴリーごとのニュース数をカウント
+          const counts = {
+            all: allNews.length,
+            crime: allNews.filter((n) => n.category_type === "crime").length,
+            life: allNews.filter((n) => n.category_type === "life").length,
+            politics: allNews.filter((n) => n.category_type === "politics")
+              .length,
+            economy: allNews.filter((n) => n.category_type === "economy")
+              .length,
+            diplomacy: allNews.filter((n) => n.category_type === "diplomacy")
+              .length,
+            celeb: allNews.filter((n) => n.category_type === "celeb").length,
+          };
+
+          // 未読数をカウント
+          const unreadCounts = {
+            all: allNews.filter((n) => !readArticles.includes(String(n.id)))
+              .length,
+            crime: allNews.filter(
+              (n) =>
+                n.category_type === "crime" &&
+                !readArticles.includes(String(n.id)),
+            ).length,
+            life: allNews.filter(
+              (n) =>
+                n.category_type === "life" &&
+                !readArticles.includes(String(n.id)),
+            ).length,
+            politics: allNews.filter(
+              (n) =>
+                n.category_type === "politics" &&
+                !readArticles.includes(String(n.id)),
+            ).length,
+            economy: allNews.filter(
+              (n) =>
+                n.category_type === "economy" &&
+                !readArticles.includes(String(n.id)),
+            ).length,
+            diplomacy: allNews.filter(
+              (n) =>
+                n.category_type === "diplomacy" &&
+                !readArticles.includes(String(n.id)),
+            ).length,
+            celeb: allNews.filter(
+              (n) =>
+                n.category_type === "celeb" &&
+                !readArticles.includes(String(n.id)),
+            ).length,
+          };
+
+          // カテゴリーボタンに数値を表示
+          for (const cat in counts) {
+            const countEl = document.getElementById(`count-${cat}`);
+            if (countEl) {
+              countEl.textContent = `(${counts[cat]} / 未読${unreadCounts[cat]})`;
+            }
+          }
+        }
 
         if (currentMode === "news" && currentCategoryFilter !== "all") {
           list = list.filter(
