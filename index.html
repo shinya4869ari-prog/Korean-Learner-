@@ -9115,10 +9115,36 @@
         const list = [];
         const clean = word.replace(/[.,!?'"()…]/g, "");
 
-        // 0. ユーザーの単語帳（保存済み語彙）から優先抽出
+        // 助詞分解を試みる（語幹を抽出）
+        let stem = clean;
+        for (const particle of PARTICLES) {
+          if (clean.endsWith(particle.p) && clean.length > particle.p.length) {
+            stem = clean.slice(0, -particle.p.length);
+            break;
+          }
+        }
+
+        // 0. lookupKoreanWordを優先（助詞分解済みの結果を取得）
+        if (typeof lookupKoreanWord === "function") {
+          const dictRes = lookupKoreanWord(clean);
+          if (dictRes && dictRes.meaning && dictRes.meaning !== "調べ中...") {
+            const parts = dictRes.meaning
+              .split(/[,、/・()（）\s]+/)
+              .filter((p) => p.length >= 1);
+            list.push(...parts);
+            if (dictRes.hanja && dictRes.hanja !== "―" && dictRes.hanja !== "-")
+              list.push(dictRes.hanja);
+          }
+        }
+
+        // 0.5 ユーザーの単語帳（保存済み語彙）から優先抽出
         const savedWb = getWordbook();
         for (const sw of savedWb) {
-          if (clean === sw.word || clean.startsWith(sw.word)) {
+          if (
+            clean === sw.word ||
+            stem === sw.word ||
+            clean.startsWith(sw.word)
+          ) {
             const parts = (sw.meaning || "")
               .split(/[,、/・()（）\s]+/)
               .filter((p) => p.length >= 1);
@@ -9133,7 +9159,9 @@
           for (const v of currentArticle.vocab) {
             if (
               clean.includes(v.word) ||
+              stem.includes(v.word) ||
               v.word.includes(clean) ||
+              v.word.includes(stem) ||
               (v.word.endsWith("하다") && clean.startsWith(v.word.slice(0, -2)))
             ) {
               const parts = (v.meaning || "")
@@ -9146,28 +9174,20 @@
           }
         }
 
-        // 2. 内蔵辞書から抽出
+        // 2. 内蔵辞書から抽出（語幹優先）
         for (const k in BUILTIN_DICT) {
-          if (clean === k || clean.startsWith(k)) {
+          if (
+            stem === k ||
+            clean === k ||
+            clean.startsWith(k) ||
+            stem.startsWith(k)
+          ) {
             const m = BUILTIN_DICT[k];
             const parts = (m.meaning || "")
               .split(/[,、/・()（）\s]+/)
               .filter((p) => p.length >= 1);
             list.push(...parts);
             if (m.hanja && m.hanja !== "―") list.push(m.hanja);
-          }
-        }
-
-        // 2.5 動詞・活用形・語尾分解エンジン (lookupKoreanWord) からの意味抽出
-        if (typeof lookupKoreanWord === "function") {
-          const dictRes = lookupKoreanWord(clean);
-          if (dictRes && dictRes.meaning && dictRes.meaning !== "調べ中...") {
-            const parts = dictRes.meaning
-              .split(/[,、/・()（）\s]+/)
-              .filter((p) => p.length >= 1);
-            list.push(...parts);
-            if (dictRes.hanja && dictRes.hanja !== "―" && dictRes.hanja !== "-")
-              list.push(dictRes.hanja);
           }
         }
 
