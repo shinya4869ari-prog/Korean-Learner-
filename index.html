@@ -8725,7 +8725,6 @@
         const customInp = document.getElementById("custom-search-input");
         const lyricsPanel = document.getElementById("lyrics-panel");
         const legalPanel = document.getElementById("legal-panel");
-        const openPasteBtn = document.getElementById("open-paste-btn");
 
         const memoSection = document.getElementById("memo-view");
 
@@ -8760,7 +8759,6 @@
           catBar.style.display = "none";
           customInp.placeholder =
             "登録済みの曲名（例: AKMU, 김나영, G-DRAGON）を入力...";
-          openPasteBtn.style.display = "inline-flex";
           lyricsPanel.style.display = "block";
           // 🎵 下部プレイヤーバーは邪魔にならないようデフォルト非表示
           if (audioBar) audioBar.style.display = "none";
@@ -8771,7 +8769,6 @@
           catBar.style.display = "flex";
           customInp.placeholder =
             "事件・政治・ほっこりニュースのキーワード、URL、韓国語テキストを入力...";
-          openPasteBtn.style.display = "none";
           lyricsPanel.style.display = "none";
           legalPanel.style.display = "block";
           // ニュースモード時は下部プレイヤーバーを非表示にし、画面を広々使う！
@@ -8889,6 +8886,8 @@
             '<div style="font-size:0.8rem; color:var(--tm); padding:6px 10px;">該当する項目がありません</div>';
           return;
         }
+
+        const readArticles = getReadArticles();
 
         // 歌詞モード: テーブル形式
         if (currentMode === "lyrics") {
