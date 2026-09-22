@@ -5090,21 +5090,23 @@
           };
         }
 
-        // 4. ☁️ Cloudflare D1 辞書APIから非同期検索
+        // 4. ☁️ Supabase クラウド辞書テーブル（dictionary）から非同期検索
         try {
           const targets = stem !== q ? [stem, q] : [q];
           for (const t of targets) {
             const res = await fetch(
-              `https://korean-learner-dict-api.shinya4869ari.workers.dev/api/dictionary?word=${encodeURIComponent(t)}`,
+              `${SUPABASE_URL}/rest/v1/dictionary?word=eq.${encodeURIComponent(t)}&select=*&limit=1`,
               {
                 headers: {
-                  "Content-Type": "application/json",
+                  apikey: SUPABASE_KEY,
+                  Authorization: `Bearer ${SUPABASE_KEY}`,
                 },
               },
             );
             if (res.ok) {
-              const row = await res.json();
-              if (row && row.word) {
+              const list = await res.json();
+              if (list && list.length > 0) {
+                const row = list[0];
                 const hanjaDisplay =
                   row.hanja && row.hanja !== "―" && row.hanja !== "-"
                     ? row.hanja
@@ -5124,7 +5126,6 @@
           }
         } catch (err) {
           // クラウド辞書未作成または取得失敗時は静かにフォールバック
-          console.warn("Cloudflare D1 dictionary fetch error:", err);
         }
 
         // 5. 🧠 活用形の原形候補探索 ＆ Wiktionary / 外部翻訳による精密補完

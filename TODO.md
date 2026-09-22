@@ -4,12 +4,13 @@
 
 ## 📌 今日の進捗 (2026-09-22)
 
-- [x] **辞書データをCloudflare D1に移行（完了）**
+- [x] **辞書データをCloudflare D1に移行（一部完了・一時停止）**
   - **完了**: Cloudflare D1データベースの作成とdictionaryテーブルの定義
   - **完了**: KRDICT（韓国語-日本語辞書）49,834件のデータをインポート
   - **完了**: Cloudflare Workersで辞書検索APIエンドポイントを作成
   - **完了**: WorkerのD1接続設定調整（workers_dev: falseでリモートD1を使用）
-  - **完了**: index.htmlでSupabase辞書APIからCloudflare D1 APIに切り替え
+  - **課題**: Cloudflare Workersのデプロイメント問題でAPIが正常に動作せず
+  - **一時対応**: index.htmlをSupabase辞書APIに戻してアプリ動作を確保
 
 ---
 
