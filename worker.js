@@ -12,6 +12,7 @@ export default {
       return new Response(null, { headers: corsHeaders });
     }
 
+    // 辞書APIエンドポイント (/api/dictionary)
     if (url.pathname === "/api/dictionary" && request.method === "GET") {
       const word = url.searchParams.get("word");
 
@@ -58,6 +59,7 @@ export default {
       }
     }
 
-    return new Response("Not Found", { status: 404, headers: corsHeaders });
+    // その他のリクエストは静的アセット（index.htmlなど）に流す
+    return env.ASSETS.fetch(request);
   },
 };
