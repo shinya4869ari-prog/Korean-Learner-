@@ -42,7 +42,48 @@ Cloudflare Workersで辞書検索APIエンドポイントを構築中ですが�
 
 ### 期待する動作
 
-`https://korean-learner-dict-api.shinya4869ari.workers.dev/api/dictionary?word=원` で正しいJSONレスポンスが返されること
+`https://koreanews.seronworks.dev/api/dictionary?word=원` で正しいJSONレスポンスが返されること
+
+---
+
+## 🔧 修正版インポートスクリプトの設計（term*bank*\*.json データ修正用）
+
+### 背景
+
+D1の辞書データ（dictionaryテーブル）に日本語訳ではなく韓国語の読み方（見出し語）が入っている問題を修正する必要がある。
+
+### データ構造（Yomitan形式）
+
+```json
+["置換되다","치환되다","動詞","v",0,[{"type":"structured-content","content":[...日本語訳データ...]}]
+```
+
+**配列のインデックス**:
+
+- 0: 置換되다（韓国語）
+- 1: 치환되다（ハングル）
+- 2: 動詞（品詞）
+- 3: v（活用型）
+- 4: 0（レベル）
+- 5: [...日本語訳データ...]（これをmeaningに入れるべき）
+
+### 処理フロー
+
+1. `dict_data/term_bank_1.json` 〜 `term_bank_11.json` を順に読み込む
+2. 各配列の5番目の要素（構造化されたJSON）からテキストを抽出
+3. 日本語部分（`lang: "ja"`）のみを抽出してクリーンアップ
+4. D1のINSERT文を作成（word, hanja, pos, meaning, level）
+
+### 抽出ロジック
+
+- 5番目の要素はstructured-content形式
+- `content` 配列内の `lang: "ja"` の要素を抽出
+- テキストのみを抽出（HTMLタグなどを削除）
+
+### 注意事項
+
+- 書き込み制限は日本時間の朝9:00（UTC 0:00）にリセットされる
+- それまでD1への書き込み処理やインポートスクリプトは絶対に実行しない
 
 ---
 
