@@ -8895,11 +8895,11 @@
             const chip = document.createElement("div");
             const isSelected = item.id === currentArticle.id;
 
-            chip.className = `hub-chip ${isSelected ? "active" : ""}`;
+            chip.className = `lyrics-list-item ${isSelected ? "active" : ""}`;
             chip.style.cssText =
-              "display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-bottom:1px solid var(--bd); cursor:pointer; transition:background 0.2s;";
-            chip.onmouseover = () => (chip.style.background = "var(--s2)");
-            chip.onmouseout = () => (chip.style.background = "");
+              "display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-bottom:1px solid var(--bd); cursor:pointer; transition:background 0.2s; background:var(--s2);";
+            chip.onmouseover = () => (chip.style.background = "var(--s3)");
+            chip.onmouseout = () => (chip.style.background = "var(--s2)");
 
             const artist = item.artist || "不明";
             const titleKo = item.title_ko
