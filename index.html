@@ -8902,8 +8902,6 @@
           return;
         }
 
-        const readArticles = getReadArticles();
-
         // 歌詞モード: テーブル形式
         if (currentMode === "lyrics") {
           const table = document.createElement("table");
@@ -8915,7 +8913,6 @@
               <tr style="background:var(--s2); border-bottom:1px solid var(--bd);">
                 <th style="padding:8px; text-align:left; font-weight:700;">アーティスト</th>
                 <th style="padding:8px; text-align:left; font-weight:700;">曲名</th>
-                <th style="padding:8px; text-align:left; font-weight:700;">カテゴリー</th>
                 <th style="padding:8px; text-align:center; font-weight:700;">操作</th>
               </tr>
             </thead>
@@ -8938,8 +8935,6 @@
             const titleJa = item.title_ja
               ? item.title_ja.split(" - ")[0].trim()
               : "";
-            const category = item.category || "歌詞";
-            const cloudIcon = item.is_supabase ? " ☁️" : "";
 
             tr.innerHTML = `
               <td style="padding:8px;">${artist}</td>
@@ -8947,7 +8942,6 @@
                 <div>${titleKo}</div>
                 <div style="font-size:0.75rem; color:var(--tm);">${titleJa}</div>
               </td>
-              <td style="padding:8px;">${category}${cloudIcon}</td>
               <td style="padding:8px; text-align:center;">
                 <button class="chip-delete-btn" onclick="deleteSongItem('${item.id}', event)" title="この楽曲を削除">🗑️</button>
               </td>
