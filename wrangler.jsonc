@@ -1,8 +1,1 @@
-{
-  "name": "korean-learner",
-  "compatibility_date": "2026-08-24",
-  "workers_dev": false,
-  "assets": {
-    "directory": "."
-  }
-}
+{"name":"korean-learner-dict-api","main":"worker.js","compatibility_date":"2026-08-24","workers_dev":false,"d1_databases":[{"binding":"DB","database_name":"korean-learner-dict","database_id":"98ff31cb-043e-436d-ab4e-a1bf45cc0954","migrations_dir":"migrations"}]}

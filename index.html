@@ -95,7 +95,7 @@
             transparent 50%
           );
         background-attachment: fixed;
-        padding-bottom: 95px;
+        padding-bottom: 24px;
       }
 
       /* ── HEADER & NAV ── */
@@ -1255,89 +1255,7 @@
         line-height: 1.45;
       }
 
-      /* ── FLOATING SMART AUDIO PLAYER TOOLBAR ── */
-      .floating-audio-bar {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        background: rgba(19, 21, 36, 0.95);
-        backdrop-filter: blur(18px);
-        border-top: 1px solid var(--bd);
-        padding: 12px 24px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        z-index: 1500;
-        box-shadow: 0 -4px 25px rgba(0, 0, 0, 0.4);
-        gap: 16px;
-      }
-      .player-left {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-        min-width: 280px;
-      }
-      .player-title {
-        font-size: 0.85rem;
-        font-weight: 700;
-        color: #fff;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: 320px;
-      }
-      .player-progress-badge {
-        font-size: 0.72rem;
-        color: var(--ac);
-        background: rgba(0, 212, 170, 0.12);
-        padding: 3px 8px;
-        border-radius: 12px;
-        font-weight: 700;
-        border: 1px solid rgba(0, 212, 170, 0.3);
-      }
-      .player-controls-center {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
-      .player-btn {
-        background: var(--s2);
-        border: 1px solid var(--bd);
-        color: var(--tx);
-        border-radius: 50%;
-        width: 38px;
-        height: 38px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        font-size: 0.95rem;
-        transition: all 0.2s;
-      }
-      .player-btn:hover {
-        border-color: var(--ac);
-        color: var(--ac);
-        transform: scale(1.08);
-      }
-      .player-btn.play-main {
-        width: 46px;
-        height: 46px;
-        background: linear-gradient(135deg, var(--ac), #0ea5e9);
-        border: none;
-        color: #000;
-        font-weight: 800;
-        font-size: 1.15rem;
-        box-shadow: 0 4px 15px rgba(0, 212, 170, 0.4);
-      }
-      .player-btn.play-main:hover {
-        transform: scale(1.06);
-      }
-      .player-right {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
+      /* FLOATING SMART AUDIO PLAYER TOOLBAR REMOVED - Phase 2 improvement */
 
       /* ── WORDBOOK TAB ── */
       #wordbook-view {
@@ -2747,95 +2665,7 @@
       </div>
     </div>
 
-    <!-- ── FLOATING SMART AUDIO PLAYER TOOLBAR ── -->
-    <div class="floating-audio-bar" id="audio-toolbar" style="display: none">
-      <div class="player-left">
-        <span class="player-progress-badge" id="player-status-badge"
-          >文 1 / 14</span
-        >
-        <div class="player-title" id="player-now-text">
-          再生準備完了（各文または下のボタンで操作）
-        </div>
-      </div>
-
-      <div class="player-controls-center">
-        <button
-          class="player-btn"
-          onclick="playPrevSentence()"
-          title="前の文へ (⏮)"
-        >
-          ⏮
-        </button>
-        <button
-          class="player-btn play-main"
-          id="player-play-btn"
-          onclick="togglePlayPause()"
-          title="再生 / 一時停止 (Space)"
-        >
-          ▶
-        </button>
-        <button class="player-btn" onclick="stopSpeech()" title="停止 (⏹)">
-          ⏹
-        </button>
-        <button
-          class="player-btn"
-          onclick="playNextSentence()"
-          title="次の文へ (⏭)"
-        >
-          ⏭
-        </button>
-        <button
-          class="player-btn"
-          onclick="
-            document.getElementById('audio-toolbar').style.display = 'none';
-            document.body.style.paddingBottom = '24px';
-          "
-          title="プレイヤーを閉じる"
-          style="font-size: 0.8rem; margin-right: 4px"
-        >
-          ✕
-        </button>
-        <button
-          class="player-btn"
-          id="repeat-btn"
-          onclick="toggleRepeatSingle()"
-          title="1文リピート切り替え"
-          style="font-size: 0.8rem"
-        >
-          🔁
-        </button>
-      </div>
-
-      <div
-        class="player-right"
-        style="display: flex; align-items: center; gap: 8px"
-      >
-        <span style="font-size: 0.75rem; color: var(--tm)">再生速度:</span>
-        <select id="speech-speed" class="speed-select" onchange="updateSpeed()">
-          <option value="0.8">0.8x (ゆっくり)</option>
-          <option value="1.0" selected>1.0x (標準)</option>
-          <option value="1.2">1.2x (速め)</option>
-          <option value="1.5">1.5x (倍速)</option>
-        </select>
-        <button
-          class="mini-action-btn"
-          onclick="
-            document.getElementById('audio-toolbar').style.display = 'none';
-            document.body.style.paddingBottom = '24px';
-          "
-          style="
-            color: #f87171;
-            border-color: rgba(239, 68, 68, 0.3);
-            background: rgba(239, 68, 68, 0.1);
-            padding: 4px 10px;
-            font-weight: 700;
-          "
-          title="プレイヤーバーを完全に非表示にする"
-        >
-          ✕ 閉じる
-        </button>
-      </div>
-    </div>
+    <!-- FLOATING SMART AUDIO PLAYER TOOLBAR REMOVED - Phase 2 improvement -->
 
     <!-- Toast Notification -->
     <div class="toast" id="toast-msg">単語帳に追加しました！ ⭐</div>
@@ -5260,23 +5090,21 @@
           };
         }
 
-        // 4. ☁️ Supabase クラウド辞書テーブル（dictionary）から非同期検索
+        // 4. ☁️ Cloudflare D1 辞書APIから非同期検索
         try {
           const targets = stem !== q ? [stem, q] : [q];
           for (const t of targets) {
             const res = await fetch(
-              `${SUPABASE_URL}/rest/v1/dictionary?word=eq.${encodeURIComponent(t)}&select=*&limit=1`,
+              `https://korean-learner-dict-api.shinya4869ari.workers.dev/api/dictionary?word=${encodeURIComponent(t)}`,
               {
                 headers: {
-                  apikey: SUPABASE_KEY,
-                  Authorization: `Bearer ${SUPABASE_KEY}`,
+                  "Content-Type": "application/json",
                 },
               },
             );
             if (res.ok) {
-              const list = await res.json();
-              if (list && list.length > 0) {
-                const row = list[0];
+              const row = await res.json();
+              if (row && row.word) {
                 const hanjaDisplay =
                   row.hanja && row.hanja !== "―" && row.hanja !== "-"
                     ? row.hanja
@@ -5296,6 +5124,7 @@
           }
         } catch (err) {
           // クラウド辞書未作成または取得失敗時は静かにフォールバック
+          console.warn("Cloudflare D1 dictionary fetch error:", err);
         }
 
         // 5. 🧠 活用形の原形候補探索 ＆ Wiktionary / 外部翻訳による精密補完
@@ -7012,7 +6841,19 @@
 
         showToast(`「${title.slice(0, 16)}…」を削除中... 🗑️`);
 
-        // 1. Supabase からの削除実行
+        // 1. 即座にDOMから削除（フェードアウト効果）
+        const chipElement = event ? event.target.closest(".hub-chip") : null;
+        if (chipElement) {
+          chipElement.style.transition =
+            "opacity 0.3s ease, transform 0.3s ease";
+          chipElement.style.opacity = "0";
+          chipElement.style.transform = "translateX(-20px)";
+          setTimeout(() => {
+            chipElement.remove();
+          }, 300);
+        }
+
+        // 2. Supabase からの削除実行
         try {
           const rawId = item.id ? item.id.replace("supabase-news-", "") : "";
           if (rawId && item.is_supabase) {
@@ -7034,12 +6875,12 @@
           console.warn("Supabase news delete error:", err);
         }
 
-        // 2. ローカル配列からの削除
+        // 3. ローカル配列からの削除
         SAMPLE_DATABASE.news = (SAMPLE_DATABASE.news || []).filter(
           (n) => n.id !== item.id,
         );
 
-        // 3. localStorage にも「削除済みID」として記録（次回フェッチ時にも確実に除外）
+        // 4. localStorage にも「削除済みID」として記録（次回フェッチ時にも確実に除外）
         try {
           const delList = JSON.parse(
             localStorage.getItem("kr_learner_deleted_news_ids") || "[]",
@@ -7053,7 +6894,7 @@
           }
         } catch (e) {}
 
-        // 4. 次の記事の選択と画面更新
+        // 5. 次の記事の選択と画面更新
         if (SAMPLE_DATABASE.news.length === 0) {
           SAMPLE_DATABASE.news.push({
             id: "news-empty",
@@ -7069,8 +6910,12 @@
           currentArticle = SAMPLE_DATABASE.news[0];
           loadArticle(currentArticle);
         }
-        renderHubChips();
-        showToast("ニュースを削除しました 🗑️");
+
+        // 6. チップリストを再描画
+        setTimeout(() => {
+          renderHubChips();
+          showToast("ニュースを削除しました 🗑️");
+        }, 350);
       }
 
       async function deleteSongItem(itemId, event) {
@@ -7092,7 +6937,19 @@
 
         showToast(`「${songTitle.slice(0, 16)}…」を削除中... 🗑️`);
 
-        // 1. Supabase tracksテーブルからの削除実行
+        // 1. 即座にDOMから削除（フェードアウト効果）
+        const chipElement = event ? event.target.closest("tr") : null;
+        if (chipElement) {
+          chipElement.style.transition =
+            "opacity 0.3s ease, transform 0.3s ease";
+          chipElement.style.opacity = "0";
+          chipElement.style.transform = "translateX(-20px)";
+          setTimeout(() => {
+            chipElement.remove();
+          }, 300);
+        }
+
+        // 2. Supabase tracksテーブルからの削除実行
         try {
           const rawTrackId = (item.id || "").replace(/^supabase-|^lyrics-/, "");
           if (rawTrackId) {
@@ -7114,12 +6971,12 @@
           console.warn("Supabase track delete error:", err);
         }
 
-        // 2. ローカルリストからの削除
+        // 3. ローカルリストからの削除
         SAMPLE_DATABASE.lyrics = (SAMPLE_DATABASE.lyrics || []).filter(
           (l) => l.id !== item.id && l.title_ko !== item.title_ko,
         );
 
-        // 3. localStorageの削除済みリストに記録
+        // 4. localStorageの削除済みリストに記録
         try {
           const delList = JSON.parse(
             localStorage.getItem("kr_learner_deleted_song_ids") || "[]",
@@ -7135,7 +6992,7 @@
           }
         } catch (e) {}
 
-        // 4. 空になった場合のフォールバック
+        // 5. 空になった場合のフォールバック
         if (SAMPLE_DATABASE.lyrics.length === 0) {
           SAMPLE_DATABASE.lyrics.push({
             id: "lyrics-empty",
@@ -7148,6 +7005,7 @@
           });
         }
 
+        // 6. 現在表示中の記事が削除された場合の処理
         if (
           currentArticle &&
           (currentArticle.id === item.id ||
@@ -7156,8 +7014,12 @@
           currentArticle = SAMPLE_DATABASE.lyrics[0];
           loadArticle(currentArticle);
         }
-        renderHubChips();
-        showToast("楽曲を削除しました 🗑️");
+
+        // 7. チップリストを再描画
+        setTimeout(() => {
+          renderHubChips();
+          showToast("楽曲を削除しました 🗑️");
+        }, 350);
       }
 
       async function deleteCurrentSong() {
@@ -8728,14 +8590,10 @@
 
         const memoSection = document.getElementById("memo-view");
 
-        const audioBar = document.getElementById("audio-toolbar");
-
         if (mode === "wordbook") {
           ws.style.display = "none";
           wb.style.display = "flex";
           if (memoSection) memoSection.style.display = "none";
-          if (audioBar) audioBar.style.display = "none";
-          document.body.style.paddingBottom = "24px";
           renderWordbookGrid();
           return;
         }
@@ -8744,8 +8602,6 @@
           ws.style.display = "none";
           wb.style.display = "none";
           if (memoSection) memoSection.style.display = "flex";
-          if (audioBar) audioBar.style.display = "none";
-          document.body.style.paddingBottom = "24px";
           renderNotesList();
           return;
         }
@@ -8759,9 +8615,6 @@
           catBar.style.display = "none";
           customInp.style.display = "none";
           lyricsPanel.style.display = "block";
-          // 🎵 下部プレイヤーバーは邪魔にならないようデフォルト非表示
-          if (audioBar) audioBar.style.display = "none";
-          document.body.style.paddingBottom = "24px";
           currentArticle = SAMPLE_DATABASE.lyrics[0];
           syncSupabaseLyricsToApp();
         } else {
@@ -8771,9 +8624,6 @@
             "事件・政治・ほっこりニュースのキーワード、URL、韓国語テキストを入力...";
           lyricsPanel.style.display = "none";
           legalPanel.style.display = "block";
-          // ニュースモード時は下部プレイヤーバーを非表示にし、画面を広々使う！
-          if (audioBar) audioBar.style.display = "none";
-          document.body.style.paddingBottom = "24px";
           currentArticle = SAMPLE_DATABASE.news[0];
         }
 
@@ -10145,23 +9995,9 @@
         showToast("文章をクリップボードにコピーしました！ 📋");
       }
 
-      // ── SMART AUDIO PLAYER CONTROLS ──
+      // ── SMART AUDIO PLAYER CONTROLS (REMOVED - Phase 2 improvement) ──
       function updatePlayerToolbar() {
-        const sentences = currentArticle.sentences || [];
-        const total = sentences.length;
-        const currentNum = Math.min(currentSentenceIndex + 1, total);
-        document.getElementById("player-status-badge").textContent =
-          `文 ${currentNum} / ${total}`;
-
-        const currentSentence = sentences[currentSentenceIndex];
-        const nowText = currentSentence
-          ? currentSentence.ko
-          : currentArticle.title_ko;
-        document.getElementById("player-now-text").textContent = nowText;
-
-        document.getElementById("player-play-btn").textContent = isPlaying
-          ? "⏸"
-          : "▶";
+        // Player toolbar removed - function kept for compatibility but does nothing
       }
 
       function highlightReadingWord(sentenceIdx, charIndex) {
@@ -10181,11 +10017,6 @@
             w.classList.remove("active-reading-word");
           }
         });
-
-        if (currentWordEl) {
-          document.getElementById("player-now-text").innerHTML =
-            `🔊 読上げ中: <span style="color:var(--ac); font-weight:800;">${currentWordEl.textContent}</span>`;
-        }
       }
 
       function clearAllWordHighlights() {
