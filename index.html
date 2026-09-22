@@ -8904,65 +8904,123 @@
 
         const readArticles = getReadArticles();
 
-        list.forEach((item) => {
-          const chip = document.createElement("div");
-          const isSelected = item.id === currentArticle.id;
-          const isRead = readArticles.includes(String(item.id));
+        // 歌詞モード: テーブル形式
+        if (currentMode === "lyrics") {
+          const table = document.createElement("table");
+          table.style.cssText =
+            "width:100%; border-collapse:collapse; font-size:0.8rem;";
 
-          chip.className = `hub-chip ${currentMode === "lyrics" ? "lyrics-chip" : ""} ${isSelected ? "active" : ""} ${isRead ? "is-read" : "is-unread"}`;
+          table.innerHTML = `
+            <thead>
+              <tr style="background:var(--s2); border-bottom:1px solid var(--bd);">
+                <th style="padding:8px; text-align:left; font-weight:700;">アーティスト</th>
+                <th style="padding:8px; text-align:left; font-weight:700;">曲名</th>
+                <th style="padding:8px; text-align:left; font-weight:700;">カテゴリー</th>
+                <th style="padding:8px; text-align:center; font-weight:700;">操作</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          `;
 
-          const cloudIcon = item.is_supabase ? " ☁️" : "";
-          const catIcon = item.category
-            ? item.category.split(" ")[0]
-            : currentMode === "lyrics"
-              ? "🎵"
-              : "📰";
-          const catName = item.category
-            ? item.category.replace(/^[^\s]+\s*/, "")
-            : "";
-          const sourceText = item.source_name ? `• ${item.source_name}` : "";
+          const tbody = table.querySelector("tbody");
 
-          // 日本語見出しと韓国語見出し
-          const titleJa = item.title_ja
-            ? item.title_ja.split(" - ")[0].trim()
-            : "";
-          const titleKo = item.title_ko
-            ? item.title_ko.split(" - ")[0].trim()
-            : "";
+          list.forEach((item) => {
+            const tr = document.createElement("tr");
+            tr.style.cssText =
+              "border-bottom:1px solid var(--bd); cursor:pointer; transition:background 0.2s;";
+            tr.onmouseover = () => (tr.style.background = "var(--s2)");
+            tr.onmouseout = () => (tr.style.background = "");
 
-          // ニュースの場合は日本語見出しを最優先で大きく、韓国語を下に添える
-          const mainTitle =
-            currentMode === "news" && titleJa ? titleJa : titleKo;
-          const subTitle =
-            currentMode === "news" && titleJa ? titleKo : titleJa || "";
+            const artist = item.artist || "不明";
+            const titleKo = item.title_ko
+              ? item.title_ko.split(" - ")[0].trim()
+              : "";
+            const titleJa = item.title_ja
+              ? item.title_ja.split(" - ")[0].trim()
+              : "";
+            const category = item.category || "歌詞";
+            const cloudIcon = item.is_supabase ? " ☁️" : "";
 
-          // 既読・未読バッジ
-          const statusBadge = isRead
-            ? `<span class="chip-badge-read">✔ 既読</span>`
-            : `<span class="chip-badge-unread">● NEW</span>`;
+            tr.innerHTML = `
+              <td style="padding:8px;">${artist}</td>
+              <td style="padding:8px;">
+                <div>${titleKo}</div>
+                <div style="font-size:0.75rem; color:var(--tm);">${titleJa}</div>
+              </td>
+              <td style="padding:8px;">${category}${cloudIcon}</td>
+              <td style="padding:8px; text-align:center;">
+                <button class="chip-delete-btn" onclick="deleteSongItem('${item.id}', event)" title="この楽曲を削除">🗑️</button>
+              </td>
+            `;
 
-          chip.innerHTML = `
-          <div class="chip-top-bar">
-            <span class="chip-cat-tag"><span>${catIcon}</span> <span>${catName}</span> <span style="opacity:0.65; font-size:0.7rem;">${sourceText}</span></span>
-            <div style="display:flex; align-items:center; gap:6px;">
-              ${cloudIcon}
-              ${currentMode === "news" ? statusBadge : ""}
-              <button class="chip-delete-btn" onclick="${currentMode === "lyrics" ? `deleteSongItem('${item.id}', event)` : `deleteNewsItem('${item.id}', event)`}" title="${currentMode === "lyrics" ? "この楽曲を削除" : "このニュースを削除"}">🗑️</button>
+            tr.onclick = (e) => {
+              if (e.target.tagName === "BUTTON") return;
+              stopSpeech();
+              currentArticle = item;
+              renderHubChips();
+              loadArticle(item);
+            };
+
+            tbody.appendChild(tr);
+          });
+
+          container.appendChild(table);
+        } else {
+          // ニュースモード: カード形式
+          list.forEach((item) => {
+            const chip = document.createElement("div");
+            const isSelected = item.id === currentArticle.id;
+            const isRead = readArticles.includes(String(item.id));
+
+            chip.className = `hub-chip ${isSelected ? "active" : ""} ${isRead ? "is-read" : "is-unread"}`;
+
+            const cloudIcon = item.is_supabase ? " ☁️" : "";
+            const catIcon = item.category ? item.category.split(" ")[0] : "📰";
+            const catName = item.category
+              ? item.category.replace(/^[^\s]+\s*/, "")
+              : "";
+            const sourceText = item.source_name ? `• ${item.source_name}` : "";
+
+            // 日本語見出しと韓国語見出し
+            const titleJa = item.title_ja
+              ? item.title_ja.split(" - ")[0].trim()
+              : "";
+            const titleKo = item.title_ko
+              ? item.title_ko.split(" - ")[0].trim()
+              : "";
+
+            // ニュースの場合は日本語見出しを最優先で大きく、韓国語を下に添える
+            const mainTitle = titleJa ? titleJa : titleKo;
+            const subTitle = titleJa ? titleKo : titleJa || "";
+
+            // 既読・未読バッジ
+            const statusBadge = isRead
+              ? `<span class="chip-badge-read">✔ 既読</span>`
+              : `<span class="chip-badge-unread">● NEW</span>`;
+
+            chip.innerHTML = `
+            <div class="chip-top-bar">
+              <span class="chip-cat-tag"><span>${catIcon}</span> <span>${catName}</span> <span style="opacity:0.65; font-size:0.7rem;">${sourceText}</span></span>
+              <div style="display:flex; align-items:center; gap:6px;">
+                ${cloudIcon}
+                ${statusBadge}
+                <button class="chip-delete-btn" onclick="deleteNewsItem('${item.id}', event)" title="このニュースを削除">🗑️</button>
+              </div>
             </div>
-          </div>
-          <div class="chip-title-ja">${mainTitle}</div>
-          ${subTitle ? `<div class="chip-title-ko">${subTitle}</div>` : ""}
-        `;
+            <div class="chip-title-ja">${mainTitle}</div>
+            ${subTitle ? `<div class="chip-title-ko">${subTitle}</div>` : ""}
+          `;
 
-          chip.onclick = () => {
-            stopSpeech();
-            currentArticle = item;
-            markArticleAsRead(item.id);
-            renderHubChips();
-            loadArticle(item);
-          };
-          container.appendChild(chip);
-        });
+            chip.onclick = () => {
+              stopSpeech();
+              currentArticle = item;
+              markArticleAsRead(item.id);
+              renderHubChips();
+              loadArticle(item);
+            };
+            container.appendChild(chip);
+          });
+        }
       }
 
       // ── WORD SPAN GENERATOR (語順インデックス付き＆スキャン対訳連動) ──
