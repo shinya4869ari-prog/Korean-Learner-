@@ -27,6 +27,10 @@ export default {
 
       try {
         console.log(`Searching for word: ${word}`);
+        console.log(
+          `Using DB binding: ${env.DB ? "available" : "not available"}`,
+        );
+
         const result = await env.DB.prepare(
           "SELECT word, hanja, pos, meaning, level FROM dictionary WHERE word = ? LIMIT 1",
         )

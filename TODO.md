@@ -10,7 +10,39 @@
   - **完了**: Cloudflare Workersで辞書検索APIエンドポイントを作成
   - **完了**: WorkerのD1接続設定調整（workers_dev: falseでリモートD1を使用）
   - **課題**: Cloudflare Workersのデプロイメント問題でAPIが正常に動作せず
-  - **一時対応**: index.htmlをSupabase辞書APIに戻してアプリ動作を確保
+  - **一時対応**: index.htmlをBUILTIN_DICT（内蔵辞書）のみ使用
+
+---
+
+## 🔧 Cloudflare Workersの問題リスト（他のAI対応用）
+
+### 問題概要
+
+Cloudflare Workersで辞書検索APIエンドポイントを構築中ですが、デプロイメント後にAPIが正常に動作しません。
+
+### 具体的な問題
+
+1. **APIレスポンス**: `curl`でテストすると `{"error":"Word not found"}` が返される
+2. **データベース接続**: D1リモートデータベースには49,834件のデータが存在（確認済み）
+3. **デプロイメント**: `npx wrangler deploy` は成功するが、"No targets deployed" という警告が出る
+4. **workers_dev設定**: `workers_dev: true` では動作するが、`workers_dev: false` では動作しない
+
+### 試した設定
+
+- `workers_dev: false` - リモートD1を使用設定
+- `workers_dev: true` - ローカル開発環境設定
+- routes設定の追加・削除
+- worker.jsにデバッグログ追加
+
+### 現在の設定ファイル
+
+- **wrangler.jsonc**: workers_dev: false設定
+- **worker.js**: 辞書検索APIエンドポイント実装済み
+- **D1データベース**: korean-learner-dict (ID: 98ff31cb-043e-436d-ab4e-a1bf45cc0954)
+
+### 期待する動作
+
+`https://korean-learner-dict-api.shinya4869ari.workers.dev/api/dictionary?word=원` で正しいJSONレスポンスが返されること
 
 ---
 
