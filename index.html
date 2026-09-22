@@ -8889,36 +8889,49 @@
 
         const readArticles = getReadArticles();
 
-        // 歌詞モード: シンプルなリスト形式
+        // 歌詞モード: テーブル形式
         if (currentMode === "lyrics") {
           container.style.display = "block";
           container.style.gridTemplateColumns = "none";
 
-          list.forEach((item) => {
-            const chip = document.createElement("div");
-            const isSelected = item.id === currentArticle.id;
+          const table = document.createElement("table");
+          table.style.cssText =
+            "width:100%; border-collapse:collapse; font-size:0.8rem;";
 
-            chip.className = `lyrics-list-item ${isSelected ? "active" : ""}`;
-            chip.style.cssText =
-              "display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-bottom:1px solid var(--bd); cursor:pointer; transition:background 0.2s; background:var(--s2);";
-            chip.onmouseover = () => (chip.style.background = "var(--s3)");
-            chip.onmouseout = () => (chip.style.background = "var(--s2)");
+          table.innerHTML = `
+            <thead>
+              <tr style="background:var(--s2); border-bottom:1px solid var(--bd);">
+                <th style="padding:8px; text-align:left; font-weight:700; width:30%;">アーティスト</th>
+                <th style="padding:8px; text-align:left; font-weight:700; width:auto;">曲名</th>
+                <th style="padding:8px; text-align:center; font-weight:700; width:60px;">操作</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          `;
+
+          const tbody = table.querySelector("tbody");
+
+          list.forEach((item) => {
+            const tr = document.createElement("tr");
+            tr.style.cssText =
+              "border-bottom:1px solid var(--bd); cursor:pointer; transition:background 0.2s;";
+            tr.onmouseover = () => (tr.style.background = "var(--s3)");
+            tr.onmouseout = () => (tr.style.background = "");
 
             const artist = item.artist || "不明";
             const titleKo = item.title_ko
               ? item.title_ko.split(" - ")[0].trim()
               : "";
 
-            chip.innerHTML = `
-              <div style="display:flex; align-items:center; gap:8px;">
-                <span style="font-weight:600;">${artist}</span>
-                <span style="color:var(--tm);">-</span>
-                <span>${titleKo}</span>
-              </div>
-              <button class="chip-delete-btn" onclick="deleteSongItem('${item.id}', event)" title="この楽曲を削除">🗑️</button>
+            tr.innerHTML = `
+              <td style="padding:8px;">${artist}</td>
+              <td style="padding:8px;">${titleKo}</td>
+              <td style="padding:8px; text-align:center;">
+                <button class="chip-delete-btn" onclick="deleteSongItem('${item.id}', event)" title="この楽曲を削除">🗑️</button>
+              </td>
             `;
 
-            chip.onclick = (e) => {
+            tr.onclick = (e) => {
               if (e.target.tagName === "BUTTON") return;
               stopSpeech();
               currentArticle = item;
@@ -8926,8 +8939,10 @@
               loadArticle(item);
             };
 
-            container.appendChild(chip);
+            tbody.appendChild(tr);
           });
+
+          container.appendChild(table);
         } else {
           // ニュースモード: カード形式
           container.style.display = "grid";
