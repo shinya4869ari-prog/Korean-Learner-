@@ -8891,6 +8891,9 @@
 
         // 歌詞モード: シンプルなリスト形式
         if (currentMode === "lyrics") {
+          container.style.display = "block";
+          container.style.gridTemplateColumns = "none";
+
           list.forEach((item) => {
             const chip = document.createElement("div");
             const isSelected = item.id === currentArticle.id;
@@ -8927,6 +8930,9 @@
           });
         } else {
           // ニュースモード: カード形式
+          container.style.display = "grid";
+          container.style.gridTemplateColumns = "";
+
           list.forEach((item) => {
             const chip = document.createElement("div");
             const isSelected = item.id === currentArticle.id;
