@@ -8757,8 +8757,7 @@
 
         if (mode === "lyrics") {
           catBar.style.display = "none";
-          customInp.placeholder =
-            "登録済みの曲名（例: AKMU, 김나영, G-DRAGON）を入力...";
+          customInp.style.display = "none";
           lyricsPanel.style.display = "block";
           // 🎵 下部プレイヤーバーは邪魔にならないようデフォルト非表示
           if (audioBar) audioBar.style.display = "none";
@@ -8767,6 +8766,7 @@
           syncSupabaseLyricsToApp();
         } else {
           catBar.style.display = "flex";
+          customInp.style.display = "block";
           customInp.placeholder =
             "事件・政治・ほっこりニュースのキーワード、URL、韓国語テキストを入力...";
           lyricsPanel.style.display = "none";
@@ -8919,16 +8919,10 @@
             const titleKo = item.title_ko
               ? item.title_ko.split(" - ")[0].trim()
               : "";
-            const titleJa = item.title_ja
-              ? item.title_ja.split(" - ")[0].trim()
-              : "";
 
             tr.innerHTML = `
               <td style="padding:8px;">${artist}</td>
-              <td style="padding:8px;">
-                <div>${titleKo}</div>
-                <div style="font-size:0.75rem; color:var(--tm);">${titleJa}</div>
-              </td>
+              <td style="padding:8px;">${titleKo}</td>
               <td style="padding:8px; text-align:center;">
                 <button class="chip-delete-btn" onclick="deleteSongItem('${item.id}', event)" title="この楽曲を削除">🗑️</button>
               </td>
