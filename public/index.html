@@ -4457,9 +4457,30 @@
 
         // ── 数字＋単位・日時の誤変換ガード ──
         const numberUnitRegex =
-          /^\d+(일|년|월|대|명|개|원|점|시|분|초|년째|차례|번째)$/;
-        if (numberUnitRegex.test(q)) {
-          return [q]; // 数字＋単位はそのまま返す
+          /^(\d+)(일|년|월|대|명|개|원|점|시|분|초|년째|차례|번째)$/;
+        const match = q.match(numberUnitRegex);
+        if (match) {
+          const num = match[1];
+          const unit = match[2];
+          const unitMap = {
+            일: "日",
+            년: "年",
+            월: "月",
+            대: "代",
+            명: "人",
+            개: "個",
+            원: "ウォン",
+            점: "点",
+            시: "時",
+            분: "分",
+            초: "秒",
+            년째: "年目",
+            차례: "回",
+            번째: "番目",
+          };
+          const japaneseUnit = unitMap[unit] || unit;
+          // 数字＋単位はそのまま返す（lookupKoreanWord側で日本語訳が生成される）
+          return [q];
         }
 
         // 助詞チェック：助詞が含まれる場合は活用形推定を行わない
@@ -4625,13 +4646,33 @@
         // ── 数字＋単位・日時の誤変換ガード ──
         // 日付、年数、数量表現は動詞・形容詞の活用復元を行わず、そのまま返す
         const numberUnitRegex =
-          /^\d+(일|년|월|대|명|개|원|점|시|분|초|년째|차례|번째)$/;
-        if (numberUnitRegex.test(q)) {
+          /^(\d+)(일|년|월|대|명|개|원|점|시|분|초|년째|차례|번째)$/;
+        const match = q.match(numberUnitRegex);
+        if (match) {
+          const num = match[1];
+          const unit = match[2];
+          const unitMap = {
+            일: "日",
+            년: "年",
+            월: "月",
+            대: "代",
+            명: "人",
+            개: "個",
+            원: "ウォン",
+            점: "点",
+            시: "時",
+            분: "分",
+            초: "秒",
+            년째: "年目",
+            차례: "回",
+            번째: "番目",
+          };
+          const japaneseUnit = unitMap[unit] || unit;
           return {
             base: q,
             hanja: "",
-            pos: "日時・数量",
-            meaning: q, // 数字＋単位はそのまま表示
+            pos: "名詞/数詞",
+            meaning: `${num}${japaneseUnit}`,
             level: "基本語彙",
             particle: "",
           };
@@ -4977,13 +5018,33 @@
 
         // ── 数字＋単位・日時の誤変換ガード ──
         const numberUnitRegex =
-          /^\d+(일|년|월|대|명|개|원|점|시|분|초|년째|차례|번째)$/;
-        if (numberUnitRegex.test(q)) {
+          /^(\d+)(일|년|월|대|명|개|원|점|시|분|초|년째|차례|번째)$/;
+        const match = q.match(numberUnitRegex);
+        if (match) {
+          const num = match[1];
+          const unit = match[2];
+          const unitMap = {
+            일: "日",
+            년: "年",
+            월: "月",
+            대: "代",
+            명: "人",
+            개: "個",
+            원: "ウォン",
+            점: "点",
+            시: "時",
+            분: "分",
+            초: "秒",
+            년째: "年目",
+            차례: "回",
+            번째: "番目",
+          };
+          const japaneseUnit = unitMap[unit] || unit;
           return {
             base: q,
             hanja: "",
-            pos: "日時・数量",
-            meaning: q,
+            pos: "名詞/数詞",
+            meaning: `${num}${japaneseUnit}`,
             level: "基本語彙",
             particle: "",
           };
