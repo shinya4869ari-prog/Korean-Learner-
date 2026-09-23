@@ -4361,7 +4361,10 @@
         { p: "에서", desc: "〜で・〜から（場所）" },
         { p: "으로", desc: "〜へ・〜で（手段）" },
         { p: "로", desc: "〜へ・〜で（手段）" },
+        { p: "이나", desc: "〜や・〜とか（選択・パッチム有）" },
+        { p: "나", desc: "〜や・〜とか（選択・パッチム無）" },
         { p: "에게", desc: "〜に（人）" },
+        { p: "한테", desc: "〜に（人・口語）" },
         { p: "에다", desc: "〜に（場所・強調）" },
         { p: "에", desc: "〜に・〜へ" },
         { p: "은", desc: "〜は（パッチム有）" },
@@ -4450,54 +4453,101 @@
         return null;
       }
 
+      // ── 🔤 HANGUL PHONEME DECOMPOSITION & PAST STEM RESTORATION ──
+      const HANGUL_S_BASE = 0xac00;
+      const HANGUL_T_COUNT = 28;
+      const HANGUL_V_COUNT = 21;
+      const HANGUL_N_COUNT = 588;
+      const HANGUL_JONG_SS = 20;
+
+      function decomposeHangul(char) {
+        if (!char) return null;
+        const code = char.charCodeAt(0) - HANGUL_S_BASE;
+        if (code < 0 || code >= 11172) return null;
+        return {
+          initial: Math.floor(code / HANGUL_N_COUNT),
+          vowel: Math.floor((code % HANGUL_N_COUNT) / HANGUL_T_COUNT),
+          final: code % HANGUL_T_COUNT,
+        };
+      }
+
+      function composeHangul(h) {
+        return String.fromCharCode(
+          HANGUL_S_BASE +
+            h.initial * HANGUL_N_COUNT +
+            h.vowel * HANGUL_T_COUNT +
+            h.final
+        );
+      }
+
+      function revertPastStemChar(char) {
+        const d = decomposeHangul(char);
+        if (!d || d.final !== HANGUL_JONG_SS) return null;
+        if (d.vowel === 4) {
+          return composeHangul({ initial: d.initial, vowel: 0, final: 0 });
+        }
+        if (d.vowel === 6) {
+          return composeHangul({ initial: d.initial, vowel: 20, final: 0 });
+        }
+        return composeHangul({ initial: d.initial, vowel: d.vowel, final: 0 });
+      }
+
       // ── 🧠 動詞・形容詞の原形推定エンジン (Conjugation & Stem Normalizer) ──
       function deriveKoreanBaseCandidates(q) {
         if (!q) return [];
         const list = [];
 
-        // ── 数字＋単位・日時の誤変換ガード ──
         const numberUnitRegex =
           /^(\d+)(일|년|월|대|명|개|원|점|시|분|초|년째|차례|번째)$/;
         const match = q.match(numberUnitRegex);
         if (match) {
-          const num = match[1];
-          const unit = match[2];
-          const unitMap = {
-            일: "日",
-            년: "年",
-            월: "月",
-            대: "代",
-            명: "人",
-            개: "個",
-            원: "ウォン",
-            점: "点",
-            시: "時",
-            분: "分",
-            초: "秒",
-            년째: "年目",
-            차례: "回",
-            번째: "番目",
-          };
-          const japaneseUnit = unitMap[unit] || unit;
-          // 数字＋単位はそのまま返す（lookupKoreanWord側で日本語訳が生成される）
           return [q];
         }
 
-        // 助詞チェック：助詞が含まれる場合は活用形推定を行わない
         for (const particle of PARTICLES) {
           if (q.endsWith(particle.p) && q.length > particle.p.length) {
-            // 助詞を除いた形のみを候補に追加（動詞推定は行わない）
             const base = q.slice(0, -particle.p.length);
             if (base.length > 0) {
               list.push(base);
             }
-            return list; // 助詞が含まれる場合はここで終了
+            return list;
           }
         }
 
-        // 1. 連体形 (~는, ~은, ~ㄴ, ~던, ~았던, ~었던, ~ㄹ, ~을)
+        // 1. 過去形復元 (例: 밝혔다 -> 밝히다, 훔쳤다 -> 훔치다, 침입했다 -> 침입하다)
+        if (q.endsWith("했다") && q.length >= 2) {
+          list.push(q.slice(0, -2) + "하다");
+        } else if (q.endsWith("쳤다") && q.length >= 2) {
+          list.push(q.slice(0, -2) + "치다");
+        } else if (q.endsWith("혔다") && q.length >= 2) {
+          list.push(q.slice(0, -2) + "히다");
+        } else if (q.endsWith("다") && q.length >= 2) {
+          const secondLast = q[q.length - 2];
+          const reverted = revertPastStemChar(secondLast);
+          if (reverted) {
+            list.push(q.slice(0, -2) + reverted + "다");
+          }
+          if (q.endsWith("았다") || q.endsWith("었다") || q.endsWith("였다")) {
+            list.push(q.replace(/[았었였]다$/, "다"));
+          }
+        }
+
+        // 2. ヘヨ体・ア/オ縮約活用・連用形 (~쳐, ~려, ~켜, ~겨, ~혀, ~봐, ~와, ~줘, ~둬, ~해, ~돼)
+        if (q.endsWith("쳐")) list.push(q.slice(0, -1) + "치다");
+        if (q.endsWith("려")) list.push(q.slice(0, -1) + "리다");
+        if (q.endsWith("켜")) list.push(q.slice(0, -1) + "키다");
+        if (q.endsWith("겨")) list.push(q.slice(0, -1) + "기다");
+        if (q.endsWith("혀")) list.push(q.slice(0, -1) + "히다");
+        if (q.endsWith("봐")) list.push(q.slice(0, -1) + "보다");
+        if (q.endsWith("와")) list.push(q.slice(0, -1) + "오다");
+        if (q.endsWith("줘")) list.push(q.slice(0, -1) + "주다");
+        if (q.endsWith("둬")) list.push(q.slice(0, -1) + "두다");
+        if (q.endsWith("해")) list.push(q.slice(0, -1) + "하다");
+        if (q.endsWith("돼")) list.push(q.slice(0, -1) + "되다");
+
+        // 3. 連体形 (~는, ~은, ~ㄴ, ~던, ~았던, ~었던, ~ㄹ, ~을)
         if (q.endsWith("는") && q.length >= 2) {
-          list.push(q.slice(0, -1) + "다"); // 지나가는 -> 지나가다
+          list.push(q.slice(0, -1) + "다");
         }
         if (q.endsWith("던") && q.length >= 2) {
           if (q.endsWith("었던") || q.endsWith("았던")) {
@@ -4512,42 +4562,26 @@
         const lastChar = q[q.length - 1];
         const strippedNieun = stripBatchimNieun(lastChar);
         if (strippedNieun && q.length >= 1) {
-          list.push(q.slice(0, -1) + strippedNieun + "다");
           if (strippedNieun === "하") list.push(q.slice(0, -1) + "하다");
           if (strippedNieun === "이") {
-            list.push(q.slice(0, -1)); // 전부인 -> 전부
-            list.push(q.slice(0, -1) + "이다"); // 전부인 -> 전부이다
+            list.push(q.slice(0, -1));
+            list.push(q.slice(0, -1) + "이다");
           }
         }
         const strippedRieul = stripBatchimRieul(lastChar);
         if (strippedRieul && q.length >= 1) {
-          list.push(q.slice(0, -1) + strippedRieul + "다");
+          if (strippedRieul === "하") list.push(q.slice(0, -1) + "하다");
           if (strippedRieul === "이") {
-            list.push(q.slice(0, -1)); // 전부일 -> 전부
+            list.push(q.slice(0, -1));
           }
         }
 
-        // 2. ヘヨ体・ア/オ縮約活用 (~쳐, ~려, ~켜, ~겨, ~혀, ~봐, ~와, ~줘, ~둬, ~해, ~돼)
-        if (q.endsWith("쳐")) list.push(q.slice(0, -1) + "치다"); // 스쳐 -> 스치다
-        if (q.endsWith("려")) list.push(q.slice(0, -1) + "리다"); // 흘려 -> 흘리다
-        if (q.endsWith("켜")) list.push(q.slice(0, -1) + "키다");
-        if (q.endsWith("겨")) list.push(q.slice(0, -1) + "기다");
-        if (q.endsWith("혀")) list.push(q.slice(0, -1) + "히다");
-        if (q.endsWith("봐")) list.push(q.slice(0, -1) + "보다");
-        if (q.endsWith("와")) list.push(q.slice(0, -1) + "오다");
-        if (q.endsWith("줘")) list.push(q.slice(0, -1) + "주다");
-        if (q.endsWith("둬")) list.push(q.slice(0, -1) + "두다");
-        if (q.endsWith("해")) list.push(q.slice(0, -1) + "하다");
-        if (q.endsWith("돼")) list.push(q.slice(0, -1) + "되다");
-
-        // 3. 語尾・接続詞 (~서, ~도, ~면, ~지, ~고, ~게, ~록)
+        // 4. 語尾・接続詞 (~아서/어서, ~도, ~면, ~지, ~고, ~게, ~록)
         if (q.endsWith("아서") || q.endsWith("어서") || q.endsWith("여서")) {
           list.push(q.slice(0, -2) + "다");
         }
         if (q.endsWith("어도") || q.endsWith("아도")) {
           list.push(q.slice(0, -2) + "다");
-        } else if (q.endsWith("도") && q.length >= 2) {
-          list.push(q.slice(0, -1) + "다");
         }
         if (q.endsWith("으면") && q.length >= 3) {
           list.push(q.slice(0, -2) + "다");
@@ -4567,7 +4601,7 @@
           list.push(q.slice(0, -1) + "다");
         }
 
-        list.push(q + "다");
+        // ⚠️ 名詞ガード：活用ルールに当てはまらない単語（도주, 인근など）には勝手に '다' を付けない！
         list.push(q);
 
         return [...new Set(list.filter((w) => w && w.length >= 2))];
@@ -4748,6 +4782,18 @@
                 particle: ` + 「${item.p}」(${item.desc})`,
               };
             }
+          }
+        }
+
+        // ── ステップ2.5：活用形原形復元候補（Lemmatization）の照合 ──
+        const syncLemmas = deriveKoreanBaseCandidates(q);
+        for (const cand of syncLemmas) {
+          if (cand !== q && BUILTIN_DICT[cand]) {
+            return {
+              base: cand,
+              ...BUILTIN_DICT[cand],
+              particle: `（原形: ${cand}）`,
+            };
           }
         }
 
@@ -5010,6 +5056,92 @@
         },
       ];
 
+      // ── 🏷️ 品詞日本語化 ＆ 出所（Origin）バッジ判定ヘルパー ──
+      function formatPos(pos) {
+        if (!pos) return "語彙";
+        const p = String(pos).toLowerCase().trim();
+        const map = {
+          noun: "名詞",
+          verb: "動詞",
+          adjective: "形容詞",
+          adj: "形容詞",
+          adverb: "副詞",
+          adv: "副詞",
+          particle: "助詞",
+          conjunction: "接続詞",
+          conj: "接続詞",
+          pronoun: "代名詞",
+          pron: "代名詞",
+          numeral: "数詞",
+          num: "数詞",
+          interjection: "感嘆詞",
+          expression: "表現",
+          idiom: "慣用句",
+          collocation: "連語",
+          determiner: "冠形詞",
+          affix: "接辞",
+          prefix: "接頭辞",
+          suffix: "接尾辞",
+        };
+        if (map[p]) return map[p];
+        for (const [key, val] of Object.entries(map)) {
+          if (p.startsWith(key)) return val;
+        }
+        return pos;
+      }
+
+      function getSourceBadgeInfo(match) {
+        if (!match) return { label: "語彙", style: "color:var(--tm); background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15);" };
+        // 1. 手動保存（My単語帳）判定
+        let isSavedInWb = false;
+        try {
+          if (typeof getWordbook === "function") {
+            const wb = getWordbook();
+            if (Array.isArray(wb)) {
+              isSavedInWb = wb.some((w) => w.word === match.base || w.word === match.word);
+            }
+          }
+        } catch (e) {}
+
+        if (match.source === "my_vocab" || match.origin === "manual" || isSavedInWb) {
+          return {
+            label: "My単語帳",
+            style: "color:#34d399; background:rgba(16,185,129,0.18); border:1px solid rgba(16,185,129,0.4);"
+          };
+        }
+        // 2. 記事解析（workflow）
+        if (match.source === "article_words" || match.origin === "workflow") {
+          return {
+            label: "記事解析",
+            style: "color:#fbbf24; background:rgba(245,158,11,0.18); border:1px solid rgba(245,158,11,0.4);"
+          };
+        }
+        // 3. 辞書データ（D1 / 内蔵辞書 / Supabase辞書）
+        if (match.source === "d1_dict" || match.source === "builtin_dict" || match.source === "supabase_dict" || match.origin === "d1" || match.origin === "builtin") {
+          return {
+            label: "D1辞書",
+            style: "color:#60a5fa; background:rgba(59,130,246,0.18); border:1px solid rgba(59,130,246,0.4);"
+          };
+        }
+        // 4. AI推測・文脈判定
+        return {
+          label: match.isAiReResolved ? "AI文脈判定済" : "AI推測",
+          style: "color:#c084fc; background:rgba(139,92,246,0.2); border:1px solid rgba(139,92,246,0.4);"
+        };
+      }
+
+      function getSourceBadgeHtml(match) {
+        if (!match) return "";
+        const info = getSourceBadgeInfo(match);
+        return `<span style="font-size:0.72rem; ${info.style} border-radius:4px; padding:1px 6px; font-weight:700;">[${info.label}]</span>`;
+      }
+
+      function getPosBadgeHtml(pos) {
+        const formatted = formatPos(pos);
+        if (!formatted) return "";
+        return `<span style="font-size:0.72rem; color:#f472b6; background:rgba(236,72,153,0.15); border:1px solid rgba(236,72,153,0.3); border-radius:4px; padding:1px 6px; font-weight:700;">[${formatted}]</span>`;
+      }
+
       // ── 🧠 ADVANCED HYBRID WORD RESOLVER (重要語彙 ➔ クラウド辞書 ➔ 内蔵辞書 ➔ 外部翻訳) ──
       async function lookupWordAsync(rawQuery) {
         if (!rawQuery) return null;
@@ -5068,160 +5200,37 @@
           };
         }
 
-        // ── ステップ0：記事のkey_vocabularyを最優先検索 ──
-        if (currentArticle && currentArticle.vocab) {
-          for (const v of currentArticle.vocab) {
-            // 完全一致
-            if (v.word === q) {
-              return {
-                base: v.word,
-                hanja: v.hanja || "",
-                pos: v.pos || "重要語彙",
-                meaning: v.meaning,
-                level: v.level || "重要語彙",
-                particle: "",
-              };
-            }
-            // 助詞付きの単語（例: 귀금속점에 → 귀금속점）
-            const cleanV = v.word.replace(/[.,!?'"()…]/g, "");
-            if (q.startsWith(cleanV) && q.length > cleanV.length) {
-              const particle = q.slice(cleanV.length);
-              // 一般的な助詞か確認
-              const isParticle = PARTICLES.some((p) => particle === p.p);
-              if (isParticle) {
-                const particleInfo = PARTICLES.find((p) => particle === p.p);
-                return {
-                  base: v.word,
-                  hanja: v.hanja || "",
-                  pos: v.pos || "重要語彙",
-                  meaning: v.meaning,
-                  level: v.level || "重要語彙",
-                  particle: ` + 「${particle}」(${particleInfo.desc})`,
-                };
-              }
-            }
-          }
-        }
-
-        // ── ステップ1：完全一致（最優先）──
-        if (BUILTIN_DICT[q]) {
-          return { base: q, ...BUILTIN_DICT[q], particle: "" };
-        }
-
-        // ── ステップ2：助詞の分離（名詞判定）──
-        // 用言の逆引きを行う前に、末尾の助詞を切り離して名詞辞書と照合
-        let stem = q;
+        // ── ステップ2：助詞の分離（名詞判定） ──
+        let separatedStem = q;
         let detectedParticle = "";
         for (const item of PARTICLES) {
           if (q.endsWith(item.p) && q.length > item.p.length) {
-            stem = q.slice(0, -item.p.length);
-            // 安全ガード：語幹が辞書に存在する場合のみ採用
-            if (BUILTIN_DICT[stem]) {
-              detectedParticle = ` + 「${item.p}」(${item.desc})`;
-              break;
-            } else {
-              // 辞書にない場合は助詞判定を取り消し
-              stem = q;
-            }
+            separatedStem = q.slice(0, -item.p.length);
+            detectedParticle = ` + 「${item.p}」(${item.desc})`;
+            break;
           }
         }
 
-        // ── ステップ3：用言の活用逆引き（安全ガード付き）──
-        // 辞書に実在する見出し語のみ採用。架空の語幹は生成しない
+        // ── ステップ3：原形復元候補（Lemmas）の導出（名詞ガード付き） ──
+        const baseQuery = separatedStem !== q ? separatedStem : q;
+        const lemmaCandidates = deriveKoreanBaseCandidates(baseQuery);
 
-        // 3-1. パッチム活用伝聞・語尾分解 (~ㄴ대요, ~ㄴ대, ~ㄴ데, ~ㄴ데요)
-        if (!detectedParticle) {
-          if (q.endsWith("대요") && q.length >= 2) {
-            const prevChar = q[q.length - 3];
-            const stripped = stripBatchimNieun(prevChar);
-            if (stripped) {
-              const rootForm = q.slice(0, -3) + stripped + "다";
-              // 安全ガード：辞書に存在する場合のみ採用
-              if (BUILTIN_DICT[rootForm]) {
-                stem = rootForm;
-                detectedParticle =
-                  " + 「~ㄴ대요」(〜だそうです・〜なんだって【伝聞】)";
-              }
-            }
-          } else if (q.endsWith("대") && q.length >= 2) {
-            const prevChar = q[q.length - 2];
-            const stripped = stripBatchimNieun(prevChar);
-            if (stripped) {
-              const rootForm = q.slice(0, -2) + stripped + "다";
-              // 安全ガード：辞書に存在する場合のみ採用
-              if (BUILTIN_DICT[rootForm]) {
-                stem = rootForm;
-                detectedParticle =
-                  " + 「~ㄴ대」(〜なんだって・〜だそうだ【伝聞口語】)";
-              }
-            }
-          } else if (q.endsWith("데요") && q.length >= 2) {
-            const prevChar = q[q.length - 3];
-            const stripped = stripBatchimNieun(prevChar);
-            if (stripped) {
-              const rootForm = q.slice(0, -3) + stripped + "다";
-              // 安全ガード：辞書に存在する場合のみ採用
-              if (BUILTIN_DICT[rootForm]) {
-                stem = rootForm;
-                detectedParticle = " + 「~ㄴ데요」(〜なんですけど・〜ですよ)";
-              }
-            }
-          } else if (q.endsWith("데") && q.length >= 2) {
-            const prevChar = q[q.length - 2];
-            const stripped = stripBatchimNieun(prevChar);
-            if (stripped) {
-              const rootForm = q.slice(0, -2) + stripped + "다";
-              // 安全ガード：辞書に存在する場合のみ採用
-              if (BUILTIN_DICT[rootForm]) {
-                stem = rootForm;
-                detectedParticle = " + 「~ㄴ데」(〜だけど・〜するのに)";
-              }
-            }
-          }
-        }
-
-        // 3-2. 文法語尾分解（GRAMMAR_ENDINGS）
-        if (!detectedParticle) {
-          for (const item of GRAMMAR_ENDINGS) {
-            if (q.endsWith(item.e) && q.length > item.e.length) {
-              const baseStem = q.slice(0, -item.e.length);
-              const rootForm = baseStem.endsWith("하")
-                ? baseStem + "다"
-                : baseStem + "다";
-              // 安全ガード：辞書に存在する場合のみ採用
-              if (BUILTIN_DICT[rootForm]) {
-                stem = rootForm;
-                detectedParticle = ` + 「~${item.e}」(${item.desc})`;
-                break;
-              }
-              if (BUILTIN_DICT[baseStem]) {
-                stem = baseStem;
-                detectedParticle = ` + 「~${item.e}」(${item.desc})`;
-                break;
-              }
-            }
-          }
-        }
+        // 検索優先ターゲット（原形復元候補 ➔ 助詞剥離語幹 ➔ 原文）
+        const searchTargets = [
+          ...lemmaCandidates,
+          separatedStem !== q ? separatedStem : null,
+          q,
+        ].filter(Boolean);
+        const uniqueTargets = [...new Set(searchTargets)];
 
         // 2. ⭐ 記事の重要語彙（currentArticle.vocab）を最優先検索！（AI抽出の正確な漢字と意味）
         if (currentArticle && Array.isArray(currentArticle.vocab)) {
-          const testCandidates = [
-            q,
-            stem,
-            stem.replace(/다$/, ""),
-            q.replace(/하다$/, ""),
-            q.replace(/하게$/, "하다"),
-            q.replace(/했다$/, "하다"),
-            q.replace(/했다고$/, "하다"),
-            q.replace(/한$/, "하다"),
-            q.replace(/하며$/, "하다"),
-          ];
-          for (const c of testCandidates) {
+          for (const target of uniqueTargets) {
             const found = currentArticle.vocab.find(
               (v) =>
-                v.word === c ||
-                v.word === c + "하다" ||
-                (v.word.endsWith("하다") && c === v.word.slice(0, -2)),
+                v.word === target ||
+                v.word === target + "하다" ||
+                (v.word.endsWith("하다") && target === v.word.slice(0, -2))
             );
             if (found) {
               const hanjaDisplay =
@@ -5231,25 +5240,37 @@
               return {
                 base: found.word,
                 hanja: hanjaDisplay,
-                pos: found.pos || "重要語彙",
+                pos: formatPos(found.pos) || "重要語彙",
                 meaning: found.meaning,
                 level: found.level || "重要語彙",
                 particle: detectedParticle,
+                source: "article_words",
+                origin: "workflow",
               };
             }
           }
         }
 
-        // 3. ローカル内蔵辞書・メモリキャッシュを検索
-        const localMatch = lookupKoreanWord(q);
-        if (localMatch && !localMatch.needsAsync) {
-          return localMatch;
+        // 3. ローカル内蔵辞書・メモリキャッシュを優先度順に検索
+        for (const target of uniqueTargets) {
+          if (BUILTIN_DICT[target]) {
+            return {
+              base: target,
+              ...BUILTIN_DICT[target],
+              pos: formatPos(BUILTIN_DICT[target].pos),
+              particle:
+                target !== q
+                  ? detectedParticle || `（原形: ${target}）`
+                  : detectedParticle,
+              source: BUILTIN_DICT[target].source || "builtin_dict",
+              origin: BUILTIN_DICT[target].origin || "builtin",
+            };
+          }
         }
 
         // 4. ☁️ Supabase カスタム辞書（最優先）
         try {
-          const targets = stem !== q ? [stem, q] : [q];
-          for (const t of targets) {
+          for (const t of uniqueTargets) {
             const res = await fetch(
               `${SUPABASE_URL}/rest/v1/dictionary?word=eq.${encodeURIComponent(t)}&select=*&limit=1`,
               {
@@ -5257,7 +5278,7 @@
                   apikey: SUPABASE_KEY,
                   Authorization: `Bearer ${SUPABASE_KEY}`,
                 },
-              },
+              }
             );
             if (res.ok) {
               const list = await res.json();
@@ -5270,10 +5291,15 @@
                 const entry = {
                   base: row.word,
                   hanja: hanjaDisplay,
-                  pos: row.pos || "名詞",
+                  pos: formatPos(row.pos) || "名詞",
                   meaning: row.meaning,
                   level: row.level || "カスタム辞書",
-                  particle: t === stem ? detectedParticle : "",
+                  particle:
+                    t !== q
+                      ? detectedParticle || `（原形: ${row.word}）`
+                      : detectedParticle,
+                  source: "supabase_dict",
+                  origin: row.origin || "manual",
                 };
                 BUILTIN_DICT[row.word] = entry;
                 return entry;
@@ -5281,21 +5307,19 @@
             }
           }
         } catch (err) {
-          // Supabase辞書未作成または取得失敗時は静かにフォールバック
           console.warn("Supabase dictionary fetch error:", err);
         }
 
         // 5. ☁️ Cloudflare D1 辞書APIから非同期検索（フォールバック）
         try {
-          const targets = stem !== q ? [stem, q] : [q];
-          for (const t of targets) {
+          for (const t of uniqueTargets) {
             const res = await fetch(
               `https://koreanews.seronworks.dev/api/dictionary?word=${encodeURIComponent(t)}`,
               {
                 headers: {
                   "Content-Type": "application/json",
                 },
-              },
+              }
             );
             if (res.ok) {
               const row = await res.json();
@@ -5307,10 +5331,15 @@
                 const entry = {
                   base: row.word,
                   hanja: hanjaDisplay,
-                  pos: row.pos || "名詞",
+                  pos: formatPos(row.pos) || "名詞",
                   meaning: row.meaning,
                   level: row.level || "クラウド語彙",
-                  particle: t === stem ? detectedParticle : "",
+                  particle:
+                    t !== q
+                      ? detectedParticle || `（原形: ${row.word}）`
+                      : detectedParticle,
+                  source: "d1_dict",
+                  origin: "d1",
                 };
                 BUILTIN_DICT[row.word] = entry;
                 return entry;
@@ -5318,7 +5347,6 @@
             }
           }
         } catch (err) {
-          // クラウド辞書未作成または取得失敗時は静かにフォールバック
           console.warn("Cloudflare D1 dictionary fetch error:", err);
         }
 
@@ -5327,14 +5355,20 @@
           return {
             base: stem,
             ...BUILTIN_DICT[stem],
+            pos: formatPos(BUILTIN_DICT[stem].pos),
             particle: detectedParticle,
+            source: BUILTIN_DICT[stem].source || "builtin_dict",
+            origin: BUILTIN_DICT[stem].origin || "builtin",
           };
         }
         if (BUILTIN_DICT[q]) {
           return {
             base: q,
             ...BUILTIN_DICT[q],
+            pos: formatPos(BUILTIN_DICT[q].pos),
             particle: detectedParticle,
+            source: BUILTIN_DICT[q].source || "builtin_dict",
+            origin: BUILTIN_DICT[q].origin || "builtin",
           };
         }
 
@@ -5362,10 +5396,12 @@
             const entry = {
               base: cand,
               hanja: "",
-              pos: wikti.pos || "動詞",
+              pos: formatPos(wikti.pos) || "動詞",
               meaning: wikti.meaning,
               level: "重要語彙",
               particle: cand !== q ? `（活用: ${q}）` : "",
+              source: "ai_inferred",
+              origin: "ai",
             };
             BUILTIN_DICT[q] = entry;
             return entry;
@@ -5379,6 +5415,8 @@
               meaning: cleanTranslatedMeaning(candTrans, cand),
               level: "語彙",
               particle: cand !== q ? `（活用: ${q}）` : "",
+              source: "ai_inferred",
+              origin: "ai",
             };
             BUILTIN_DICT[q] = entry;
             return entry;
@@ -5424,6 +5462,8 @@
           meaning: cleanMeaning,
           level: "語彙",
           particle: detectedParticle,
+          source: "ai_inferred",
+          origin: "ai",
         };
         BUILTIN_DICT[q] = entry;
         return entry;
@@ -8136,16 +8176,18 @@
         }
         // 動詞・形容詞の活用形の場合
         else if (q !== match.base && match.particle) {
-          displayWord = `${match.base} [${match.pos}] （本文: ${q}）`;
-          particleDisplay = ""; // 活用形情報はタイトルに含めるのでparticleは空に
+          displayWord = `${match.base} （本文: ${q}）`;
+          particleDisplay = "";
         }
 
         resBox.innerHTML = `
         <div style="background:rgba(0,0,0,0.25); border:1px solid var(--bd); border-radius:10px; padding:10px 14px; margin-top:8px; display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
           <div style="flex:1;">
-            <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
+            <div style="display:flex; align-items:center; flex-wrap:wrap; gap:6px;">
               <strong style="font-size:1.08rem; color:#fff;">${displayWord}</strong>
               ${hanjaBadge}
+              ${getSourceBadgeHtml(match)}
+              ${getPosBadgeHtml(match.pos)}
               <span style="font-size:0.8rem; color:#60a5fa;">${particleDisplay}</span>
             </div>
             <div style="font-size:0.95rem; color:var(--ac); font-weight:600; margin-top:5px; line-height:1.5;">${match.meaning}</div>
@@ -9997,7 +10039,8 @@
             <div style="display:flex; align-items:center; flex-wrap:wrap; gap:6px;">
               <strong style="font-size:1.1rem; color:#fff; letter-spacing:0.02em;">${match.base}</strong>
               ${hanjaBadge}
-              <span style="font-size:0.72rem; color:#f472b6; background:rgba(236,72,153,0.15); border:1px solid rgba(236,72,153,0.3); border-radius:4px; padding:1px 6px; font-weight:700;">[${match.pos}]</span>
+              ${getSourceBadgeHtml(match)}
+              ${getPosBadgeHtml(match.pos)}
               <span style="font-size:0.8rem; color:#60a5fa;">${match.particle || ""}</span>
             </div>
             <div style="font-size:0.96rem; color:#34d399; font-weight:600; margin-top:6px; line-height:1.5;">${match.meaning}</div>
@@ -10135,7 +10178,7 @@
               <strong style="font-size:1.1rem; color:#fff; letter-spacing:0.02em;">${displayWord}</strong>
               ${hanjaBadge}
               <span style="font-size:0.72rem; color:#c084fc; background:rgba(139,92,246,0.2); border:1px solid rgba(139,92,246,0.4); border-radius:4px; padding:1px 6px; font-weight:700;">🤖 AI文脈判定済</span>
-              <span style="font-size:0.72rem; color:#f472b6; background:rgba(236,72,153,0.15); border:1px solid rgba(236,72,153,0.3); border-radius:4px; padding:1px 6px; font-weight:700;">[${bestMatch.pos}]</span>
+              ${getPosBadgeHtml(bestMatch.pos)}
               <span style="font-size:0.8rem; color:#60a5fa;">${particleDisplay}</span>
             </div>
             <div style="font-size:0.96rem; color:#34d399; font-weight:600; margin-top:6px; line-height:1.5;">${bestMatch.meaning}</div>
@@ -10271,6 +10314,7 @@
               <strong style="font-size:1.08rem; color:#fff;">${displayWord}</strong>
               ${hanjaBadge}
               <span style="font-size:0.72rem; color:#c084fc; background:rgba(139,92,246,0.2); border:1px solid rgba(139,92,246,0.4); border-radius:4px; padding:1px 6px; font-weight:700;">🤖 AI文脈判定済</span>
+              ${getPosBadgeHtml(bestMatch.pos)}
               <span style="font-size:0.8rem; color:#60a5fa;">${particleDisplay}</span>
             </div>
             <div style="font-size:0.95rem; color:var(--ac); font-weight:600; margin-top:5px; line-height:1.5;">${bestMatch.meaning}</div>
@@ -10331,10 +10375,11 @@
         resBox.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
           <div style="flex:1;">
-            <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
+            <div style="display:flex; align-items:center; flex-wrap:wrap; gap:6px;">
               <strong style="font-size:0.98rem; color:#fff;">${match.base}</strong>
               ${hanjaBadge}
-              <span style="font-size:0.68rem; color:var(--ac2); font-weight:700;">[${match.pos}]</span>
+              ${getSourceBadgeHtml(match)}
+              ${getPosBadgeHtml(match.pos)}
               <span style="font-size:0.75rem; color:#60a5fa;">${match.particle || ""}</span>
             </div>
             <div style="font-size:0.9rem; color:var(--ac); font-weight:600; margin-top:3px; line-height:1.5;">${match.meaning}</div>
