@@ -1463,6 +1463,28 @@
         align-items: center;
         gap: 10px;
       }
+      @keyframes inlineLookupSlideDown {
+        0% {
+          opacity: 0;
+          transform: translateY(-8px) scale(0.99);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+      .news-inline-lookup-card {
+        background: linear-gradient(135deg, rgba(24, 30, 48, 0.98), rgba(15, 23, 42, 0.98));
+        border: 1px solid rgba(139, 92, 246, 0.55);
+        border-radius: var(--r);
+        padding: 16px 20px;
+        margin-bottom: 14px;
+        box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.5), 0 0 16px rgba(139, 92, 246, 0.2);
+        animation: inlineLookupSlideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        position: relative;
+        z-index: 5;
+        backdrop-filter: blur(12px);
+      }
       .news-para-card {
         background: var(--s1);
         border: 1px solid var(--bd);
@@ -9924,7 +9946,7 @@
           <div class="vocab-main">
             <div class="vocab-word-row">
               <span class="vocab-word">${v.word}</span>
-              ${v.hanja ? `<span class="vocab-hanja">(${v.hanja})</span>` : ""}
+              ${formatHanja(v.hanja) ? `<span class="vocab-hanja">(${formatHanja(v.hanja)})</span>` : ""}
               <span class="vocab-pos">${v.pos || ""}</span>
               <span class="tag-badge topik" style="padding:1px 6px; font-size:0.6rem;">${v.level}</span>
             </div>
