@@ -4544,6 +4544,10 @@
         if (q.endsWith("둬")) list.push(q.slice(0, -1) + "두다");
         if (q.endsWith("해")) list.push(q.slice(0, -1) + "하다");
         if (q.endsWith("돼")) list.push(q.slice(0, -1) + "되다");
+        // パッチム語幹の連用形（例: 담아 -> 담다, 먹어 -> 먹다, 받아 -> 받다, 찾아 -> 찾다）
+        if ((q.endsWith("아") || q.endsWith("어")) && q.length >= 2) {
+          list.push(q.slice(0, -1) + "다");
+        }
 
         // 3. 連体形 (~는, ~은, ~ㄴ, ~던, ~았던, ~었던, ~ㄹ, ~을)
         if (q.endsWith("는") && q.length >= 2) {
@@ -4562,10 +4566,14 @@
         const lastChar = q[q.length - 1];
         const strippedNieun = stripBatchimNieun(lastChar);
         if (strippedNieun && q.length >= 1) {
-          if (strippedNieun === "하") list.push(q.slice(0, -1) + "하다");
-          if (strippedNieun === "이") {
+          if (strippedNieun === "하") {
+            list.push(q.slice(0, -1) + "하다");
+          } else if (strippedNieun === "이") {
             list.push(q.slice(0, -1));
             list.push(q.slice(0, -1) + "이다");
+          } else {
+            // 例: 달아난 -> 달아나다, 지난 -> 지나다, 떠난 -> 떠나다
+            list.push(q.slice(0, -1) + strippedNieun + "다");
           }
         }
         const strippedRieul = stripBatchimRieul(lastChar);
@@ -5056,6 +5064,16 @@
         },
       ];
 
+      function formatHanja(hanja) {
+        if (!hanja || hanja === "―" || hanja === "-") return "";
+        let clean = String(hanja).trim();
+        // 末尾の活用語尾ハングル（하다, 되다, 시키다, 받다, 당하다 等）を綺麗にカット
+        clean = clean.replace(/(하다|되다|시키다|받다|당하다|롭다|스럽다|맞다)$/, "");
+        // すべてハングルのみで漢字を含まない場合は非表示
+        if (/^[\uac00-\ud7a3\s]+$/.test(clean)) return "";
+        return clean.trim();
+      }
+
       // ── 🏷️ 品詞日本語化 ＆ 出所（Origin）バッジ判定ヘルパー ──
       function formatPos(pos) {
         if (!pos) return "語彙";
@@ -5210,6 +5228,7 @@
             break;
           }
         }
+        const stem = separatedStem;
 
         // ── ステップ3：原形復元候補（Lemmas）の導出（名詞ガード付き） ──
         const baseQuery = separatedStem !== q ? separatedStem : q;
@@ -5239,7 +5258,7 @@
                   : "";
               return {
                 base: found.word,
-                hanja: hanjaDisplay,
+                hanja: formatHanja(hanjaDisplay),
                 pos: formatPos(found.pos) || "重要語彙",
                 meaning: found.meaning,
                 level: found.level || "重要語彙",
@@ -5290,7 +5309,7 @@
                     : "";
                 const entry = {
                   base: row.word,
-                  hanja: hanjaDisplay,
+                  hanja: formatHanja(hanjaDisplay),
                   pos: formatPos(row.pos) || "名詞",
                   meaning: row.meaning,
                   level: row.level || "カスタム辞書",
@@ -5330,7 +5349,7 @@
                     : "";
                 const entry = {
                   base: row.word,
-                  hanja: hanjaDisplay,
+                  hanja: formatHanja(hanjaDisplay),
                   pos: formatPos(row.pos) || "名詞",
                   meaning: row.meaning,
                   level: row.level || "クラウド語彙",
@@ -8155,8 +8174,9 @@
           return;
         }
 
-        const hanjaBadge = match.hanja
-          ? `<span style="font-size:0.88rem; color:#a78bfa; font-weight:700; margin-left:6px;">(${match.hanja})</span>`
+        const formattedHanja = formatHanja(match.hanja);
+        const hanjaBadge = formattedHanja
+          ? `<span style="font-size:0.88rem; color:#a78bfa; font-weight:700; margin-left:6px;">(${formattedHanja})</span>`
           : "";
 
         // 助詞分離の場合と動詞活用形の場合を区別して表示
@@ -10029,8 +10049,9 @@
           return;
         }
 
-        const hanjaBadge = match.hanja
-          ? `<span style="font-size:0.88rem; color:#a78bfa; font-weight:700; margin-left:6px;">(${match.hanja})</span>`
+        const formattedHanja = formatHanja(match.hanja);
+        const hanjaBadge = formattedHanja
+          ? `<span style="font-size:0.88rem; color:#a78bfa; font-weight:700; margin-left:6px;">(${formattedHanja})</span>`
           : "";
 
         resBox.innerHTML = `
@@ -10147,8 +10168,9 @@
         BUILTIN_DICT[q] = bestMatch;
 
         // 結果を再描画（AIバッジ付き）
-        const hanjaBadge = bestMatch.hanja
-          ? `<span style="font-size:0.88rem; color:#a78bfa; font-weight:700; margin-left:6px;">(${bestMatch.hanja})</span>`
+        const formattedHanja = formatHanja(bestMatch.hanja);
+        const hanjaBadge = formattedHanja
+          ? `<span style="font-size:0.88rem; color:#a78bfa; font-weight:700; margin-left:6px;">(${formattedHanja})</span>`
           : "";
 
         // 助詞分離の場合と動詞活用形の場合を区別して表示
@@ -10283,8 +10305,9 @@
         BUILTIN_DICT[q] = bestMatch;
 
         // 結果を再描画（AIバッジ付き）
-        const hanjaBadge = bestMatch.hanja
-          ? `<span style="font-size:0.88rem; color:#a78bfa; font-weight:700; margin-left:6px;">(${bestMatch.hanja})</span>`
+        const formattedHanja = formatHanja(bestMatch.hanja);
+        const hanjaBadge = formattedHanja
+          ? `<span style="font-size:0.88rem; color:#a78bfa; font-weight:700; margin-left:6px;">(${formattedHanja})</span>`
           : "";
 
         // 助詞分離の場合と動詞活用形の場合を区別して表示
@@ -10368,8 +10391,9 @@
         const match = await lookupWordAsync(q);
         if (!match) return;
 
-        const hanjaBadge = match.hanja
-          ? `<span style="font-size:0.85rem; color:#a78bfa; font-weight:700; margin-left:5px;">(${match.hanja})</span>`
+        const formattedHanja = formatHanja(match.hanja);
+        const hanjaBadge = formattedHanja
+          ? `<span style="font-size:0.85rem; color:#a78bfa; font-weight:700; margin-left:5px;">(${formattedHanja})</span>`
           : "";
 
         resBox.innerHTML = `
