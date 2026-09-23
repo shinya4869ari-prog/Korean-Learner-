@@ -1,41 +1,40 @@
-// K-Learner - Service Worker (PWA)
-const CACHE_NAME = "klearner-pwa-v7";
+// K-Learner - Service Worker (PWA) v8
+const CACHE_NAME = "klearner-pwa-v8";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
+  // すべての古いキャッシュを完全消去
   event.waitUntil(
-    caches
-      .keys()
-      .then((keys) => {
-        return Promise.all(
-          keys.map((key) => {
-            if (key !== CACHE_NAME) {
-              console.log("Deleting old cache:", key);
-              return caches.delete(key);
-            }
-          }),
-        );
-      })
-      .then(() => self.clients.claim()),
+    caches.keys().then((keys) => {
+      return Promise.all(keys.map((key) => caches.delete(key)));
+    }).then(() => self.clients.claim())
   );
 });
 
 self.addEventListener("fetch", (event) => {
-  // GETリクエスト以外はキャッシュしない
+  // ★ HTMLページ（ナビゲーション）はService Workerで一切キャッシュしない！常に生通信！
+  if (
+    event.request.mode === "navigate" ||
+    event.request.destination === "document" ||
+    event.request.url.endsWith(".html") ||
+    event.request.url.endsWith("/") ||
+    (event.request.url.includes("koreanews.seronworks.dev") && !event.request.url.includes("."))
+  ) {
+    return;
+  }
+
+  // GETリクエスト以外もスルー
   if (event.request.method !== "GET") {
     return;
   }
 
   const url = event.request.url;
 
-  // ローカル開発環境、HTMLナビゲーション、Supabase、機械翻訳、RSS、外部API等は常にリアルタイム通信（キャッシュ回避）
+  // Supabase、機械翻訳、RSS、外部API等は常にリアルタイム通信
   if (
-    url.includes("localhost") ||
-    url.includes("127.0.0.1") ||
-    event.request.mode === "navigate" ||
     url.includes("supabase.co") ||
     url.includes("googleapis.com") ||
     url.includes("translate") ||
@@ -47,14 +46,14 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // ネットワーク優先 (Network First, fallback to cache)
+  // 静的アセット（画像等）のみフォールバックキャッシュ
   event.respondWith(
     fetch(event.request)
       .then((response) => {
         if (
           response &&
           response.status === 200 &&
-          (response.type === "basic" || response.type === "cors")
+          response.type === "basic"
         ) {
           const responseToCache = response.clone();
           caches.open(CACHE_NAME).then((cache) => {

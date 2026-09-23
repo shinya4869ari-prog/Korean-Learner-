@@ -2690,9 +2690,15 @@
     <div class="toast" id="toast-msg">単語帳に追加しました！ ⭐</div>
 
     <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">      // ── 📲 PWAアプリ強制更新＆自動アップデートハンドラー ──
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+      // ── APP VERSION ──
+      const APP_VERSION = "1.2.1";
+
+      // ── 📲 PWAアプリ強制更新＆キャッシュ完全消去 ──
       async function forceUpdatePWA() {
-        showToast("⏳ 最新バージョンを確認・即時反映中...");
+        showToast("⏳ 最新版へキャッシュを完全消去して更新中...");
         try {
           if ("serviceWorker" in navigator) {
             const regs = await navigator.serviceWorker.getRegistrations();
@@ -2710,50 +2716,10 @@
           console.warn("PWA cache clear error:", e);
         }
         setTimeout(() => {
-          window.location.reload(true);
+          // キャッシュバスター付きURLで強制リロード
+          window.location.href = window.location.origin + window.location.pathname + "?v=" + Date.now();
         }, 300);
       }
-
-      if ("serviceWorker" in navigator) {
-        window.addEventListener("load", () => {
-          navigator.serviceWorker
-            .register("/sw.js")
-            .then((reg) => {
-              reg.update();
-              reg.onupdatefound = () => {
-                const installingWorker = reg.installing;
-                if (installingWorker) {
-                  installingWorker.onstatechange = () => {
-                    if (
-                      installingWorker.state === "installed" &&
-                      navigator.serviceWorker.controller
-                    ) {
-                      showToast("✨ 最新バージョンに自動更新しました！");
-                      setTimeout(() => window.location.reload(), 1000);
-                    }
-                  };
-                }
-              };
-            })
-            .catch((err) => {
-              console.warn("Service Worker registration failed:", err);
-            });
-        });
-
-        let isRefreshing = false;
-        navigator.serviceWorker.addEventListener("controllerchange", () => {
-          if (!isRefreshing) {
-            isRefreshing = true;
-            window.location.reload();
-          }
-        });
-      }
-
-    </script>
-
-    <script>
-      // ── APP VERSION ──
-      const APP_VERSION = "1.2.0";
 
       // ── SUPABASE CONFIGURATION (PlaceInfo 連携) ──
       const SUPABASE_URL = "https://uvjpiuinsgklddzhzpio.supabase.co";
