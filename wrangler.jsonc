@@ -11,13 +11,6 @@
     "binding": "ASSETS"
   },
 
-  // 3. カスタムドメインの設定
-  "routes": [
-    {
-      "pattern": "koreanews.seronworks.dev/*",
-      "zone_name": "seronworks.dev"
-    }
-  ],
 
   // 4. 辞書データベースの設定
   "d1_databases": [
