@@ -4455,6 +4455,13 @@
         if (!q) return [];
         const list = [];
 
+        // ── 数字＋単位・日時の誤変換ガード ──
+        const numberUnitRegex =
+          /^\d+(일|년|월|대|명|개|원|점|시|분|초|년째|차례|번째)$/;
+        if (numberUnitRegex.test(q)) {
+          return [q]; // 数字＋単位はそのまま返す
+        }
+
         // 助詞チェック：助詞が含まれる場合は活用形推定を行わない
         for (const particle of PARTICLES) {
           if (q.endsWith(particle.p) && q.length > particle.p.length) {
@@ -4614,6 +4621,21 @@
         if (!rawQuery) return null;
         let q = rawQuery.trim().replace(/[.,!?'"()…]/g, "");
         if (!q) return null;
+
+        // ── 数字＋単位・日時の誤変換ガード ──
+        // 日付、年数、数量表現は動詞・形容詞の活用復元を行わず、そのまま返す
+        const numberUnitRegex =
+          /^\d+(일|년|월|대|명|개|원|점|시|분|초|년째|차례|번째)$/;
+        if (numberUnitRegex.test(q)) {
+          return {
+            base: q,
+            hanja: "",
+            pos: "日時・数量",
+            meaning: q, // 数字＋単位はそのまま表示
+            level: "基本語彙",
+            particle: "",
+          };
+        }
 
         // フレーズ・連語チェック
         if (q.includes(" ")) {
@@ -4952,6 +4974,20 @@
         if (!rawQuery) return null;
         let q = rawQuery.trim().replace(/[.,!?'"()…]/g, "");
         if (!q) return null;
+
+        // ── 数字＋単位・日時の誤変換ガード ──
+        const numberUnitRegex =
+          /^\d+(일|년|월|대|명|개|원|점|시|분|초|년째|차례|번째)$/;
+        if (numberUnitRegex.test(q)) {
+          return {
+            base: q,
+            hanja: "",
+            pos: "日時・数量",
+            meaning: q,
+            level: "基本語彙",
+            particle: "",
+          };
+        }
 
         // 1. フレーズ・連語
         if (q.includes(" ")) {
