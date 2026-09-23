@@ -1,6 +1,6 @@
 {
   // 1. Workerの基本情報
-  "name": "korean-learner-dict-api",
+  "name": "korean-learner",
   "main": "worker.js",
   "compatibility_date": "2026-08-24",
   "workers_dev": false,
@@ -8,15 +8,15 @@
   // 2. 画面（index.html）の配信設定
   "assets": {
     "directory": "./public",
-    "binding": "ASSETS"
+    "binding": "ASSETS",
   },
 
   // 3. カスタムドメインの設定
   "routes": [
     {
       "pattern": "koreanews.seronworks.dev/*",
-      "zone_name": "seronworks.dev"
-    }
+      "zone_name": "seronworks.dev",
+    },
   ],
 
   // 4. 辞書データベースの設定
@@ -25,7 +25,7 @@
       "binding": "DB",
       "database_name": "korean-learner-dict",
       "database_id": "98ff31cb-043e-436d-ab4e-a1bf45cc0954",
-      "migrations_dir": "migrations"
-    }
-  ]
+      "migrations_dir": "migrations",
+    },
+  ],
 }
