@@ -1,5 +1,5 @@
 // K-Learner - Service Worker (PWA)
-const CACHE_NAME = "klearner-pwa-v6";
+const CACHE_NAME = "klearner-pwa-v7";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
@@ -13,6 +13,7 @@ self.addEventListener("activate", (event) => {
         return Promise.all(
           keys.map((key) => {
             if (key !== CACHE_NAME) {
+              console.log("Deleting old cache:", key);
               return caches.delete(key);
             }
           }),
@@ -30,8 +31,11 @@ self.addEventListener("fetch", (event) => {
 
   const url = event.request.url;
 
-  // Supabase、機械翻訳、RSS、外部API等は常にリアルタイム通信
+  // ローカル開発環境、HTMLナビゲーション、Supabase、機械翻訳、RSS、外部API等は常にリアルタイム通信（キャッシュ回避）
   if (
+    url.includes("localhost") ||
+    url.includes("127.0.0.1") ||
+    event.request.mode === "navigate" ||
     url.includes("supabase.co") ||
     url.includes("googleapis.com") ||
     url.includes("translate") ||
