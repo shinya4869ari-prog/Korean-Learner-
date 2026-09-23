@@ -1799,16 +1799,23 @@
       <div class="header-controls">
         <span
           id="app-version"
+          onclick="forceUpdatePWA()"
           style="
             font-size: 0.75rem;
-            color: var(--tm);
+            color: var(--ac);
             margin-right: 12px;
             padding: 4px 8px;
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(0, 212, 170, 0.1);
+            border: 1px solid rgba(0, 212, 170, 0.3);
             border-radius: 4px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
           "
+          title="クリックでアプリを最新版へ即座に更新（キャッシュ強制クリア）"
         >
-          v1.2.0
+          🔄 v1.2.1 (更新)
         </span>
         <button
           class="cat-btn"
@@ -2683,7 +2690,66 @@
     <div class="toast" id="toast-msg">単語帳に追加しました！ ⭐</div>
 
     <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">      // ── 📲 PWAアプリ強制更新＆自動アップデートハンドラー ──
+      async function forceUpdatePWA() {
+        showToast("⏳ 最新バージョンを確認・即時反映中...");
+        try {
+          if ("serviceWorker" in navigator) {
+            const regs = await navigator.serviceWorker.getRegistrations();
+            for (const reg of regs) {
+              await reg.unregister();
+            }
+          }
+          if (window.caches) {
+            const keys = await caches.keys();
+            for (const k of keys) {
+              await caches.delete(k);
+            }
+          }
+        } catch (e) {
+          console.warn("PWA cache clear error:", e);
+        }
+        setTimeout(() => {
+          window.location.reload(true);
+        }, 300);
+      }
+
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker
+            .register("/sw.js")
+            .then((reg) => {
+              reg.update();
+              reg.onupdatefound = () => {
+                const installingWorker = reg.installing;
+                if (installingWorker) {
+                  installingWorker.onstatechange = () => {
+                    if (
+                      installingWorker.state === "installed" &&
+                      navigator.serviceWorker.controller
+                    ) {
+                      showToast("✨ 最新バージョンに自動更新しました！");
+                      setTimeout(() => window.location.reload(), 1000);
+                    }
+                  };
+                }
+              };
+            })
+            .catch((err) => {
+              console.warn("Service Worker registration failed:", err);
+            });
+        });
+
+        let isRefreshing = false;
+        navigator.serviceWorker.addEventListener("controllerchange", () => {
+          if (!isRefreshing) {
+            isRefreshing = true;
+            window.location.reload();
+          }
+        });
+      }
+
+    </script>
 
     <script>
       // ── APP VERSION ──
