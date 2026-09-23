@@ -7952,11 +7952,26 @@
           ? `<span style="font-size:0.88rem; color:#a78bfa; font-weight:700; margin-left:6px;">(${match.hanja})</span>`
           : "";
 
-        // 活用形と原形が異なる場合は原形を明記
-        const displayWord =
-          q !== match.base && match.particle
-            ? `${match.base} (${q})`
-            : match.base;
+        // 助詞分離の場合と動詞活用形の場合を区別して表示
+        let displayWord = match.base;
+        let particleDisplay = match.particle || "";
+
+        // 助詞が含まれる場合（名詞＋助詞）
+        if (match.particle && match.particle.includes("助詞")) {
+          // 助詞を分離して表示（例: 귀금속점 ＋ 에 [助詞: 〜に]）
+          const particleMatch = match.particle.match(/「(.+?)」\((.+?)\)/);
+          if (particleMatch) {
+            const particleText = particleMatch[1];
+            const particleDesc = particleMatch[2];
+            displayWord = `${match.base} ＋ ${particleText}`;
+            particleDisplay = `[助詞: ${particleDesc}]`;
+          }
+        }
+        // 動詞・形容詞の活用形の場合
+        else if (q !== match.base && match.particle) {
+          displayWord = `${match.base} [${match.pos}] （本文: ${q}）`;
+          particleDisplay = ""; // 活用形情報はタイトルに含めるのでparticleは空に
+        }
 
         resBox.innerHTML = `
         <div style="background:rgba(0,0,0,0.25); border:1px solid var(--bd); border-radius:10px; padding:10px 14px; margin-top:8px; display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
@@ -7964,8 +7979,7 @@
             <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
               <strong style="font-size:1.08rem; color:#fff;">${displayWord}</strong>
               ${hanjaBadge}
-              <span style="font-size:0.72rem; color:var(--ac2); font-weight:700; margin-left:4px;">[${match.pos}]</span>
-              <span style="font-size:0.8rem; color:#60a5fa;">${match.particle || ""}</span>
+              <span style="font-size:0.8rem; color:#60a5fa;">${particleDisplay}</span>
             </div>
             <div style="font-size:0.95rem; color:var(--ac); font-weight:600; margin-top:5px; line-height:1.5;">${match.meaning}</div>
           </div>
@@ -9926,11 +9940,25 @@
           ? `<span style="font-size:0.88rem; color:#a78bfa; font-weight:700; margin-left:6px;">(${bestMatch.hanja})</span>`
           : "";
 
-        // 活用形と原形が異なる場合は原形を明記
-        const displayWord =
-          q !== bestMatch.base && bestMatch.particle
-            ? `${bestMatch.base} (${q})`
-            : bestMatch.base;
+        // 助詞分離の場合と動詞活用形の場合を区別して表示
+        let displayWord = bestMatch.base;
+        let particleDisplay = bestMatch.particle || "";
+
+        // 助詞が含まれる場合（名詞＋助詞）
+        if (bestMatch.particle && bestMatch.particle.includes("助詞")) {
+          const particleMatch = bestMatch.particle.match(/「(.+?)」\((.+?)\)/);
+          if (particleMatch) {
+            const particleText = particleMatch[1];
+            const particleDesc = particleMatch[2];
+            displayWord = `${bestMatch.base} ＋ ${particleText}`;
+            particleDisplay = `[助詞: ${particleDesc}]`;
+          }
+        }
+        // 動詞・形容詞の活用形の場合
+        else if (q !== bestMatch.base && bestMatch.particle) {
+          displayWord = `${bestMatch.base} [${bestMatch.pos}] （本文: ${q}）`;
+          particleDisplay = "";
+        }
 
         resBox.innerHTML = `
         <div style="background:rgba(0,0,0,0.35); border:1px solid rgba(139,92,246,0.6); border-radius:10px; padding:12px 14px; margin-top:8px; display:flex; justify-content:space-between; align-items:flex-start; gap:10px; box-shadow:0 4px 18px rgba(139,92,246,0.25);">
@@ -9940,7 +9968,7 @@
               ${hanjaBadge}
               <span style="font-size:0.72rem; color:#c084fc; background:rgba(139,92,246,0.2); border:1px solid rgba(139,92,246,0.4); border-radius:4px; padding:1px 6px; font-weight:700;">🤖 AI文脈判定済</span>
               <span style="font-size:0.72rem; color:#f472b6; background:rgba(236,72,153,0.15); border:1px solid rgba(236,72,153,0.3); border-radius:4px; padding:1px 6px; font-weight:700;">[${bestMatch.pos}]</span>
-              <span style="font-size:0.8rem; color:#60a5fa;">${bestMatch.particle || ""}</span>
+              <span style="font-size:0.8rem; color:#60a5fa;">${particleDisplay}</span>
             </div>
             <div style="font-size:0.96rem; color:#34d399; font-weight:600; margin-top:6px; line-height:1.5;">${bestMatch.meaning}</div>
           </div>
