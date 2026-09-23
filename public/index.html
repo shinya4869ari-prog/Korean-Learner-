@@ -7984,6 +7984,7 @@
             <div style="font-size:0.95rem; color:var(--ac); font-weight:600; margin-top:5px; line-height:1.5;">${match.meaning}</div>
           </div>
           <div style="display:flex; gap:6px; align-items:center; flex-shrink:0;">
+            <button class="mini-action-btn" onclick="aiReResolveNewsWord()" title="前後のニュース文脈からAIが正しい原形と意味を再判定" style="background:linear-gradient(135deg, #8b5cf6, #ec4899); color:#fff; border:none; font-weight:700; display:inline-flex; align-items:center; gap:4px; box-shadow:0 2px 8px rgba(236,72,153,0.35);">🤖 AI再判定</button>
             <button class="mini-action-btn" onclick="triggerSpeechSingle('${escJs(match.base)}')" title="発音">🔊 発音</button>
             <button class="mini-action-btn" onclick="toggleSaveWord('${escJs(match.base)}', '${escJs(match.meaning)}', '${escJs(match.level)}', this, '${escJs(match.hanja)}')">⭐ 単語帳に保存</button>
             <button class="result-close-x" onclick="clearNewsGlobalLookup()" title="閉じる">✕</button>
@@ -9976,6 +9977,141 @@
             <button class="mini-action-btn" onclick="triggerSpeechSingle('${escJs(bestMatch.base)}')" title="発音を聞く">🔊 発音</button>
             <button class="mini-action-btn" onclick="toggleSaveWord('${escJs(bestMatch.base)}', '${escJs(bestMatch.meaning)}', 'AI解析', this, '${escJs(bestMatch.hanja)}')">⭐ 保存</button>
             <button class="result-close-x" onclick="clearLyricsGlobalLookup()" title="閉じる">✕</button>
+          </div>
+        </div>
+      `;
+        showToast(
+          `✨ AIが文脈に合わせて「${q}」の原形と意味を再判定しました！`,
+        );
+      }
+
+      // ── 🤖 ニュースモード: AI文脈再判定（歌詞モードと同等のロジック）──
+      async function aiReResolveNewsWord() {
+        const q =
+          currentActiveLookupWord ||
+          document.getElementById("news-global-lookup-inp")?.value?.trim();
+        if (!q) return;
+
+        const resBox = document.getElementById("news-global-lookup-res");
+        if (!resBox) return;
+
+        // ニュース前後の文脈行を取得
+        let sentenceContext = "";
+        if (
+          currentArticle &&
+          currentArticle.sentences &&
+          currentActiveSentenceIdx !== null &&
+          currentArticle.sentences[currentActiveSentenceIdx]
+        ) {
+          sentenceContext =
+            currentArticle.sentences[currentActiveSentenceIdx].ko;
+        }
+
+        resBox.innerHTML = `
+        <div style="background:rgba(0,0,0,0.3); border:1px solid rgba(139,92,246,0.3); border-radius:10px; padding:10px 14px; margin-top:8px; color:var(--tm); font-size:0.85rem;">
+          ⏳ AIが文脈を分析して再判定中...
+        </div>
+      `;
+
+        // 歌詞モードと同じ候補生成ロジックを使用
+        const candidates = deriveKoreanBaseCandidates(q);
+        candidates.push(q);
+
+        let bestMatch = null;
+
+        // 1. 候補語をBUILTIN_DICTで検索
+        for (const cand of candidates) {
+          if (BUILTIN_DICT[cand]) {
+            bestMatch = {
+              base: cand,
+              ...BUILTIN_DICT[cand],
+              particle: cand !== q ? `（活用: ${q}）` : "",
+            };
+            break;
+          }
+        }
+
+        // 2. 候補語が見つからない場合、翻訳APIで判定
+        if (!bestMatch) {
+          for (const cand of candidates) {
+            const trans = await translateKoToJa(cand);
+            if (trans && !/^[ァ-ヶー・\s]+$/.test(trans)) {
+              bestMatch = {
+                base: cand,
+                hanja: "",
+                pos: "動詞/語彙",
+                meaning: cleanTranslatedMeaning(trans, cand),
+                level: "AI解析",
+                particle: cand !== q ? `（活用: ${q}）` : "",
+              };
+              break;
+            }
+          }
+        }
+
+        // 3. 原形が見つからなかった場合、文脈全体からフレーズ翻訳
+        if (!bestMatch && sentenceContext) {
+          const trans = await translateKoToJa(q);
+          bestMatch = {
+            base: q,
+            hanja: "",
+            pos: "文脈語彙",
+            meaning:
+              cleanTranslatedMeaning(trans || "", q) || "（文脈中の表現）",
+            level: "AI解析",
+            particle: "",
+          };
+        }
+
+        if (!bestMatch) {
+          showToast("AI再判定で結果が見つかりませんでした");
+          executeNewsGlobalLookup(q);
+          return;
+        }
+
+        // キャッシュに保存して以降も反映
+        BUILTIN_DICT[q] = bestMatch;
+
+        // 結果を再描画（AIバッジ付き）
+        const hanjaBadge = bestMatch.hanja
+          ? `<span style="font-size:0.88rem; color:#a78bfa; font-weight:700; margin-left:6px;">(${bestMatch.hanja})</span>`
+          : "";
+
+        // 助詞分離の場合と動詞活用形の場合を区別して表示
+        let displayWord = bestMatch.base;
+        let particleDisplay = bestMatch.particle || "";
+
+        // 助詞が含まれる場合（名詞＋助詞）
+        if (bestMatch.particle && bestMatch.particle.includes("助詞")) {
+          const particleMatch = bestMatch.particle.match(/「(.+?)」\((.+?)\)/);
+          if (particleMatch) {
+            const particleText = particleMatch[1];
+            const particleDesc = particleMatch[2];
+            displayWord = `${bestMatch.base} ＋ ${particleText}`;
+            particleDisplay = `[助詞: ${particleDesc}]`;
+          }
+        }
+        // 動詞・形容詞の活用形の場合
+        else if (q !== bestMatch.base && bestMatch.particle) {
+          displayWord = `${bestMatch.base} [${bestMatch.pos}] （本文: ${q}）`;
+          particleDisplay = "";
+        }
+
+        resBox.innerHTML = `
+        <div style="background:rgba(0,0,0,0.35); border:1px solid rgba(139,92,246,0.6); border-radius:10px; padding:12px 14px; margin-top:8px; display:flex; justify-content:space-between; align-items:flex-start; gap:10px; box-shadow:0 4px 18px rgba(139,92,246,0.25);">
+          <div style="flex:1;">
+            <div style="display:flex; align-items:center; flex-wrap:wrap; gap:6px;">
+              <strong style="font-size:1.08rem; color:#fff;">${displayWord}</strong>
+              ${hanjaBadge}
+              <span style="font-size:0.72rem; color:#c084fc; background:rgba(139,92,246,0.2); border:1px solid rgba(139,92,246,0.4); border-radius:4px; padding:1px 6px; font-weight:700;">🤖 AI文脈判定済</span>
+              <span style="font-size:0.8rem; color:#60a5fa;">${particleDisplay}</span>
+            </div>
+            <div style="font-size:0.95rem; color:var(--ac); font-weight:600; margin-top:5px; line-height:1.5;">${bestMatch.meaning}</div>
+          </div>
+          <div style="display:flex; gap:6px; align-items:center; flex-shrink:0;">
+            <button class="mini-action-btn" onclick="triggerSpeechSingle('${escJs(bestMatch.base)}')" title="発音">🔊 発音</button>
+            <button class="mini-action-btn" onclick="toggleSaveWord('${escJs(bestMatch.base)}', '${escJs(bestMatch.meaning)}', 'AI解析', this, '${escJs(bestMatch.hanja)}')">⭐ 単語帳に保存</button>
+            <button class="result-close-x" onclick="clearNewsGlobalLookup()" title="閉じる">✕</button>
           </div>
         </div>
       `;
