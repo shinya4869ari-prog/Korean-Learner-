@@ -1877,16 +1877,6 @@
         <div class="hub-chips" id="hub-chip-container">
           <!-- Populated dynamically (Supabase tracks prepended) -->
         </div>
-
-        <!-- Custom Search / Input Form -->
-        <div class="custom-input-wrap">
-          <input
-            type="text"
-            id="custom-search-input"
-            class="custom-input"
-            placeholder="曲名（例: AKMU, 김나영, G-DRAGON）やニュースのキーワードを入力..."
-          />
-        </div>
       </section>
 
       <!-- ── 2. WORKSPACE: READER + LEARNING SIDEBAR (NEWS / LYRICS) ── -->
@@ -5089,7 +5079,46 @@
           return localMatch;
         }
 
-        // 4. ☁️ Cloudflare D1 辞書APIから非同期検索（カスタムドメイン使用）
+        // 4. ☁️ Supabase カスタム辞書（最優先）
+        try {
+          const targets = stem !== q ? [stem, q] : [q];
+          for (const t of targets) {
+            const res = await fetch(
+              `${SUPABASE_URL}/rest/v1/dictionary?word=eq.${encodeURIComponent(t)}&select=*&limit=1`,
+              {
+                headers: {
+                  apikey: SUPABASE_KEY,
+                  Authorization: `Bearer ${SUPABASE_KEY}`,
+                },
+              },
+            );
+            if (res.ok) {
+              const list = await res.json();
+              if (list && list.length > 0) {
+                const row = list[0];
+                const hanjaDisplay =
+                  row.hanja && row.hanja !== "―" && row.hanja !== "-"
+                    ? row.hanja
+                    : "";
+                const entry = {
+                  base: row.word,
+                  hanja: hanjaDisplay,
+                  pos: row.pos || "名詞",
+                  meaning: row.meaning,
+                  level: row.level || "カスタム辞書",
+                  particle: t === stem ? detectedParticle : "",
+                };
+                BUILTIN_DICT[row.word] = entry;
+                return entry;
+              }
+            }
+          }
+        } catch (err) {
+          // Supabase辞書未作成または取得失敗時は静かにフォールバック
+          console.warn("Supabase dictionary fetch error:", err);
+        }
+
+        // 5. ☁️ Cloudflare D1 辞書APIから非同期検索（フォールバック）
         try {
           const targets = stem !== q ? [stem, q] : [q];
           for (const t of targets) {
@@ -7923,11 +7952,17 @@
           ? `<span style="font-size:0.88rem; color:#a78bfa; font-weight:700; margin-left:6px;">(${match.hanja})</span>`
           : "";
 
+        // 活用形と原形が異なる場合は原形を明記
+        const displayWord =
+          q !== match.base && match.particle
+            ? `${match.base} (${q})`
+            : match.base;
+
         resBox.innerHTML = `
         <div style="background:rgba(0,0,0,0.25); border:1px solid var(--bd); border-radius:10px; padding:10px 14px; margin-top:8px; display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
           <div style="flex:1;">
             <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
-              <strong style="font-size:1.08rem; color:#fff;">${match.base}</strong>
+              <strong style="font-size:1.08rem; color:#fff;">${displayWord}</strong>
               ${hanjaBadge}
               <span style="font-size:0.72rem; color:var(--ac2); font-weight:700; margin-left:4px;">[${match.pos}]</span>
               <span style="font-size:0.8rem; color:#60a5fa;">${match.particle || ""}</span>
@@ -8628,15 +8663,11 @@
 
         if (mode === "lyrics") {
           catBar.style.display = "none";
-          customInp.style.display = "none";
           lyricsPanel.style.display = "block";
           currentArticle = SAMPLE_DATABASE.lyrics[0];
           syncSupabaseLyricsToApp();
         } else {
           catBar.style.display = "flex";
-          customInp.style.display = "block";
-          customInp.placeholder =
-            "事件・政治・ほっこりニュースのキーワード、URL、韓国語テキストを入力...";
           lyricsPanel.style.display = "none";
           legalPanel.style.display = "block";
           currentArticle = SAMPLE_DATABASE.news[0];
@@ -9894,11 +9925,18 @@
         const hanjaBadge = bestMatch.hanja
           ? `<span style="font-size:0.88rem; color:#a78bfa; font-weight:700; margin-left:6px;">(${bestMatch.hanja})</span>`
           : "";
+
+        // 活用形と原形が異なる場合は原形を明記
+        const displayWord =
+          q !== bestMatch.base && bestMatch.particle
+            ? `${bestMatch.base} (${q})`
+            : bestMatch.base;
+
         resBox.innerHTML = `
         <div style="background:rgba(0,0,0,0.35); border:1px solid rgba(139,92,246,0.6); border-radius:10px; padding:12px 14px; margin-top:8px; display:flex; justify-content:space-between; align-items:flex-start; gap:10px; box-shadow:0 4px 18px rgba(139,92,246,0.25);">
           <div style="flex:1;">
             <div style="display:flex; align-items:center; flex-wrap:wrap; gap:6px;">
-              <strong style="font-size:1.1rem; color:#fff; letter-spacing:0.02em;">${bestMatch.base}</strong>
+              <strong style="font-size:1.1rem; color:#fff; letter-spacing:0.02em;">${displayWord}</strong>
               ${hanjaBadge}
               <span style="font-size:0.72rem; color:#c084fc; background:rgba(139,92,246,0.2); border:1px solid rgba(139,92,246,0.4); border-radius:4px; padding:1px 6px; font-weight:700;">🤖 AI文脈判定済</span>
               <span style="font-size:0.72rem; color:#f472b6; background:rgba(236,72,153,0.15); border:1px solid rgba(236,72,153,0.3); border-radius:4px; padding:1px 6px; font-weight:700;">[${bestMatch.pos}]</span>
