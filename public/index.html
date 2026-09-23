@@ -4633,6 +4633,41 @@
           };
         }
 
+        // ── ステップ0：記事のkey_vocabularyを最優先検索 ──
+        if (currentArticle && currentArticle.vocab) {
+          for (const v of currentArticle.vocab) {
+            // 完全一致
+            if (v.word === q) {
+              return {
+                base: v.word,
+                hanja: v.hanja || "",
+                pos: v.pos || "重要語彙",
+                meaning: v.meaning,
+                level: v.level || "重要語彙",
+                particle: "",
+              };
+            }
+            // 助詞付きの単語（例: 귀금속점에 → 귀금속점）
+            const cleanV = v.word.replace(/[.,!?'"()…]/g, "");
+            if (q.startsWith(cleanV) && q.length > cleanV.length) {
+              const particle = q.slice(cleanV.length);
+              // 一般的な助詞か確認
+              const isParticle = PARTICLES.some((p) => particle === p.p);
+              if (isParticle) {
+                const particleInfo = PARTICLES.find((p) => particle === p.p);
+                return {
+                  base: v.word,
+                  hanja: v.hanja || "",
+                  pos: v.pos || "重要語彙",
+                  meaning: v.meaning,
+                  level: v.level || "重要語彙",
+                  particle: ` + 「${particle}」(${particleInfo.desc})`,
+                };
+              }
+            }
+          }
+        }
+
         // ── ステップ1：完全一致（最優先）──
         if (BUILTIN_DICT[q]) {
           return { base: q, ...BUILTIN_DICT[q], particle: "" };
@@ -4934,6 +4969,41 @@
             level: "連語",
             particle: "",
           };
+        }
+
+        // ── ステップ0：記事のkey_vocabularyを最優先検索 ──
+        if (currentArticle && currentArticle.vocab) {
+          for (const v of currentArticle.vocab) {
+            // 完全一致
+            if (v.word === q) {
+              return {
+                base: v.word,
+                hanja: v.hanja || "",
+                pos: v.pos || "重要語彙",
+                meaning: v.meaning,
+                level: v.level || "重要語彙",
+                particle: "",
+              };
+            }
+            // 助詞付きの単語（例: 귀금속점에 → 귀금속점）
+            const cleanV = v.word.replace(/[.,!?'"()…]/g, "");
+            if (q.startsWith(cleanV) && q.length > cleanV.length) {
+              const particle = q.slice(cleanV.length);
+              // 一般的な助詞か確認
+              const isParticle = PARTICLES.some((p) => particle === p.p);
+              if (isParticle) {
+                const particleInfo = PARTICLES.find((p) => particle === p.p);
+                return {
+                  base: v.word,
+                  hanja: v.hanja || "",
+                  pos: v.pos || "重要語彙",
+                  meaning: v.meaning,
+                  level: v.level || "重要語彙",
+                  particle: ` + 「${particle}」(${particleInfo.desc})`,
+                };
+              }
+            }
+          }
         }
 
         // ── ステップ1：完全一致（最優先）──
