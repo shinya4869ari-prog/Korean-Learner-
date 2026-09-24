@@ -7639,6 +7639,20 @@
       }
 
       // ── ☁️ SUPABASE NEWS SYNC FUNCTIONS (6大カテゴリ ＆ 推しニュース自動同期) ──
+      function formatNewsDate(rawDate) {
+        if (!rawDate) return "";
+        try {
+          const d = new Date(rawDate);
+          if (isNaN(d.getTime())) return String(rawDate);
+          const yyyy = d.getFullYear();
+          const mm = String(d.getMonth() + 1).padStart(2, "0");
+          const dd = String(d.getDate()).padStart(2, "0");
+          return `${yyyy}.${mm}.${dd}`;
+        } catch (e) {
+          return String(rawDate);
+        }
+      }
+
       async function fetchSupabaseNews() {
         try {
           const url = `${SUPABASE_URL}/rest/v1/news?select=*&order=created_at.desc,published_at.desc&limit=30`;
@@ -7725,6 +7739,7 @@
               vocab: vocab,
               legal_point: `【${catLabel} TOP ${n.rank || 1}】生きたニュース韓国語と最新動向を読解できます。`,
               is_supabase: true,
+              date: formatNewsDate(n.published_at || n.created_at),
               published_at: n.published_at,
               created_at: n.created_at,
             };
@@ -9996,7 +10011,9 @@
         document.getElementById("badge-source").textContent =
           item.source || "K-Learner";
         document.getElementById("article-date").textContent =
-          item.date || "2026.08.21";
+          item.date ||
+          (typeof formatNewsDate === "function" ? formatNewsDate(item.published_at || item.created_at) : "") ||
+          new Date().toLocaleDateString("ja-JP").replace(/\//g, ".");
 
         // ☁️ Supabaseバッジと保存ボタンの切り替え
         const supaBadge = document.getElementById("badge-supabase");
