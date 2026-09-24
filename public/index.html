@@ -1762,12 +1762,15 @@
         background: rgba(8, 12, 22, 0.82) !important;
         backdrop-filter: blur(10px) !important;
         -webkit-backdrop-filter: blur(10px) !important;
-        display: flex !important;
+        display: none;
         align-items: center !important;
         justify-content: center !important;
         z-index: 999999 !important;
         padding: 20px !important;
         box-sizing: border-box !important;
+      }
+      .modal-overlay.active {
+        display: flex !important;
         animation: modalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
       }
       @keyframes modalFadeIn {
@@ -11036,6 +11039,7 @@
           else levelSel.value = "★";
         }
 
+        modal.classList.add("active");
         modal.style.display = "flex";
         setTimeout(() => {
           if (meaningInp && !meaningInp.value) meaningInp.focus();
@@ -11045,7 +11049,10 @@
 
       function closeWordSaveModal() {
         const modal = document.getElementById("word-save-modal");
-        if (modal) modal.style.display = "none";
+        if (modal) {
+          modal.classList.remove("active");
+          modal.style.display = "none";
+        }
         _pendingWordSaveBtn = null;
       }
 
