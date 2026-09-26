@@ -311,6 +311,51 @@
         color: var(--pink);
       }
 
+      /* ── Spotify風 アーティストライブラリ ── */
+      .artist-card-item {
+        background: var(--s2);
+        border: 1px solid var(--bd);
+        border-radius: 12px;
+        padding: 10px 14px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        user-select: none;
+      }
+      .artist-card-item:hover {
+        background: var(--s3);
+        border-color: var(--ac);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 14px rgba(0, 212, 170, 0.18);
+      }
+      .artist-card-item.active {
+        background: rgba(0, 212, 170, 0.12);
+        border-color: var(--ac);
+        box-shadow: 0 0 14px var(--ac-glow);
+      }
+      .lyrics-nav-btn {
+        background: var(--s2);
+        border: 1px solid var(--bd);
+        color: var(--tx);
+        border-radius: 8px;
+        padding: 5px 12px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s;
+      }
+      .lyrics-nav-btn:hover {
+        border-color: var(--ac);
+        color: var(--ac);
+        background: var(--s3);
+      }
+
       /* 既読・未読の明確な識別スタイル */
       .hub-chip.is-read {
         opacity: 0.58;
@@ -608,6 +653,28 @@
         transform: translateY(-2px) scale(1.03);
         box-shadow: 0 6px 18px rgba(29, 185, 84, 0.6);
         color: #000 !important;
+      }
+
+      .youtube-badge-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #ff0000;
+        color: #ffffff !important;
+        font-weight: 800;
+        font-size: 0.8rem;
+        padding: 7px 15px;
+        border-radius: 20px;
+        text-decoration: none;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 3px 12px rgba(255, 0, 0, 0.4);
+        flex-shrink: 0;
+      }
+      .youtube-badge-btn:hover {
+        background: #e60000;
+        transform: translateY(-2px) scale(1.03);
+        box-shadow: 0 6px 18px rgba(255, 0, 0, 0.6);
+        color: #ffffff !important;
       }
 
       .supabase-save-btn {
@@ -2081,6 +2148,12 @@
                   style="display: none"
                   >☁️ Supabase同期済</span
                 >
+                <span
+                  class="tag-badge artist-badge"
+                  id="badge-artist"
+                  style="display: none; background: rgba(0, 212, 170, 0.15); border: 1px solid var(--ac); color: var(--ac); font-weight: 700;"
+                  >🎤 <span id="badge-artist-text"></span
+                ></span>
               </div>
 
               <div
@@ -2093,8 +2166,14 @@
 
             <!-- 🎵 タイトル行（右側にSpotifyリンクボタン & Supabase保存ボタンを配置） -->
             <div class="title-row-wrap">
-              <div class="article-title-ko" id="article-title-ko">
-                서울 강남 귀금속점 특수강도 사건 발생… 피의자 긴급 체포
+              <div class="title-left-col" style="flex: 1; min-width: 280px; display: flex; flex-direction: column; align-items: flex-start; gap: 4px;">
+                <div id="article-artist-display" style="display: none; align-items: center; gap: 8px; margin-bottom: 6px;">
+                  <span style="background: rgba(0, 212, 170, 0.15); border: 1px solid var(--ac); border-radius: 8px; padding: 2px 10px; font-size: 0.8rem; font-weight: 700; color: var(--ac);">🎤 アーティスト</span>
+                  <span id="article-artist-name" style="font-size: 1.15rem; font-weight: 800; color: var(--tx);"></span>
+                </div>
+                <div class="article-title-ko" id="article-title-ko">
+                  서울 강남 귀금속점 특수강도 사건 발생… 피의자 긴급 체포
+                </div>
               </div>
 
               <div class="header-actions-right">
@@ -2186,6 +2265,29 @@
                     />
                   </svg>
                   <span>Spotifyで聴く ↗</span>
+                </a>
+
+                <!-- 🔴 YouTubeリンクボタン -->
+                <a
+                  id="header-youtube-btn"
+                  href="#"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="youtube-badge-btn"
+                  style="display: none"
+                  title="YouTubeで公式MV・音源を見る"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    width="16"
+                    height="16"
+                    fill="currentColor"
+                  >
+                    <path
+                      d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"
+                    />
+                  </svg>
+                  <span>YouTubeで見る ↗</span>
                 </a>
               </div>
             </div>
@@ -7289,6 +7391,31 @@
         ],
       };
 
+      // ── LYRICS LIBRARY STATE (Spotify風2階層ライブラリ) ──
+      let selectedArtistForLyrics = null;
+      let lyricsSearchQuery = "";
+      let lyricsViewMode = "artist"; // "artist" or "all"
+
+      function parseArtistInfo(rawArtist) {
+        if (!rawArtist || !rawArtist.trim()) {
+          return { primary: "不明", extra: "" };
+        }
+        const str = rawArtist.trim();
+        const slashParts = str.split(/\s*\/\s*/);
+        if (slashParts.length > 1) {
+          return {
+            primary: slashParts[0].trim(),
+            extra: slashParts.slice(1).join(" / ").trim(),
+          };
+        }
+        return { primary: str, extra: "" };
+      }
+
+      function goBackToArtistList() {
+        selectedArtistForLyrics = null;
+        renderHubChips();
+      }
+
       let currentMode = "news";
       let isJaTranslationVisible = true; // ニュース日本語訳の表示トグル
       let currentCategoryFilter = "all";
@@ -7615,6 +7742,9 @@
                   preview_url: t.preview_url || data.preview_url,
                   itunes_url: t.itunes_url || data.itunes_url,
                   album_cover: t.album_cover || data.album_cover,
+                  youtube_id: t.youtube_id || data.youtube_id || t.mv_url || data.mv_url,
+                  mv_url: t.mv_url || data.mv_url,
+                  artist: data.artist || t.artist_name || t.artist || "K-POP",
                   is_supabase: true,
                   source: "Supabase クラウドDB",
                 });
@@ -8840,6 +8970,9 @@
                 SAMPLE_DATABASE.lyrics[existingIdx] = {
                   ...existing,
                   id: st.id,
+                  youtube_id: st.youtube_id || existing.youtube_id,
+                  mv_url: st.mv_url || existing.mv_url,
+                  artist: existing.artist || st.artist,
                   is_supabase: true,
                 };
               } else {
@@ -9311,60 +9444,392 @@
 
         const readArticles = getReadArticles();
 
-        // 歌詞モード: テーブル形式
+        // 歌詞モード: Spotify風2階層ライブラリ（アーティスト一覧 ⇄ 楽曲一覧）
         if (currentMode === "lyrics") {
           container.style.display = "block";
           container.style.gridTemplateColumns = "none";
 
-          const table = document.createElement("table");
-          table.style.cssText =
-            "width:100%; border-collapse:collapse; font-size:0.8rem;";
+          const allSongs = SAMPLE_DATABASE.lyrics || [];
 
-          table.innerHTML = `
-            <thead>
-              <tr style="background:var(--s2); border-bottom:1px solid var(--bd);">
-                <th style="padding:8px; text-align:left; font-weight:700; width:30%;">アーティスト</th>
-                <th style="padding:8px; text-align:left; font-weight:700; width:auto;">曲名</th>
-                <th style="padding:8px; text-align:center; font-weight:700; width:60px;">操作</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          `;
-
-          const tbody = table.querySelector("tbody");
-
-          list.forEach((item) => {
-            const tr = document.createElement("tr");
-            tr.style.cssText =
-              "border-bottom:1px solid var(--bd); cursor:pointer; transition:background 0.2s;";
-            tr.onmouseover = () => (tr.style.background = "var(--s3)");
-            tr.onmouseout = () => (tr.style.background = "");
-
-            const artist = item.artist || "不明";
-            const titleKo = item.title_ko
-              ? item.title_ko.split(" - ")[0].trim()
-              : "";
-
-            tr.innerHTML = `
-              <td style="padding:8px;">${artist}</td>
-              <td style="padding:8px;">${titleKo}</td>
-              <td style="padding:8px; text-align:center;">
-                <button class="chip-delete-btn" onclick="deleteSongItem('${item.id}', event)" title="この楽曲を削除">🗑️</button>
-              </td>
+          // 空のライブラリガード
+          if (allSongs.length === 0) {
+            container.innerHTML = `
+              <div style="text-align:center; padding:30px 10px; color:var(--tm); font-size:0.85rem;">
+                <div style="font-size:2rem; margin-bottom:8px;">🎵</div>
+                登録された楽曲がありません。<br>右上の「➕ 歌詞をコピペ登録」から好きな曲を追加できます。
+              </div>
             `;
+            return;
+          }
 
-            tr.onclick = (e) => {
-              if (e.target.tagName === "BUTTON") return;
-              stopSpeech();
-              currentArticle = item;
-              renderHubChips();
-              loadArticle(item);
-            };
-
-            tbody.appendChild(tr);
+          // アーティストマップの構築
+          const artistMap = new Map();
+          allSongs.forEach((item) => {
+            const { primary, extra } = parseArtistInfo(item.artist);
+            if (!artistMap.has(primary)) {
+              artistMap.set(primary, []);
+            }
+            artistMap.get(primary).push({
+              ...item,
+              _primaryArtist: primary,
+              _extraArtist: extra,
+            });
           });
 
-          container.appendChild(table);
+          // 選択中アーティストが存在しなくなった場合はリセット
+          if (selectedArtistForLyrics && !artistMap.has(selectedArtistForLyrics)) {
+            selectedArtistForLyrics = null;
+          }
+
+          // クエリによる検索フィルタ
+          const query = (lyricsSearchQuery || "").toLowerCase().trim();
+
+          // ── ヘッダー（上部ナビゲーション ＆ 検索バー ＆ 表示切替）──
+          const headerEl = document.createElement("div");
+          headerEl.className = "lyrics-library-nav";
+          headerEl.style.cssText = `
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--bd);
+          `;
+
+          // 左側: パンくず / タイトル
+          let leftHtml = "";
+          if (lyricsViewMode === "artist") {
+            if (selectedArtistForLyrics) {
+              const currentArtistSongs = artistMap.get(selectedArtistForLyrics) || [];
+              leftHtml = `
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <button class="lyrics-nav-btn" onclick="goBackToArtistList()" title="アーティスト一覧に戻る">
+                    ‹ アーティスト一覧
+                  </button>
+                  <span style="font-weight:700; font-size:0.95rem; color:var(--tx); display:inline-flex; align-items:center; gap:6px;">
+                    🎤 ${escapeHtml(selectedArtistForLyrics)}
+                    <span style="background:rgba(0,212,170,0.15); color:var(--ac); border:1px solid rgba(0,212,170,0.3); border-radius:12px; padding:1px 8px; font-size:0.75rem; font-weight:700;">${currentArtistSongs.length}曲</span>
+                  </span>
+                </div>
+              `;
+            } else {
+              leftHtml = `
+                <span style="font-weight:700; font-size:0.92rem; color:var(--tx); display:inline-flex; align-items:center; gap:6px;">
+                  🎤 アーティスト別ライブラリ
+                  <span style="background:rgba(0,212,170,0.15); color:var(--ac); border:1px solid rgba(0,212,170,0.3); border-radius:12px; padding:1px 8px; font-size:0.75rem; font-weight:700;">${artistMap.size}組 / 全${allSongs.length}曲</span>
+                </span>
+              `;
+            }
+          } else {
+            leftHtml = `
+              <span style="font-weight:700; font-size:0.92rem; color:var(--tx); display:inline-flex; align-items:center; gap:6px;">
+                🎵 全楽曲リスト
+                <span style="background:rgba(0,212,170,0.15); color:var(--ac); border:1px solid rgba(0,212,170,0.3); border-radius:12px; padding:1px 8px; font-size:0.75rem; font-weight:700;">全${allSongs.length}曲</span>
+              </span>
+            `;
+          }
+
+          // 右側: 検索 ＆ 切替タブ
+          const rightHtml = `
+            <div style="display:flex; align-items:center; gap:8px; flex:1; max-width:440px; justify-content:flex-end;">
+              <div style="position:relative; width:100%; max-width:240px;">
+                <input
+                  type="text"
+                  id="lyrics-library-search-input"
+                  placeholder="🔍 歌手・曲名を検索..."
+                  value="${escapeHtml(lyricsSearchQuery)}"
+                  style="width:100%; background:var(--s2); border:1px solid var(--bd); color:var(--tx); border-radius:8px; padding:5px 28px 5px 10px; font-size:0.78rem; outline:none; transition:border 0.2s;"
+                />
+                ${lyricsSearchQuery ? `<button id="lyrics-search-clear-btn" style="position:absolute; right:6px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--tm); cursor:pointer; font-size:0.8rem;">✕</button>` : ''}
+              </div>
+              <div style="display:inline-flex; background:var(--s2); border:1px solid var(--bd); border-radius:8px; padding:2px;">
+                <button id="viewmode-artist-btn" style="background:${lyricsViewMode === 'artist' ? 'rgba(0,212,170,0.2)' : 'transparent'}; color:${lyricsViewMode === 'artist' ? 'var(--ac)' : 'var(--tm)'}; border:none; padding:4px 8px; border-radius:6px; font-size:0.75rem; font-weight:700; cursor:pointer; transition:all 0.2s;">🎤 歌手別</button>
+                <button id="viewmode-all-btn" style="background:${lyricsViewMode === 'all' ? 'rgba(0,212,170,0.2)' : 'transparent'}; color:${lyricsViewMode === 'all' ? 'var(--ac)' : 'var(--tm)'}; border:none; padding:4px 8px; border-radius:6px; font-size:0.75rem; font-weight:700; cursor:pointer; transition:all 0.2s;">🎵 全曲</button>
+              </div>
+            </div>
+          `;
+
+          headerEl.innerHTML = leftHtml + rightHtml;
+          container.appendChild(headerEl);
+
+          // 検索イベントリスナー
+          const searchInput = headerEl.querySelector("#lyrics-library-search-input");
+          if (searchInput) {
+            searchInput.oninput = (e) => {
+              lyricsSearchQuery = e.target.value;
+              renderHubChips();
+              const freshInput = document.getElementById("lyrics-library-search-input");
+              if (freshInput) {
+                freshInput.focus();
+                freshInput.setSelectionRange(freshInput.value.length, freshInput.value.length);
+              }
+            };
+          }
+          const clearBtn = headerEl.querySelector("#lyrics-search-clear-btn");
+          if (clearBtn) {
+            clearBtn.onclick = () => {
+              lyricsSearchQuery = "";
+              renderHubChips();
+            };
+          }
+          const vmArtistBtn = headerEl.querySelector("#viewmode-artist-btn");
+          if (vmArtistBtn) {
+            vmArtistBtn.onclick = () => {
+              lyricsViewMode = "artist";
+              renderHubChips();
+            };
+          }
+          const vmAllBtn = headerEl.querySelector("#viewmode-all-btn");
+          if (vmAllBtn) {
+            vmAllBtn.onclick = () => {
+              lyricsViewMode = "all";
+              renderHubChips();
+            };
+          }
+
+          // ── コンテンツ表示エリア ──
+          if (lyricsViewMode === "artist") {
+            if (!selectedArtistForLyrics) {
+              // ── 階層 1: アーティストカード一覧 ──
+              let artistsList = Array.from(artistMap.entries()).sort((a, b) => {
+                if (b[1].length !== a[1].length) return b[1].length - a[1].length;
+                return a[0].localeCompare(b[0], "ko");
+              });
+
+              if (query) {
+                artistsList = artistsList.filter(([artistName, songs]) => {
+                  if (artistName.toLowerCase().includes(query)) return true;
+                  return songs.some((s) => {
+                    const tk = (s.title_ko || "").toLowerCase();
+                    const tj = (s.title_ja || "").toLowerCase();
+                    const ex = (s._extraArtist || "").toLowerCase();
+                    return tk.includes(query) || tj.includes(query) || ex.includes(query);
+                  });
+                });
+              }
+
+              if (artistsList.length === 0) {
+                const emptyEl = document.createElement("div");
+                emptyEl.style.cssText = "font-size:0.8rem; color:var(--tm); padding:16px; text-align:center;";
+                emptyEl.textContent = `🔍 「${lyricsSearchQuery}」に一致するアーティストは見つかりませんでした`;
+                container.appendChild(emptyEl);
+                return;
+              }
+
+              const grid = document.createElement("div");
+              grid.className = "artist-grid-container";
+              grid.style.cssText = "display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:10px;";
+
+              artistsList.forEach(([artistName, songs]) => {
+                const card = document.createElement("div");
+                card.className = "artist-card-item";
+
+                const firstSong = songs[0];
+                const firstTitle = firstSong.title_ko ? firstSong.title_ko.split(" - ")[0].trim() : "";
+                const isPlayingInThisArtist = currentArticle && songs.some((s) => s.id === currentArticle.id);
+
+                card.innerHTML = `
+                  <div style="display:flex; align-items:center; gap:10px; min-width:0; flex:1;">
+                    <div style="width:38px; height:38px; border-radius:50%; background:linear-gradient(135deg, rgba(0, 212, 170, 0.2), rgba(120, 80, 255, 0.25)); display:flex; align-items:center; justify-content:center; font-size:1.15rem; flex-shrink:0; border:1px solid rgba(0, 212, 170, 0.3);">
+                      🎤
+                    </div>
+                    <div style="min-width:0; flex:1;">
+                      <div style="font-weight:700; font-size:0.86rem; color:var(--tx); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:flex; align-items:center; gap:6px;">
+                        <span>${escapeHtml(artistName)}</span>
+                        ${isPlayingInThisArtist ? '<span style="font-size:0.68rem; color:var(--ac); background:rgba(0,212,170,0.15); border:1px solid var(--ac); border-radius:4px; padding:0 4px;">再生中</span>' : ''}
+                      </div>
+                      <div style="font-size:0.72rem; color:var(--tm); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px;">
+                        ${songs.length > 1 ? `代表曲: ${escapeHtml(firstTitle)} 等` : escapeHtml(firstTitle)}
+                      </div>
+                    </div>
+                  </div>
+                  <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+                    <span style="background:rgba(0, 212, 170, 0.12); color:var(--ac); border:1px solid rgba(0, 212, 170, 0.3); border-radius:10px; padding:2px 8px; font-size:0.74rem; font-weight:700;">
+                      ${songs.length}曲
+                    </span>
+                    <span style="color:var(--tm); font-size:1.1rem; font-weight:300;">›</span>
+                  </div>
+                `;
+
+                card.onclick = () => {
+                  selectedArtistForLyrics = artistName;
+                  renderHubChips();
+                };
+
+                grid.appendChild(card);
+              });
+
+              container.appendChild(grid);
+            } else {
+              // ── 階層 2: 選択中アーティストの楽曲一覧 ──
+              let artistSongs = artistMap.get(selectedArtistForLyrics) || [];
+
+              if (query) {
+                artistSongs = artistSongs.filter((s) => {
+                  const tk = (s.title_ko || "").toLowerCase();
+                  const tj = (s.title_ja || "").toLowerCase();
+                  const ex = (s._extraArtist || "").toLowerCase();
+                  return tk.includes(query) || tj.includes(query) || ex.includes(query);
+                });
+              }
+
+              if (artistSongs.length === 0) {
+                const emptyEl = document.createElement("div");
+                emptyEl.style.cssText = "font-size:0.8rem; color:var(--tm); padding:16px; text-align:center;";
+                emptyEl.textContent = `🔍 このアーティストに該当する楽曲が見つかりませんでした`;
+                container.appendChild(emptyEl);
+                return;
+              }
+
+              const table = document.createElement("table");
+              table.style.cssText = "width:100%; border-collapse:collapse; font-size:0.8rem;";
+
+              table.innerHTML = `
+                <thead>
+                  <tr style="background:var(--s2); border-bottom:1px solid var(--bd);">
+                    <th style="padding:8px 12px; text-align:left; font-weight:700; width:55%;">曲名</th>
+                    <th style="padding:8px 12px; text-align:left; font-weight:700; width:35%;">備考 / フィーチャリング</th>
+                    <th style="padding:8px; text-align:center; font-weight:700; width:50px;">操作</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              `;
+
+              const tbody = table.querySelector("tbody");
+
+              artistSongs.forEach((item) => {
+                const isSelected = currentArticle && currentArticle.id === item.id;
+                const tr = document.createElement("tr");
+                tr.style.cssText = `
+                  border-bottom: 1px solid var(--bd);
+                  cursor: pointer;
+                  transition: background 0.2s;
+                  ${isSelected ? "background: rgba(0, 212, 170, 0.12); border-left: 3px solid var(--ac);" : ""}
+                `;
+                tr.onmouseover = () => { if (!isSelected) tr.style.background = "var(--s3)"; };
+                tr.onmouseout = () => { if (!isSelected) tr.style.background = ""; };
+
+                const titleKo = item.title_ko ? item.title_ko.split(" - ")[0].trim() : "";
+                const titleJa = item.title_ja ? item.title_ja.split(" - ")[0].trim() : "";
+                const extra = item._extraArtist || "";
+
+                tr.innerHTML = `
+                  <td style="padding:10px 12px;">
+                    <div style="font-weight:700; font-size:0.86rem; color:var(--tx); display:flex; align-items:center; gap:6px;">
+                      ${isSelected ? '<span style="color:var(--ac); font-size:0.75rem;">▶ 再生中</span>' : ''}
+                      <span>${escapeHtml(titleKo)}</span>
+                    </div>
+                    ${titleJa && titleJa !== titleKo ? `<div style="font-size:0.72rem; color:var(--tm); margin-top:2px;">${escapeHtml(titleJa)}</div>` : ''}
+                  </td>
+                  <td style="padding:10px 12px; color:var(--tm); font-size:0.78rem;">
+                    ${extra ? `<span style="background:var(--s3); border:1px solid var(--bd); padding:2px 8px; border-radius:6px; color:var(--tx); font-size:0.72rem;">with ${escapeHtml(extra)}</span>` : '―'}
+                  </td>
+                  <td style="padding:8px; text-align:center;">
+                    <button class="chip-delete-btn" onclick="deleteSongItem('${item.id}', event)" title="この楽曲を削除">🗑️</button>
+                  </td>
+                `;
+
+                tr.onclick = (e) => {
+                  if (e.target.tagName === "BUTTON") return;
+                  stopSpeech();
+                  currentArticle = item;
+                  renderHubChips();
+                  loadArticle(item);
+                };
+
+                tbody.appendChild(tr);
+              });
+
+              container.appendChild(table);
+            }
+          } else {
+            // ── 全曲一覧フラット表示モード ──
+            let flatList = [...allSongs].sort((a, b) => {
+              const artA = a.artist || "";
+              const artB = b.artist || "";
+              return artA.localeCompare(artB, "ko");
+            });
+
+            if (query) {
+              flatList = flatList.filter((item) => {
+                const art = (item.artist || "").toLowerCase();
+                const tk = (item.title_ko || "").toLowerCase();
+                const tj = (item.title_ja || "").toLowerCase();
+                return art.includes(query) || tk.includes(query) || tj.includes(query);
+              });
+            }
+
+            if (flatList.length === 0) {
+              const emptyEl = document.createElement("div");
+              emptyEl.style.cssText = "font-size:0.8rem; color:var(--tm); padding:16px; text-align:center;";
+              emptyEl.textContent = `🔍 一致する楽曲が見つかりませんでした`;
+              container.appendChild(emptyEl);
+              return;
+            }
+
+            const table = document.createElement("table");
+            table.style.cssText = "width:100%; border-collapse:collapse; font-size:0.8rem;";
+
+            table.innerHTML = `
+              <thead>
+                <tr style="background:var(--s2); border-bottom:1px solid var(--bd);">
+                  <th style="padding:8px 12px; text-align:left; font-weight:700; width:30%;">アーティスト</th>
+                  <th style="padding:8px 12px; text-align:left; font-weight:700; width:55%;">曲名</th>
+                  <th style="padding:8px; text-align:center; font-weight:700; width:50px;">操作</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            `;
+
+            const tbody = table.querySelector("tbody");
+
+            flatList.forEach((item) => {
+              const isSelected = currentArticle && currentArticle.id === item.id;
+              const tr = document.createElement("tr");
+              tr.style.cssText = `
+                border-bottom: 1px solid var(--bd);
+                cursor: pointer;
+                transition: background 0.2s;
+                ${isSelected ? "background: rgba(0, 212, 170, 0.12); border-left: 3px solid var(--ac);" : ""}
+              `;
+              tr.onmouseover = () => { if (!isSelected) tr.style.background = "var(--s3)"; };
+              tr.onmouseout = () => { if (!isSelected) tr.style.background = ""; };
+
+              const artist = item.artist || "不明";
+              const titleKo = item.title_ko ? item.title_ko.split(" - ")[0].trim() : "";
+              const titleJa = item.title_ja ? item.title_ja.split(" - ")[0].trim() : "";
+
+              tr.innerHTML = `
+                <td style="padding:10px 12px; font-weight:600; color:var(--tx);">
+                  ${escapeHtml(artist)}
+                </td>
+                <td style="padding:10px 12px;">
+                  <div style="font-weight:700; font-size:0.86rem; color:var(--tx); display:flex; align-items:center; gap:6px;">
+                    ${isSelected ? '<span style="color:var(--ac); font-size:0.75rem;">▶ 再生中</span>' : ''}
+                    <span>${escapeHtml(titleKo)}</span>
+                  </div>
+                  ${titleJa && titleJa !== titleKo ? `<div style="font-size:0.72rem; color:var(--tm); margin-top:2px;">${escapeHtml(titleJa)}</div>` : ''}
+                </td>
+                <td style="padding:8px; text-align:center;">
+                  <button class="chip-delete-btn" onclick="deleteSongItem('${item.id}', event)" title="この楽曲を削除">🗑️</button>
+                </td>
+              `;
+
+              tr.onclick = (e) => {
+                if (e.target.tagName === "BUTTON") return;
+                stopSpeech();
+                currentArticle = item;
+                renderHubChips();
+                loadArticle(item);
+              };
+
+              tbody.appendChild(tr);
+            });
+
+            container.appendChild(table);
+          }
         } else {
           // ニュースモード: カード形式
           container.style.display = "grid";
@@ -10047,6 +10512,55 @@
           celebBadge.innerHTML = `${item.person_profile_url ? `<img src="${item.person_profile_url}" style="width:20px; height:20px; border-radius:50%; object-fit:cover;" />` : "⭐"} 推しニュース: ${item.person_name}`;
         } else if (celebBadge) {
           celebBadge.style.display = "none";
+        }
+
+        // 🎤 アーティスト名表示
+        const artistDisplay = document.getElementById("article-artist-display");
+        const artistNameEl = document.getElementById("article-artist-name");
+        const badgeArtist = document.getElementById("badge-artist");
+        const badgeArtistText = document.getElementById("badge-artist-text");
+        if (currentMode === "lyrics" || item.artist) {
+          const artistText = item.artist || "アーティスト不明";
+          if (artistDisplay && artistNameEl) {
+            artistNameEl.textContent = artistText;
+            artistDisplay.style.display = "inline-flex";
+          }
+          if (badgeArtist && badgeArtistText) {
+            badgeArtistText.textContent = artistText;
+            badgeArtist.style.display = "inline-flex";
+          }
+        } else {
+          if (artistDisplay) artistDisplay.style.display = "none";
+          if (badgeArtist) badgeArtist.style.display = "none";
+        }
+
+        // 🔴 YouTubeリンクボタンの表示切り替え
+        const youtubeBtn = document.getElementById("header-youtube-btn");
+        if (youtubeBtn) {
+          if (currentMode === "lyrics" || item.youtube_id || item.mv_url) {
+            const ytVal = item.youtube_id || item.mv_url;
+            let ytUrl = "";
+            if (ytVal && String(ytVal).trim()) {
+              const str = String(ytVal).trim();
+              if (str.startsWith("http://") || str.startsWith("https://")) {
+                ytUrl = str;
+              } else {
+                ytUrl = `https://www.youtube.com/watch?v=${str}`;
+              }
+            } else if (item.title_ko || item.title_ja) {
+              const query = [item.artist, (item.title_ko || "").split(" - ")[0]].filter(Boolean).join(" ");
+              ytUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
+            }
+
+            if (ytUrl) {
+              youtubeBtn.href = ytUrl;
+              youtubeBtn.style.display = "inline-flex";
+            } else {
+              youtubeBtn.style.display = "none";
+            }
+          } else {
+            youtubeBtn.style.display = "none";
+          }
         }
 
         // 🎵 Spotifyリンクボタンの表示切り替え
