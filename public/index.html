@@ -2167,38 +2167,22 @@
             <!-- 🎵 タイトル行（右側にSpotifyリンクボタン & Supabase保存ボタンを配置） -->
             <div class="title-row-wrap">
               <div class="title-left-col" style="flex: 1; min-width: 280px; display: flex; flex-direction: column; align-items: flex-start; gap: 4px;">
-                <div id="article-artist-display" style="display: none; align-items: center; gap: 8px; margin-bottom: 6px;">
-                  <span style="background: rgba(0, 212, 170, 0.15); border: 1px solid var(--ac); border-radius: 8px; padding: 2px 10px; font-size: 0.8rem; font-weight: 700; color: var(--ac);">🎤 アーティスト</span>
-                  <span id="article-artist-name" style="font-size: 1.15rem; font-weight: 800; color: var(--tx);"></span>
+                <!-- タイトル行（韓国語タイトル ＋ 日本語タイトルを横に並べる） -->
+                <div style="display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px;">
+                  <span class="article-title-ko" id="article-title-ko">
+                    서울 강남 귀금속점 특수강도 사건 발생… 피의자 긴급 체포
+                  </span>
+                  <span class="article-title-ja" id="article-title-ja" style="font-size: 1.05rem; color: #94a3b8; font-weight: 600;">
+                    （ソウル江南の貴金属店で特殊強盗事件発生… 被疑者を緊急逮捕）
+                  </span>
                 </div>
-                <div class="article-title-ko" id="article-title-ko">
-                  서울 강남 귀금속점 특수강도 사건 발생… 피의자 긴급 체포
+                <!-- アーティスト名（1箇所にシンプルに表示） -->
+                <div id="article-artist-display" style="display: none; align-items: center; gap: 6px; font-size: 1.05rem; font-weight: 700; color: var(--ac); margin-top: 4px;">
+                  <span>🎤</span> <span id="article-artist-name"></span>
                 </div>
               </div>
 
               <div class="header-actions-right">
-                <!-- ⚡ 日本語訳＆ルビ自動再解析ボタン -->
-                <button
-                  id="auto-translate-lyrics-btn"
-                  class="mini-action-btn"
-                  onclick="autoTranslateCurrentSong()"
-                  style="
-                    background: linear-gradient(135deg, #ec4899, #8b5cf6);
-                    color: #fff;
-                    border: none;
-                    font-weight: 700;
-                    padding: 6px 12px;
-                    border-radius: 8px;
-                    box-shadow: 0 2px 8px rgba(236, 72, 153, 0.3);
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 5px;
-                  "
-                  title="歌詞の全行に日本語対訳と発音カタカナルビ、語彙解説を自動生成・補完"
-                >
-                  ⚡ 全文を自動翻訳・ルビ生成
-                </button>
-
                 <!-- ☁️ Supabaseへ保存ボタン（歌詞モード時） -->
                 <button
                   id="save-to-supabase-btn"
@@ -2291,13 +2275,8 @@
                 </a>
               </div>
             </div>
-
-            <div class="article-title-ja" id="article-title-ja">
-              ソウル江南の貴金属店で特殊強盗事件発生… 被疑者を緊急逮捕
-            </div>
           </div>
 
-          <!-- Sentence-by-Sentence List -->
           <div class="sentence-list" id="sentence-container">
             <!-- Populated dynamically -->
           </div>
@@ -10431,47 +10410,38 @@
         stopSpeech();
         currentSentenceIndex = 0;
 
-        // ⚡ 未翻訳・プレースホルダーの歌詞がある場合、バックグラウンドで全自動翻訳＆ルビ生成！
-        const hasUntranslated = (item.sentences || []).some(
-          (s) =>
-            !s.ja || s.ja.includes("クリックして") || s.ja === s.ko || !s.rubi,
-        );
-        if (hasUntranslated) {
-          (async () => {
-            let updated = false;
-            for (const s of item.sentences || []) {
-              if (!s.rubi) {
-                s.rubi = hangulToKatakana(s.ko);
-                updated = true;
-              }
-              if (!s.ja || s.ja.includes("クリックして") || s.ja === s.ko) {
-                const trans = await translateKoToJa(s.ko);
-                if (trans && trans !== s.ko) {
-                  s.ja = trans;
-                  updated = true;
-                }
-              }
-            }
-            if (updated) {
-              // 自動で画面の対訳とルビを最新化
-              (item.sentences || []).forEach((s, idx) => {
-                const card = document.getElementById(`sent-card-${idx}`);
-                if (card) {
-                  const jaEl = card.querySelector(".sentence-ja");
-                  if (jaEl) jaEl.textContent = s.ja;
-                  const rubiEl = card.querySelector(".sentence-rubi");
-                  if (rubiEl) rubiEl.textContent = s.rubi;
-                }
-              });
-            }
-          })();
+        // 韓国語タイトル
+        const koTitle = item.title_ko || "";
+        document.getElementById("article-title-ko").textContent = koTitle;
+
+        // 日本語タイトル（韓国語と異なる場合のみ横に表示）
+        const jaEl = document.getElementById("article-title-ja");
+        if (jaEl) {
+          const jaTitle = (item.title_ja || "").split(" - ")[0].trim();
+          const cleanKo = koTitle.split(" - ")[0].trim();
+          const normKo = cleanKo.replace(/[\s\-_.,()]/g, "").toLowerCase();
+          const normJa = jaTitle.replace(/[\s\-_.,()]/g, "").toLowerCase();
+
+          if (jaTitle && (currentMode === "news" || (normJa !== normKo && !normKo.includes(normJa) && !normJa.includes(normKo)))) {
+            jaEl.textContent = currentMode === "news" ? jaTitle : `（${jaTitle}）`;
+            jaEl.style.display = "inline";
+          } else {
+            jaEl.textContent = "";
+            jaEl.style.display = "none";
+          }
         }
 
-        document.getElementById("article-title-ko").textContent = item.title_ko;
-        document.getElementById("article-title-ja").textContent = item.title_ja;
-        document.getElementById("badge-cat").textContent = item.category;
-        document.getElementById("badge-cat").className =
-          `tag-badge ${item.cat_class || ""}`;
+        // カテゴリバッジ（歌詞モード時は曲名重複を除去してシンプルに）
+        const catBadge = document.getElementById("badge-cat");
+        if (catBadge) {
+          if (currentMode === "lyrics") {
+            catBadge.textContent = "🎵 K-POP";
+            catBadge.className = "tag-badge cat-music";
+          } else {
+            catBadge.textContent = item.category || "📰 ニュース";
+            catBadge.className = `tag-badge ${item.cat_class || ""}`;
+          }
+        }
         document.getElementById("badge-level").textContent = item.level;
         document.getElementById("badge-source").textContent =
           item.source || "K-Learner";
@@ -10514,24 +10484,17 @@
           celebBadge.style.display = "none";
         }
 
-        // 🎤 アーティスト名表示
+        // 🎤 アーティスト名表示（1箇所のみ）
         const artistDisplay = document.getElementById("article-artist-display");
         const artistNameEl = document.getElementById("article-artist-name");
-        const badgeArtist = document.getElementById("badge-artist");
-        const badgeArtistText = document.getElementById("badge-artist-text");
         if (currentMode === "lyrics" || item.artist) {
           const artistText = item.artist || "アーティスト不明";
           if (artistDisplay && artistNameEl) {
             artistNameEl.textContent = artistText;
             artistDisplay.style.display = "inline-flex";
           }
-          if (badgeArtist && badgeArtistText) {
-            badgeArtistText.textContent = artistText;
-            badgeArtist.style.display = "inline-flex";
-          }
         } else {
           if (artistDisplay) artistDisplay.style.display = "none";
-          if (badgeArtist) badgeArtist.style.display = "none";
         }
 
         // 🔴 YouTubeリンクボタンの表示切り替え
