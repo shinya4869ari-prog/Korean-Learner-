@@ -10853,6 +10853,7 @@
 
           // 🎯 自動追従スクロール：ホバー/タップでその行を辞書バー直下へ定位置スクロール
           let _lyricsScrollDebounceTimer = null;
+          let _lyricsScrollCooldown = false;
           if (typeof window._lyricsAutoScrollEnabled === "undefined") {
             window._lyricsAutoScrollEnabled = true;
           }
@@ -10877,7 +10878,9 @@
 
             const cardTop = card.getBoundingClientRect().top + window.scrollY;
             const targetScrollY = cardTop - prevCardHeight - lookupBarBottom - MARGIN;
+            _lyricsScrollCooldown = true;
             window.scrollTo({ top: targetScrollY, behavior: 'smooth' });
+            setTimeout(() => { _lyricsScrollCooldown = false; }, 700);
           }
 
           window.toggleLyricsAutoScroll = function() {
@@ -10902,20 +10905,15 @@
 
             card.innerHTML = `
             <div class="sentence-content">
-              <div class="reading-live-indicator">
-                <span class="eq-bar b1"></span>
-                <span class="eq-bar b2"></span>
-                <span class="eq-bar b3"></span>
-                読上げ中 🔊
-              </div>
               <div class="sentence-ko" id="sent-ko-${idx}">${wrappedKo}</div>
               <div class="sentence-ja" id="sent-ja-${idx}" data-raw-ja="${s.ja.replace(/"/g, "&quot;")}">${s.ja}</div>
             </div>
           `;
             sContainer.appendChild(card);
 
-            // ── ホバー：debounce 180ms で自動スクロール ──
+            // ── ホバー：debounce 180ms & クールダウン中はスキップ ──
             card.addEventListener('mouseenter', () => {
+              if (_lyricsScrollCooldown) return;
               clearTimeout(_lyricsScrollDebounceTimer);
               _lyricsScrollDebounceTimer = setTimeout(() => {
                 _scrollLyricsCardIntoPosition(card, idx);
