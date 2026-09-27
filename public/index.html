@@ -10854,9 +10854,17 @@
           // 🎯 自動追従スクロール：ホバー/タップでその行を辞書バー直下へ定位置スクロール
           let _lyricsScrollDebounceTimer = null;
           let _lyricsScrollCooldown = false;
+          let _lyricsLastMouseX = -9999, _lyricsLastMouseY = -9999;
+          let _lyricsScrollMouseX = -9999, _lyricsScrollMouseY = -9999;
           if (typeof window._lyricsAutoScrollEnabled === "undefined") {
             window._lyricsAutoScrollEnabled = true;
           }
+
+          // マウス座標を常時追跡
+          document.addEventListener('mousemove', (e) => {
+            _lyricsLastMouseX = e.clientX;
+            _lyricsLastMouseY = e.clientY;
+          });
 
           function _scrollLyricsCardIntoPosition(card, idx) {
             if (!window._lyricsAutoScrollEnabled) return;
@@ -10879,8 +10887,10 @@
             const cardTop = card.getBoundingClientRect().top + window.scrollY;
             const targetScrollY = cardTop - prevCardHeight - lookupBarBottom - MARGIN;
             _lyricsScrollCooldown = true;
+            _lyricsScrollMouseX = _lyricsLastMouseX;
+            _lyricsScrollMouseY = _lyricsLastMouseY;
             window.scrollTo({ top: targetScrollY, behavior: 'smooth' });
-            setTimeout(() => { _lyricsScrollCooldown = false; }, 700);
+            setTimeout(() => { _lyricsScrollCooldown = false; }, 800);
           }
 
           window.toggleLyricsAutoScroll = function() {
@@ -10911,9 +10921,13 @@
           `;
             sContainer.appendChild(card);
 
-            // ── ホバー：debounce 180ms & クールダウン中はスキップ ──
+            // ── ホバー：マウスが実際に動いた場合のみスクロール ──
             card.addEventListener('mouseenter', () => {
               if (_lyricsScrollCooldown) return;
+              // ページスクロールでカーソル下に来ただけか判定（移動量20px未満はスキップ）
+              const dx = _lyricsLastMouseX - _lyricsScrollMouseX;
+              const dy = _lyricsLastMouseY - _lyricsScrollMouseY;
+              if (Math.sqrt(dx * dx + dy * dy) < 20) return;
               clearTimeout(_lyricsScrollDebounceTimer);
               _lyricsScrollDebounceTimer = setTimeout(() => {
                 _scrollLyricsCardIntoPosition(card, idx);
