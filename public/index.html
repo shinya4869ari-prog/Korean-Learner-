@@ -2162,7 +2162,7 @@
           "
           title="クリックでアプリを最新版へ即座に更新（キャッシュ強制クリア）"
         >
-          🔄 v1.2.2 (更新)
+          🔄 v1.2.3 (更新)
         </span>
         <button
           class="cat-btn"
@@ -2396,7 +2396,7 @@
                   rel="noopener noreferrer"
                   class="wiki-badge-btn"
                   style="display: none"
-                  title="Wikidataで楽曲の詳細・作品データを調べる"
+                  title="Wikipediaで楽曲の解説記事を開く"
                 >
                   <svg
                     viewBox="0 0 24 24"
@@ -10762,7 +10762,7 @@
         if (wikiBtn) {
           if (currentMode === "lyrics" && item.wikidata_id && String(item.wikidata_id).trim()) {
             const wid = String(item.wikidata_id).trim();
-            wikiBtn.href = `https://www.wikidata.org/wiki/${encodeURIComponent(wid)}`;
+            wikiBtn.href = `https://hub.toolforge.org/${encodeURIComponent(wid)}?lang=ja,ko,en`;
             wikiBtn.title = `Wikidata (${wid}) で作品データを見る`;
             wikiBtn.style.display = "inline-flex";
           } else {
