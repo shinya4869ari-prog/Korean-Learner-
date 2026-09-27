@@ -10586,23 +10586,17 @@
           }
         }
 
-        // 🌐 Wikidataリンクボタンの表示切り替え
+        // 🌐 Wikidataリンクボタンの表示切り替え（wikidata_id が登録されている楽曲のみ表示）
         const wikiBtn = document.getElementById("header-wiki-btn");
         if (wikiBtn) {
-          if (currentMode === "lyrics") {
-            const rawKo = (item.title_ko || "").split(" - ")[0].trim();
-            const artist = (item.artist || "").split(" (")[0].trim();
-            if (item.wikidata_id) {
-              wikiBtn.href = `https://www.wikidata.org/wiki/${encodeURIComponent(item.wikidata_id)}`;
-              wikiBtn.title = `Wikidata (${item.wikidata_id}) で作品データを見る`;
-            } else {
-              const query = [artist, rawKo].filter(Boolean).join(" ");
-              wikiBtn.href = `https://www.wikidata.org/w/index.php?search=${encodeURIComponent(query)}`;
-              wikiBtn.title = `Wikidataで「${query}」を検索`;
-            }
+          if (currentMode === "lyrics" && item.wikidata_id && String(item.wikidata_id).trim()) {
+            const wid = String(item.wikidata_id).trim();
+            wikiBtn.href = `https://www.wikidata.org/wiki/${encodeURIComponent(wid)}`;
+            wikiBtn.title = `Wikidata (${wid}) で作品データを見る`;
             wikiBtn.style.display = "inline-flex";
           } else {
             wikiBtn.style.display = "none";
+            wikiBtn.href = "#";
           }
         }
 
