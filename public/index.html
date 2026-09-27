@@ -311,6 +311,87 @@
         color: var(--pink);
       }
 
+      /* ── 📰 ニュース リスト表示スタイル ── */
+      .hub-chips.list-mode {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 6px !important;
+        grid-template-columns: none !important;
+        max-height: 480px;
+        overflow-y: auto;
+      }
+      .news-list-row {
+        background: var(--s2);
+        border: 1px solid var(--bd);
+        border-radius: 10px;
+        padding: 9px 14px;
+        color: var(--tx);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        user-select: none;
+      }
+      .news-list-row:hover {
+        background: var(--s3);
+        border-color: var(--ac);
+        transform: translateX(3px);
+        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3);
+      }
+      .news-list-row.active {
+        background: rgba(0, 212, 170, 0.12);
+        border-color: var(--ac);
+        box-shadow: 0 0 16px var(--ac-glow);
+      }
+      .news-list-row.active .news-list-title-ja {
+        color: var(--ac);
+      }
+      .news-list-row.is-read {
+        opacity: 0.6;
+        background: rgba(19, 21, 36, 0.5);
+      }
+      .news-list-row.is-read:hover,
+      .news-list-row.is-read.active {
+        opacity: 1;
+      }
+      .news-list-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex: 1;
+        min-width: 0;
+      }
+      .news-list-titles {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+        flex: 1;
+      }
+      .news-list-title-ja {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: #ffffff;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .news-list-title-ko {
+        font-size: 0.76rem;
+        color: var(--tm);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .news-list-right {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
+      }
+
       /* ── Spotify風 アーティストライブラリ ── */
       .artist-card-item {
         background: var(--s2);
@@ -2167,6 +2248,17 @@
           >
             ⭐ 推し・エンタメ <span id="count-celeb">(0)</span>
           </button>
+          <div style="margin-left: auto; display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+            <button
+              id="news-view-mode-btn"
+              class="cat-btn"
+              onclick="toggleNewsViewMode()"
+              title="カード形式 ⇄ リスト形式を切り替え"
+              style="background: rgba(0, 212, 170, 0.12); border-color: rgba(0, 212, 170, 0.4); color: var(--ac); font-weight: 700;"
+            >
+              📑 リスト表示
+            </button>
+          </div>
         </div>
 
         <div class="hub-chips" id="hub-chip-container">
@@ -2333,7 +2425,7 @@
           <div class="panel-card" id="map-panel">
             <div class="panel-header">
               <div class="panel-title">
-                <span>🗺️</span> ニュース・MVの舞台マップ
+                <span>🗺️</span> ニュース記事・場所
               </div>
               <span
                 style="font-size: 0.75rem; color: var(--ac); font-weight: 700"
@@ -9381,6 +9473,33 @@
         loadArticle(currentArticle);
       }
 
+      // ── 📰 NEWS VIEW MODE (CARD vs LIST) ──
+      let newsViewMode = localStorage.getItem("kr_learner_news_view_mode") || "card";
+
+      function toggleNewsViewMode() {
+        newsViewMode = newsViewMode === "card" ? "list" : "card";
+        localStorage.setItem("kr_learner_news_view_mode", newsViewMode);
+        updateNewsViewBtnText();
+        renderHubChips();
+      }
+
+      function updateNewsViewBtnText() {
+        const btn = document.getElementById("news-view-mode-btn");
+        if (btn) {
+          if (newsViewMode === "list") {
+            btn.innerHTML = "🔲 カード表示";
+            btn.style.background = "rgba(139, 92, 246, 0.15)";
+            btn.style.borderColor = "var(--ac2)";
+            btn.style.color = "#c4b5fd";
+          } else {
+            btn.innerHTML = "📑 リスト表示";
+            btn.style.background = "rgba(0, 212, 170, 0.12)";
+            btn.style.borderColor = "rgba(0, 212, 170, 0.4)";
+            btn.style.color = "var(--ac)";
+          }
+        }
+      }
+
       // ── READ / UNREAD TRACKING ──
       const STORAGE_KEY_READ_ARTICLES = "kr_learner_read_articles_v1";
       function getReadArticles() {
@@ -9876,63 +9995,115 @@
             container.appendChild(table);
           }
         } else {
-          // ニュースモード: カード形式
-          container.style.display = "grid";
-          container.style.gridTemplateColumns = "";
+          updateNewsViewBtnText();
 
-          list.forEach((item) => {
-            const chip = document.createElement("div");
-            const isSelected = item.id === currentArticle.id;
-            const isRead = readArticles.includes(String(item.id));
+          if (newsViewMode === "list") {
+            // 📰 ニュースモード: コンパクトリスト形式
+            container.className = "hub-chips list-mode";
+            container.style.display = "flex";
+            container.style.flexDirection = "column";
+            container.style.gridTemplateColumns = "none";
 
-            chip.className = `hub-chip ${isSelected ? "active" : ""} ${isRead ? "is-read" : "is-unread"}`;
+            list.forEach((item) => {
+              const row = document.createElement("div");
+              const isSelected = item.id === currentArticle.id;
+              const isRead = readArticles.includes(String(item.id));
+              row.className = `news-list-row ${isSelected ? "active" : ""} ${isRead ? "is-read" : "is-unread"}`;
 
-            const cloudIcon = item.is_supabase ? " ☁️" : "";
-            const catIcon = item.category ? item.category.split(" ")[0] : "📰";
-            const catName = item.category
-              ? item.category.replace(/^[^\s]+\s*/, "")
-              : "";
-            const sourceText = item.source_name ? `• ${item.source_name}` : "";
+              const catIcon = item.category ? item.category.split(" ")[0] : "📰";
+              const catName = item.category ? item.category.replace(/^[^\s]+\s*/, "") : "";
+              const titleJa = item.title_ja ? item.title_ja.split(" - ")[0].trim() : "";
+              const titleKo = item.title_ko ? item.title_ko.split(" - ")[0].trim() : "";
+              const mainTitle = titleJa || titleKo;
+              const subTitle = titleJa ? titleKo : "";
+              const dateStr = item.date || "";
+              const statusBadge = isRead ? `<span class="chip-badge-read">✔ 既読</span>` : `<span class="chip-badge-unread">● NEW</span>`;
+              const cloudIcon = item.is_supabase ? "☁️ " : "";
 
-            // 日本語見出しと韓国語見出し
-            const titleJa = item.title_ja
-              ? item.title_ja.split(" - ")[0].trim()
-              : "";
-            const titleKo = item.title_ko
-              ? item.title_ko.split(" - ")[0].trim()
-              : "";
+              row.innerHTML = `
+                <div class="news-list-left">
+                  <span class="tag-badge" style="font-size:0.72rem; padding:2px 8px; flex-shrink:0;">${catIcon} ${catName}</span>
+                  <div class="news-list-titles">
+                    <div class="news-list-title-ja">${cloudIcon}${mainTitle}</div>
+                    ${subTitle ? `<div class="news-list-title-ko">${subTitle}</div>` : ""}
+                  </div>
+                </div>
+                <div class="news-list-right">
+                  ${dateStr ? `<span style="font-size:0.75rem; color:var(--tm);">${dateStr}</span>` : ""}
+                  ${statusBadge}
+                  <button class="chip-delete-btn" onclick="deleteNewsItem('${item.id}', event)" title="このニュースを削除">🗑️</button>
+                </div>
+              `;
 
-            // ニュースの場合は日本語見出しを最優先で大きく、韓国語を下に添える
-            const mainTitle = titleJa ? titleJa : titleKo;
-            const subTitle = titleJa ? titleKo : titleJa || "";
+              row.onclick = () => {
+                stopSpeech();
+                currentArticle = item;
+                markArticleAsRead(item.id);
+                renderHubChips();
+                loadArticle(item);
+              };
+              container.appendChild(row);
+            });
+          } else {
+            // 📰 ニュースモード: カード形式（デフォルト）
+            container.className = "hub-chips";
+            container.style.display = "grid";
+            container.style.gridTemplateColumns = "";
 
-            // 既読・未読バッジ
-            const statusBadge = isRead
-              ? `<span class="chip-badge-read">✔ 既読</span>`
-              : `<span class="chip-badge-unread">● NEW</span>`;
+            list.forEach((item) => {
+              const chip = document.createElement("div");
+              const isSelected = item.id === currentArticle.id;
+              const isRead = readArticles.includes(String(item.id));
 
-            chip.innerHTML = `
-            <div class="chip-top-bar">
-              <span class="chip-cat-tag"><span>${catIcon}</span> <span>${catName}</span> <span style="opacity:0.65; font-size:0.7rem;">${sourceText}</span></span>
-              <div style="display:flex; align-items:center; gap:6px;">
-                ${cloudIcon}
-                ${statusBadge}
-                <button class="chip-delete-btn" onclick="deleteNewsItem('${item.id}', event)" title="このニュースを削除">🗑️</button>
+              chip.className = `hub-chip ${isSelected ? "active" : ""} ${isRead ? "is-read" : "is-unread"}`;
+
+              const cloudIcon = item.is_supabase ? " ☁️" : "";
+              const catIcon = item.category ? item.category.split(" ")[0] : "📰";
+              const catName = item.category
+                ? item.category.replace(/^[^\s]+\s*/, "")
+                : "";
+              const sourceText = item.source_name ? `• ${item.source_name}` : "";
+
+              // 日本語見出しと韓国語見出し
+              const titleJa = item.title_ja
+                ? item.title_ja.split(" - ")[0].trim()
+                : "";
+              const titleKo = item.title_ko
+                ? item.title_ko.split(" - ")[0].trim()
+                : "";
+
+              // ニュースの場合は日本語見出しを最優先で大きく、韓国語を下に添える
+              const mainTitle = titleJa ? titleJa : titleKo;
+              const subTitle = titleJa ? titleKo : titleJa || "";
+
+              // 既読・未読バッジ
+              const statusBadge = isRead
+                ? `<span class="chip-badge-read">✔ 既読</span>`
+                : `<span class="chip-badge-unread">● NEW</span>`;
+
+              chip.innerHTML = `
+              <div class="chip-top-bar">
+                <span class="chip-cat-tag"><span>${catIcon}</span> <span>${catName}</span> <span style="opacity:0.65; font-size:0.7rem;">${sourceText}</span></span>
+                <div style="display:flex; align-items:center; gap:6px;">
+                  ${cloudIcon}
+                  ${statusBadge}
+                  <button class="chip-delete-btn" onclick="deleteNewsItem('${item.id}', event)" title="このニュースを削除">🗑️</button>
+                </div>
               </div>
-            </div>
-            <div class="chip-title-ja">${mainTitle}</div>
-            ${subTitle ? `<div class="chip-title-ko">${subTitle}</div>` : ""}
-          `;
+              <div class="chip-title-ja">${mainTitle}</div>
+              ${subTitle ? `<div class="chip-title-ko">${subTitle}</div>` : ""}
+            `;
 
-            chip.onclick = () => {
-              stopSpeech();
-              currentArticle = item;
-              markArticleAsRead(item.id);
-              renderHubChips();
-              loadArticle(item);
-            };
-            container.appendChild(chip);
-          });
+              chip.onclick = () => {
+                stopSpeech();
+                currentArticle = item;
+                markArticleAsRead(item.id);
+                renderHubChips();
+                loadArticle(item);
+              };
+              container.appendChild(chip);
+            });
+          }
         }
       }
 
