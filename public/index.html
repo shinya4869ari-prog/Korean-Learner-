@@ -677,6 +677,30 @@
         color: #ffffff !important;
       }
 
+      .wiki-badge-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: linear-gradient(135deg, #1e293b, #334155);
+        border: 1.5px solid #64748b;
+        color: #f8fafc !important;
+        font-weight: 800;
+        font-size: 0.8rem;
+        padding: 7px 15px;
+        border-radius: 20px;
+        text-decoration: none;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 3px 12px rgba(100, 116, 139, 0.35);
+        flex-shrink: 0;
+      }
+      .wiki-badge-btn:hover {
+        background: linear-gradient(135deg, #334155, #475569);
+        border-color: #94a3b8;
+        transform: translateY(-2px) scale(1.03);
+        box-shadow: 0 6px 18px rgba(148, 163, 184, 0.5);
+        color: #38bdf8 !important;
+      }
+
       .supabase-save-btn {
         display: inline-flex;
         align-items: center;
@@ -2206,32 +2230,7 @@
               </div>
 
               <div class="header-actions-right">
-                <!-- ☁️ Supabaseへ保存ボタン（歌詞モード時） -->
-                <button
-                  id="save-to-supabase-btn"
-                  class="supabase-save-btn"
-                  onclick="saveCurrentSongToSupabase()"
-                  style="display: none"
-                  title="この曲の歌詞とプレビュー音源・ジャケットをSupabaseへ保存"
-                >
-                  ☁️ Supabaseに保存
-                </button>
-
-                <!-- 🗑️ 楽曲削除ボタン -->
-                <button
-                  id="delete-song-btn"
-                  class="mini-action-btn"
-                  onclick="deleteCurrentSong()"
-                  style="
-                    color: #f87171;
-                    border-color: rgba(239, 68, 68, 0.3);
-                    background: rgba(239, 68, 68, 0.1);
-                    display: none;
-                  "
-                  title="この楽曲を削除"
-                >
-                  🗑️ 楽曲を削除
-                </button>
+                <!-- 🗑️ ニュース記事削除ボタン（ニュース時のみ表示） -->
                 <button
                   id="delete-news-btn"
                   class="mini-action-btn"
@@ -2295,6 +2294,29 @@
                     />
                   </svg>
                   <span>YouTubeで見る ↗</span>
+                </a>
+
+                <!-- 🌐 Wikidataリンクボタン -->
+                <a
+                  id="header-wiki-btn"
+                  href="#"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="wiki-badge-btn"
+                  style="display: none"
+                  title="Wikidataで楽曲の詳細・作品データを調べる"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    width="16"
+                    height="16"
+                    fill="currentColor"
+                  >
+                    <path
+                      d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"
+                    />
+                  </svg>
+                  <span>Wikiで見る ↗</span>
                 </a>
               </div>
             </div>
@@ -7760,6 +7782,7 @@
                   preview_url: t.preview_url || data.preview_url,
                   itunes_url: t.itunes_url || data.itunes_url,
                   album_cover: t.album_cover || data.album_cover,
+                  wikidata_id: t.wikidata_id || data.wikidata_id || null,
                   youtube_id: t.youtube_id || data.youtube_id || t.mv_url || data.mv_url,
                   mv_url: t.mv_url || data.mv_url,
                   artist: data.artist || t.artist_name || t.artist || "K-POP",
@@ -8989,6 +9012,7 @@
                   ...existing,
                   id: st.id,
                   album_cover: st.album_cover || existing.album_cover,
+                  wikidata_id: st.wikidata_id || existing.wikidata_id || null,
                   youtube_id: st.youtube_id || existing.youtube_id,
                   mv_url: st.mv_url || existing.mv_url,
                   artist: existing.artist || st.artist,
@@ -10492,20 +10516,14 @@
           (typeof formatNewsDate === "function" ? formatNewsDate(item.published_at || item.created_at) : "") ||
           new Date().toLocaleDateString("ja-JP").replace(/\//g, ".");
 
-        // ☁️ Supabaseバッジと保存ボタンの切り替え
+        // ☁️ Supabaseバッジと削除ボタンの切り替え
         const supaBadge = document.getElementById("badge-supabase");
-        const supaSaveBtn = document.getElementById("save-to-supabase-btn");
-        const deleteSongBtn = document.getElementById("delete-song-btn");
         const deleteNewsBtn = document.getElementById("delete-news-btn");
         if (currentMode === "lyrics") {
-          supaSaveBtn.style.display = "inline-flex";
           supaBadge.style.display = item.is_supabase ? "inline-block" : "none";
-          if (deleteSongBtn) deleteSongBtn.style.display = "inline-flex";
           if (deleteNewsBtn) deleteNewsBtn.style.display = "none";
         } else {
-          supaSaveBtn.style.display = "none";
           supaBadge.style.display = item.is_supabase ? "inline-block" : "none";
-          if (deleteSongBtn) deleteSongBtn.style.display = "none";
           if (deleteNewsBtn) deleteNewsBtn.style.display = "inline-flex";
         }
 
@@ -10565,6 +10583,26 @@
             }
           } else {
             youtubeBtn.style.display = "none";
+          }
+        }
+
+        // 🌐 Wikidataリンクボタンの表示切り替え
+        const wikiBtn = document.getElementById("header-wiki-btn");
+        if (wikiBtn) {
+          if (currentMode === "lyrics") {
+            const rawKo = (item.title_ko || "").split(" - ")[0].trim();
+            const artist = (item.artist || "").split(" (")[0].trim();
+            if (item.wikidata_id) {
+              wikiBtn.href = `https://www.wikidata.org/wiki/${encodeURIComponent(item.wikidata_id)}`;
+              wikiBtn.title = `Wikidata (${item.wikidata_id}) で作品データを見る`;
+            } else {
+              const query = [artist, rawKo].filter(Boolean).join(" ");
+              wikiBtn.href = `https://www.wikidata.org/w/index.php?search=${encodeURIComponent(query)}`;
+              wikiBtn.title = `Wikidataで「${query}」を検索`;
+            }
+            wikiBtn.style.display = "inline-flex";
+          } else {
+            wikiBtn.style.display = "none";
           }
         }
 
