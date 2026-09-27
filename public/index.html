@@ -1155,6 +1155,29 @@
         letter-spacing: 0.5px;
       }
 
+      /* ── 💿 アルバムアートワーク パネル ── */
+      .album-artwork-wrap {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 4px 0 2px 0;
+      }
+      .album-artwork-wrap img {
+        width: 100%;
+        max-width: 340px;
+        aspect-ratio: 1 / 1;
+        object-fit: cover;
+        border-radius: 14px;
+        box-shadow: 0 8px 26px rgba(0, 0, 0, 0.5);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        transition: transform 0.25s ease, box-shadow 0.25s ease;
+      }
+      .album-artwork-wrap img:hover {
+        transform: scale(1.02);
+        box-shadow: 0 12px 32px rgba(0, 212, 170, 0.25);
+      }
+
       /* 1. MAP PANEL (GEOGRAPHY) */
       .map-container {
         width: 100%;
@@ -2320,6 +2343,18 @@
                 <!-- Dynamically Populated -->
               </tbody>
             </table>
+          </div>
+
+          <!-- 💿 アルバムアートワーク [歌詞モード時] -->
+          <div class="panel-card" id="album-artwork-panel" style="display: none">
+            <div class="panel-header">
+              <div class="panel-title">
+                <span>💿</span> アルバムアートワーク
+              </div>
+            </div>
+            <div class="album-artwork-wrap">
+              <img id="album-artwork-img" src="" alt="Album Artwork" loading="lazy" />
+            </div>
           </div>
 
           <!-- 💬 3. 歌詞特有の口語・感情・比喩表現 [歌詞モード時] -->
@@ -6702,6 +6737,7 @@
           {
             id: "lyrics-how-love-is",
             title_ko: "어떻게 사랑이 그래요 - 김나영",
+            album_cover: "https://is1-ssl.mzstatic.com/image/thumb/Music122/v4/f2/c4/f1/f2c4f126-a7fa-b14a-781d-97f330310529/888272106916.jpg/600x600bb.jpg",
             title_ja:
               "どうして愛がそんななの (キム・ナヨン / 原曲: イ・スンファン)",
             artist: "김나영 (Kim Na Young) / 이승환",
@@ -6876,6 +6912,7 @@
           {
             id: "lyrics-akmu-how-can-i-love",
             title_ko: "어떻게 이별까지 사랑하겠어, 널 사랑하는 거지 - AKMU",
+            album_cover: "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/e4/a2/80/e4a28015-490b-255a-ff26-aadd6257cfa1/AKMU_DS.jpg/600x600bb.jpg",
             title_ja:
               "どうして別れまで愛せようか、君を愛してるだけなのに (How can I love the heartbreak, you're the one I love)",
             artist: "AKMU (악뮤 / 楽童ミュージシャン)",
@@ -7028,6 +7065,7 @@
           {
             id: "lyrics-love-laugh",
             title_ko: "그렇게 사랑하고 그렇게 웃었습니다 - 김나영",
+            album_cover: "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/68/49/b7/6849b77a-f764-5e6b-f36b-1fd6ab7169d6/8806163376721.jpg/600x600bb.jpg",
             title_ja:
               "あんなに愛して、あんなに笑い合いました (原曲: Bubble Sisters)",
             artist: "김나영 (Kim Na Young) / 버블 시스터즈",
@@ -7200,6 +7238,7 @@
           {
             id: "lyrics-whoyou",
             title_ko: "니가 뭔데 (WHO YOU?) - 全文完全版",
+            album_cover: "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/6f/ea/f0/6feaf05d-1c45-a7ac-479e-f294d0ca4b70/8806197910472.jpg/600x600bb.jpg",
             title_ja: "WHO YOU? (お前何様のつもり？) 【フル歌詞対訳】",
             artist: "G-DRAGON (BIGBANG)",
             category: "K-POP (G-DRAGON)",
@@ -8949,6 +8988,7 @@
                 SAMPLE_DATABASE.lyrics[existingIdx] = {
                   ...existing,
                   id: st.id,
+                  album_cover: st.album_cover || existing.album_cover,
                   youtube_id: st.youtube_id || existing.youtube_id,
                   mv_url: st.mv_url || existing.mv_url,
                   artist: existing.artist || st.artist,
@@ -9308,6 +9348,8 @@
           catBar.style.display = "flex";
           lyricsPanel.style.display = "none";
           legalPanel.style.display = "block";
+          const artworkPanel = document.getElementById("album-artwork-panel");
+          if (artworkPanel) artworkPanel.style.display = "none";
           currentArticle = SAMPLE_DATABASE.news[0];
         }
 
@@ -10543,15 +10585,18 @@
           }
         }
 
-        // 地図パネルと歌詞パネルの表示切り替え
+        // 地図パネル・歌詞パネル・アルバムアートワークの表示切り替え
         const mapPanel = document.getElementById("map-panel");
         const legalPanel = document.getElementById("legal-panel");
         const lyricsPanel = document.getElementById("lyrics-panel");
+        const artworkPanel = document.getElementById("album-artwork-panel");
+        const artworkImg = document.getElementById("album-artwork-img");
 
         if (currentMode === "news") {
           if (mapPanel) mapPanel.style.display = "block";
           if (legalPanel) legalPanel.style.display = "block";
           if (lyricsPanel) lyricsPanel.style.display = "none";
+          if (artworkPanel) artworkPanel.style.display = "none";
 
           // 地図が表示された後に初期化・サイズ再計算
           setTimeout(() => {
@@ -10562,6 +10607,17 @@
           if (mapPanel) mapPanel.style.display = "none";
           if (legalPanel) legalPanel.style.display = "none";
           if (lyricsPanel) lyricsPanel.style.display = "block";
+
+          // 💿 アルバムアートワーク表示制御（画像URLがある時のみ表示）
+          if (artworkPanel && artworkImg) {
+            if (item.album_cover) {
+              artworkImg.src = item.album_cover;
+              artworkPanel.style.display = "block";
+            } else {
+              artworkPanel.style.display = "none";
+              artworkImg.src = "";
+            }
+          }
         }
 
         // 1. Render Content (News: Paragraph Block View / Lyrics: Sentence Cards)
