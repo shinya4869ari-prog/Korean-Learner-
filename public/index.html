@@ -10845,10 +10845,53 @@
             </div>
             <button class="mini-action-btn" onclick="executeLyricsGlobalLookup()">🔍 調べ</button>
             <button class="mini-action-btn" onclick="pasteClipboardToLyrics()" title="クリップボードから貼付">📋 貼付</button>
+            <button id="lyrics-autoscroll-toggle" class="mini-action-btn" onclick="toggleLyricsAutoScroll()" title="自動追従のON/OFF" style="background:rgba(236,72,153,0.18);border-color:rgba(236,72,153,0.5);color:#ec4899;font-size:0.78rem;padding:4px 10px;">🎯 自動追従 ON</button>
           </div>
           <div id="lyrics-global-lookup-res" style="font-size:0.85rem; display:none;"></div>
         `;
           sContainer.appendChild(lyricsLookup);
+
+          // 🎯 自動追従スクロール：ホバー/タップでその行を辞書バー直下へ定位置スクロール
+          let _lyricsScrollDebounceTimer = null;
+          if (typeof window._lyricsAutoScrollEnabled === "undefined") {
+            window._lyricsAutoScrollEnabled = true;
+          }
+
+          function _scrollLyricsCardIntoPosition(card, idx) {
+            if (!window._lyricsAutoScrollEnabled) return;
+
+            document.querySelectorAll('.lyrics-line-card').forEach(c => c.classList.remove('active'));
+            card.classList.add('active');
+
+            const lookupBar = document.getElementById('lyrics-global-lookup-container');
+            const lookupBarBottom = lookupBar
+              ? lookupBar.getBoundingClientRect().bottom + window.scrollY
+              : window.scrollY + 120;
+
+            const MARGIN = 8;
+            let prevCardHeight = 0;
+            if (idx > 0) {
+              const prevCard = document.getElementById(`sent-card-${idx - 1}`);
+              if (prevCard) prevCardHeight = prevCard.getBoundingClientRect().height + MARGIN;
+            }
+
+            const cardTop = card.getBoundingClientRect().top + window.scrollY;
+            const targetScrollY = cardTop - prevCardHeight - lookupBarBottom - MARGIN;
+            window.scrollTo({ top: targetScrollY, behavior: 'smooth' });
+          }
+
+          window.toggleLyricsAutoScroll = function() {
+            window._lyricsAutoScrollEnabled = !window._lyricsAutoScrollEnabled;
+            const btn = document.getElementById('lyrics-autoscroll-toggle');
+            if (btn) {
+              btn.textContent = window._lyricsAutoScrollEnabled ? '🎯 自動追従 ON' : '🎯 自動追従 OFF';
+              btn.style.background = window._lyricsAutoScrollEnabled
+                ? 'rgba(236,72,153,0.18)' : 'rgba(100,100,100,0.18)';
+              btn.style.borderColor = window._lyricsAutoScrollEnabled
+                ? 'rgba(236,72,153,0.5)' : 'rgba(150,150,150,0.4)';
+              btn.style.color = window._lyricsAutoScrollEnabled ? '#ec4899' : '#888';
+            }
+          };
 
           (item.sentences || []).forEach((s, idx) => {
             const card = document.createElement("div");
@@ -10870,6 +10913,24 @@
             </div>
           `;
             sContainer.appendChild(card);
+
+            // ── ホバー：debounce 180ms で自動スクロール ──
+            card.addEventListener('mouseenter', () => {
+              clearTimeout(_lyricsScrollDebounceTimer);
+              _lyricsScrollDebounceTimer = setTimeout(() => {
+                _scrollLyricsCardIntoPosition(card, idx);
+              }, 180);
+            });
+            card.addEventListener('mouseleave', () => {
+              clearTimeout(_lyricsScrollDebounceTimer);
+            });
+
+            // ── タップ/クリック：即時スクロール（単語クリック以外） ──
+            card.addEventListener('click', (e) => {
+              if (!e.target.classList.contains('clickable-word')) {
+                _scrollLyricsCardIntoPosition(card, idx);
+              }
+            });
           });
 
           // 🎵 歌詞モードは対訳アライメント不要のためスキャンをスキップ
