@@ -10873,9 +10873,10 @@
             card.classList.add('active');
 
             const lookupBar = document.getElementById('lyrics-global-lookup-container');
+            // getBoundingClientRect().bottom はビューポート基準の値のため window.scrollY は不要
             const lookupBarBottom = lookupBar
-              ? lookupBar.getBoundingClientRect().bottom + window.scrollY
-              : window.scrollY + 120;
+              ? lookupBar.getBoundingClientRect().bottom
+              : 120;
 
             const MARGIN = 8;
             let prevCardHeight = 0;
