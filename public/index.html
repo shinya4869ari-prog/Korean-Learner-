@@ -932,6 +932,92 @@
         line-height: 1.2;
       }
 
+      /* ── 🎵 歌詞末尾：最初の行へ戻るボタン ── */
+      .lyrics-bottom-back-card {
+        margin: 28px 0 16px 0;
+        text-align: center;
+        display: flex;
+        justify-content: center;
+      }
+      .lyrics-bottom-back-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        background: linear-gradient(135deg, rgba(236, 72, 153, 0.16), rgba(219, 39, 119, 0.28));
+        border: 1.5px solid rgba(236, 72, 153, 0.55);
+        border-radius: 30px;
+        padding: 12px 28px;
+        color: #ffffff;
+        font-size: 0.95rem;
+        font-weight: 700;
+        cursor: pointer;
+        box-shadow: 0 4px 18px rgba(236, 72, 153, 0.25);
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      .lyrics-bottom-back-btn:hover {
+        background: linear-gradient(135deg, rgba(236, 72, 153, 0.3), rgba(219, 39, 119, 0.5));
+        border-color: #ec4899;
+        box-shadow: 0 6px 24px rgba(236, 72, 153, 0.45);
+        transform: translateY(-2px);
+      }
+      .lyrics-bottom-back-btn:active {
+        transform: translateY(0);
+      }
+      .lyrics-bottom-back-btn .back-sub {
+        font-size: 0.8rem;
+        color: #fbcfe8;
+        font-weight: 400;
+      }
+
+      /* ── 🚀 フローティング トップへ戻るボタン ── */
+      .floating-back-to-top {
+        position: fixed;
+        right: 24px;
+        bottom: 28px;
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: rgba(19, 24, 39, 0.88);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1.5px solid rgba(236, 72, 153, 0.45);
+        color: #ec4899;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55), 0 0 14px rgba(236, 72, 153, 0.2);
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(16px) scale(0.92);
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        z-index: 1000;
+      }
+      .floating-back-to-top.visible {
+        opacity: 1;
+        pointer-events: auto;
+        transform: translateY(0) scale(1);
+      }
+      .floating-back-to-top:hover {
+        background: rgba(236, 72, 153, 0.25);
+        border-color: #ec4899;
+        color: #ffffff;
+        box-shadow: 0 10px 28px rgba(236, 72, 153, 0.4);
+        transform: translateY(-3px) scale(1.06);
+      }
+      .floating-back-to-top:active {
+        transform: translateY(0) scale(0.96);
+      }
+      @media (max-width: 768px) {
+        .floating-back-to-top {
+          right: 16px;
+          bottom: 20px;
+          width: 44px;
+          height: 44px;
+        }
+      }
+
       .sentence-ko {
         font-family: var(--font-kr);
         font-size: 1.18rem;
@@ -9397,6 +9483,7 @@
         initUserNotes();
         initWordbookCloudSync();
         initScrollHideHeader();
+        initFloatingScrollToTop();
 
         document.addEventListener("keydown", (e) => {
           if (
@@ -9462,6 +9549,35 @@
           },
           { passive: true }
         );
+      }
+
+      // ── 🚀 FLOATING SCROLL TO TOP ──
+      function initFloatingScrollToTop() {
+        const btn = document.getElementById("floating-back-to-top-btn");
+        if (!btn) return;
+
+        window.addEventListener(
+          "scroll",
+          () => {
+            if ((window.scrollY || 0) > 280) {
+              btn.classList.add("visible");
+            } else {
+              btn.classList.remove("visible");
+            }
+          },
+          { passive: true }
+        );
+      }
+
+      function handleFloatingScrollToTop() {
+        if (currentMode === "lyrics") {
+          const firstCard = document.getElementById("sent-card-0");
+          if (firstCard && typeof _scrollLyricsCardIntoPosition === "function") {
+            _scrollLyricsCardIntoPosition(firstCard, 0);
+            return;
+          }
+        }
+        window.scrollTo({ top: 0, behavior: "smooth" });
       }
 
       // ── LEAFLET MAP INITIALIZATION ──
@@ -11047,6 +11163,29 @@
             });
           });
 
+          // ── 🎵 歌詞末尾：最初の行へ戻るボタン ──
+          if ((item.sentences || []).length > 0) {
+            const backToTopCard = document.createElement("div");
+            backToTopCard.className = "lyrics-bottom-back-card";
+            backToTopCard.innerHTML = `
+              <button class="lyrics-bottom-back-btn" onclick="scrollToLyricsTop()">
+                <span style="font-size:1.1rem;">⬆️</span>
+                <span>最初の行に戻る</span>
+                <span class="back-sub">（最初から読む）</span>
+              </button>
+            `;
+            sContainer.appendChild(backToTopCard);
+          }
+
+          window.scrollToLyricsTop = function() {
+            const firstCard = document.getElementById("sent-card-0");
+            if (firstCard && typeof _scrollLyricsCardIntoPosition === "function") {
+              _scrollLyricsCardIntoPosition(firstCard, 0);
+            } else {
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }
+          };
+
           // 🎵 歌詞モードは対訳アライメント不要のためスキャンをスキップ
         }
 
@@ -12495,5 +12634,18 @@
       </div>
     </div>
   </div>
+
+  <!-- 🚀 フローティング トップへ戻るボタン -->
+  <button
+    id="floating-back-to-top-btn"
+    class="floating-back-to-top"
+    onclick="handleFloatingScrollToTop()"
+    title="ページ最上部へ戻る"
+    aria-label="ページ最上部へ戻る"
+  >
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="18 15 12 9 6 15"></polyline>
+    </svg>
+  </button>
   </body>
 </html>
