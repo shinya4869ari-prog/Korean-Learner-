@@ -1,5 +1,5 @@
-// K-Learner - Service Worker (PWA) v17
-const CACHE_NAME = "klearner-pwa-v17";
+// K-Learner - Service Worker (PWA) v18
+const CACHE_NAME = "klearner-pwa-v18";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();

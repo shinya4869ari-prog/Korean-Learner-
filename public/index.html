@@ -901,10 +901,12 @@
         margin-bottom: 6px;
         transition: all 0.2s ease;
         position: relative;
+        cursor: pointer;
+        user-select: text;
       }
       .lyrics-line-card:hover {
-        background: rgba(255, 255, 255, 0.04);
-        border-color: rgba(236, 72, 153, 0.3);
+        background: rgba(255, 255, 255, 0.06);
+        border-color: rgba(236, 72, 153, 0.4);
       }
       .lyrics-line-card.active {
         border-color: #ec4899 !important;
@@ -10953,8 +10955,12 @@
         sContainer.innerHTML = "";
 
         if (currentMode === "news") {
+          sContainer.style.paddingBottom = "";
           renderNewsParagraphs(item, sContainer);
         } else {
+          // 🎵 歌詞モード：最下行でも画面上部まで上がってこれるよう十分なスクロール余白を確保
+          sContainer.style.paddingBottom = "75vh";
+
           // 🎵 歌詞モード用 追従型スマート単語バー（ヘッダー直下に固定追従）
           const lyricsLookup = document.createElement("div");
           lyricsLookup.className = "global-lyrics-lookup";
@@ -10970,26 +10976,16 @@
             </div>
             <button class="mini-action-btn" onclick="executeLyricsGlobalLookup()">🔍 調べ</button>
             <button class="mini-action-btn" onclick="pasteClipboardToLyrics()" title="クリップボードから貼付">📋 貼付</button>
-            <button id="lyrics-autoscroll-toggle" class="mini-action-btn" onclick="toggleLyricsAutoScroll()" title="自動追従のON/OFF" style="background:rgba(236,72,153,0.18);border-color:rgba(236,72,153,0.5);color:#ec4899;font-size:0.78rem;padding:4px 10px;">🎯 自動追従 ON</button>
+            <button id="lyrics-autoscroll-toggle" class="mini-action-btn" onclick="toggleLyricsAutoScroll()" title="クリック追従のON/OFF" style="background:rgba(236,72,153,0.18);border-color:rgba(236,72,153,0.5);color:#ec4899;font-size:0.78rem;padding:4px 10px;">🎯 クリック追従 ON</button>
           </div>
           <div id="lyrics-global-lookup-res" style="font-size:0.85rem; display:none;"></div>
         `;
           sContainer.appendChild(lyricsLookup);
 
-          // 🎯 自動追従スクロール：ホバー/タップでその行を辞書バー直下へ定位置スクロール
-          let _lyricsScrollDebounceTimer = null;
-          let _lyricsScrollCooldown = false;
-          let _lyricsLastMouseX = -9999, _lyricsLastMouseY = -9999;
-          let _lyricsScrollMouseX = -9999, _lyricsScrollMouseY = -9999;
+          // 🎯 追従スクロール：行カードのクリック/タップでその行を定位置（辞書バー直下）へスクロール
           if (typeof window._lyricsAutoScrollEnabled === "undefined") {
             window._lyricsAutoScrollEnabled = true;
           }
-
-          // マウス座標を常時追跡
-          document.addEventListener('mousemove', (e) => {
-            _lyricsLastMouseX = e.clientX;
-            _lyricsLastMouseY = e.clientY;
-          });
 
           function _scrollLyricsCardIntoPosition(card, idx) {
             if (!window._lyricsAutoScrollEnabled) return;
@@ -10998,32 +10994,30 @@
             card.classList.add('active');
 
             const lookupBar = document.getElementById('lyrics-global-lookup-container');
-            // getBoundingClientRect().bottom はビューポート基準の値のため window.scrollY は不要
-            const lookupBarBottom = lookupBar
-              ? lookupBar.getBoundingClientRect().bottom
-              : 120;
+            // スクロール後に辞書バーが画面上部に sticky 固定される位置（下端）を計算
+            const isHeaderHidden = document.body.classList.contains('header-hidden');
+            const stickyTop = isHeaderHidden ? 10 : (window.innerWidth <= 860 ? 96 : 72);
+            const barHeight = lookupBar ? lookupBar.offsetHeight : 52;
+            const stickyBarBottom = stickyTop + barHeight;
 
-            const MARGIN = 8;
+            const MARGIN = 10;
             let prevCardHeight = 0;
             if (idx > 0) {
               const prevCard = document.getElementById(`sent-card-${idx - 1}`);
-              if (prevCard) prevCardHeight = prevCard.getBoundingClientRect().height + MARGIN;
+              if (prevCard) prevCardHeight = prevCard.offsetHeight + MARGIN;
             }
 
             const cardTop = card.getBoundingClientRect().top + window.scrollY;
-            const targetScrollY = cardTop - prevCardHeight - lookupBarBottom - MARGIN;
-            _lyricsScrollCooldown = true;
-            _lyricsScrollMouseX = _lyricsLastMouseX;
-            _lyricsScrollMouseY = _lyricsLastMouseY;
+            const targetScrollY = Math.max(0, cardTop - stickyBarBottom - prevCardHeight - MARGIN);
+
             window.scrollTo({ top: targetScrollY, behavior: 'smooth' });
-            setTimeout(() => { _lyricsScrollCooldown = false; }, 800);
           }
 
           window.toggleLyricsAutoScroll = function() {
             window._lyricsAutoScrollEnabled = !window._lyricsAutoScrollEnabled;
             const btn = document.getElementById('lyrics-autoscroll-toggle');
             if (btn) {
-              btn.textContent = window._lyricsAutoScrollEnabled ? '🎯 自動追従 ON' : '🎯 自動追従 OFF';
+              btn.textContent = window._lyricsAutoScrollEnabled ? '🎯 クリック追従 ON' : '🎯 クリック追従 OFF';
               btn.style.background = window._lyricsAutoScrollEnabled
                 ? 'rgba(236,72,153,0.18)' : 'rgba(100,100,100,0.18)';
               btn.style.borderColor = window._lyricsAutoScrollEnabled
@@ -11047,27 +11041,9 @@
           `;
             sContainer.appendChild(card);
 
-            // ── ホバー：マウスが実際に動いた場合のみスクロール ──
-            card.addEventListener('mouseenter', () => {
-              if (_lyricsScrollCooldown) return;
-              // ページスクロールでカーソル下に来ただけか判定（移動量20px未満はスキップ）
-              const dx = _lyricsLastMouseX - _lyricsScrollMouseX;
-              const dy = _lyricsLastMouseY - _lyricsScrollMouseY;
-              if (Math.sqrt(dx * dx + dy * dy) < 20) return;
-              clearTimeout(_lyricsScrollDebounceTimer);
-              _lyricsScrollDebounceTimer = setTimeout(() => {
-                _scrollLyricsCardIntoPosition(card, idx);
-              }, 180);
-            });
-            card.addEventListener('mouseleave', () => {
-              clearTimeout(_lyricsScrollDebounceTimer);
-            });
-
-            // ── タップ/クリック：即時スクロール（単語クリック以外） ──
-            card.addEventListener('click', (e) => {
-              if (!e.target.classList.contains('clickable-word')) {
-                _scrollLyricsCardIntoPosition(card, idx);
-              }
+            // ── クリック/タップ：行カードをクリックすると即時定位置へスクロール ──
+            card.addEventListener('click', () => {
+              _scrollLyricsCardIntoPosition(card, idx);
             });
           });
 
